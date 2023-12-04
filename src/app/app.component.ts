@@ -87,9 +87,6 @@ export class AppComponent implements OnInit {
       void this.dialogService.openCookiesBanner();
     } else {
       this.checkMobile();
-      if (!informationService.infoEnabled && this.mobile === false) {
-        void this.dialogService.openInformationBanner();
-      }
     }
 
     if (policiesService.cookiesEnabled) {

@@ -49,7 +49,7 @@ export const initMatomoFunc = (liveDeploymentService: LiveDeploymentService): vo
   _paq.push(['trackPageView']);
   _paq.push(['enableLinkTracking']);
   // tslint:disable-next-line: only-arrow-functions
-  (function () {
+  (() => {
     const u = site.url;
     _paq.push(['setTrackerUrl', u + 'piwik.php']);
     _paq.push(['setSiteId', site.code]);

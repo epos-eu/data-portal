@@ -28,12 +28,10 @@ export const environmentBase = {
   commitDate: 'COMMIT_DATE', // populated during pipeline
   gitlabApiFeedbackProjectUrl: 'GITLAB_API_FEEDBACK_PROJECT_URL', // populated during pipeline
   gitlabApiFeedbackToken: 'GITLAB_API_FEEDBACK_TOKEN', // populated during pipeline
-  eposSiteApiRestUrl: 'EPOS_SITE_API_REST_URL', // populated during pipeline
-  eposSiteApiRestKey: 'EPOS_SITE_API_REST_KEY', // populated during pipeline
-  matomoLiveEndpoint: 'https://wwwstats.brgm.fr/',
-  matomoLivePort: '233',
-  matomoNotLiveEndpoint: 'https://wwwstats.brgm-rec.fr/',
-  matomoNotLivePort: '241',
+  matomoLiveEndpoint: 'MATOMO_PROD_URL',
+  matomoLivePort: 'MATOMO_PROD_PORT',
+  matomoNotLiveEndpoint: 'MATOMO_TEST_URL',
+  matomoNotLivePort: 'MATOMO_TEST_PORT',
   minWidth: 900,
   homepage: 'https://www.epos-eu.org',
   aboutpage: 'https://www.epos-eu.org/dataportal',

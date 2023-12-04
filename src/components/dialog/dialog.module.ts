@@ -56,7 +56,6 @@ import { ParametersDialogComponent } from './parametersDialog/parametersDialog.c
 import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.service';
 import { PipesModule } from 'pipes/pipes.module';
 import { SpatialCoverageMapComponent } from './detailsDialog/spatialCoverageMap/spatialCoverageMap.component';
-import { InformationsDialogComponent } from './informationsDialog/informationsDialog.component';
 import { TourDialogComponent } from './tourDialog/tourDialog.component';
 import { DownloadsDialogComponent } from './downloadsDialog/downloadsDialog.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -86,7 +85,6 @@ import { DataConfigurationModule } from 'pages/dataPortal/modules/dataPanel/conf
     FirstErrorMessagePipe,
     ParametersDialogComponent,
     SpatialCoverageMapComponent,
-    InformationsDialogComponent,
     TourDialogComponent,
     DownloadsDialogComponent,
     VideoGuidesDialogComponent,
