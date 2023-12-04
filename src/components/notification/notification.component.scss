@@ -1,0 +1,46 @@
+/*
+         Copyright 2021 EPOS ERIC
+ 
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+ 
+   http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ */
+@import 'src/sassFramework/variables';
+
+.wrapper {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+
+  .left {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+
+    p {
+      margin-left: 0.75rem;
+      font-size: 14px;
+      word-break: break-all;
+    }
+  }
+
+  .mat-button {
+    height: 20px;
+    width: 20px;
+    min-width: 20px;
+    line-height: normal;
+
+    ::ng-deep .mat-button-ripple {
+      width: 20px;
+      inline-size: 20px;
+    }
+  }
+}

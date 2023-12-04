@@ -1,0 +1,82 @@
+/*
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ */
+@import "src/sassFramework/variables.scss";
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .organisation-wrapper {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-grow: 1;
+    grid-gap: 3px;
+    gap: 3px;
+  }
+
+  .row {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    flex-basis: 50%;
+
+    .half {
+      flex-grow: 1;
+      flex-basis: 50%;
+    }
+  }
+
+  .location-select {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    // width: min-content;
+    .radio {
+      width: 20%;
+      margin-right: 10px;
+    }
+
+    .coords {
+      display: flex;
+      justify-content: space-around;
+      flex-grow: 1;
+      grid-gap: 3px;
+      gap: 3px;
+      height: 35px;
+
+      .small-button {
+        margin-top: 15px;
+      }
+    }
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+
+  .button-container {
+    display: flex;
+    justify-content: right;
+    align-items: center;
+
+    button {
+      margin-right: 0px;
+    }
+  }
+}

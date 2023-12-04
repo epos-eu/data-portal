@@ -1,0 +1,66 @@
+/*
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ */
+
+@import "src/sassFramework/variables.scss";
+
+:host {
+
+  div.info {
+    background-color: #d1e9c4;
+  }
+
+  div.warning {
+    background-color: #ffebcf;
+  }
+
+  div.error {
+    background-color: #e9c4c4;
+  }
+
+  div.message {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    margin: 10px;
+    padding: 10px;
+    z-index: 1000;
+    text-align: justify;
+    margin-top: 50px;
+    max-height: 400px;
+
+    div.body {
+      word-break: break-word;
+      overflow: auto;
+    }
+
+    div.actions {
+      display: flex;
+      justify-content: space-between;
+      flex-direction: row-reverse;
+
+      .title {
+        font-weight: bold;
+      }
+
+      .normal {
+        cursor: initial;
+      }
+    }
+  }
+}

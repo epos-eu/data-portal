@@ -1,0 +1,93 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<header class="header">
+  <div class="header-logo-wrapper">
+    <a class="header-logo" (click)="openExternalUrl(urlHomepage, true)">
+      <img src="assets/img/logo/logo-white.svg" />
+    </a>
+    <div class="title">
+      <p class="main"></p>
+      <p class="version">
+        {{ title }}
+        <sup>{{ version }}</sup>
+      </p>
+    </div>
+  </div>
+  <div class="header-actions-wrapper">
+    <ul>
+      <li>
+        <div class="nav-top-items-item guest" [ngClass]="{ 'nav-top-items-item--active': this.dropdown === 'user' }">
+          <a class="nav-top-items-item-text" (click)="toggleDropdown('user')" data-toggle="dropdown">
+            <mat-icon>person</mat-icon>
+            <span class="hidden-xs login-text">
+              {{ user !== null ? '' : 'Login' }}
+            </span>
+          </a>
+          <div [hidden]="this.dropdown !== 'user'" class="dropdown-menu dropdown-menu--userdropdown">
+            <div class="dropdown-menu-header">
+              <p class="dropdown-menu-header-username">
+                {{ user?.getUsername() || 'User Guest' }}
+              </p>
+            </div>
+            <div class="dropdown-menu-footer">
+              <div class="wrapper">
+                <div class="column-12">
+                  <app-login (closeDropdown)="toggleDropdown('user')"></app-login>
+                </div>
+              </div>
+              <div id="sign-in-message" class="pull-left" style="color: red"></div>
+            </div>
+          </div>
+        </div>
+      </li>
+      <li>
+        <div
+          class="nav-top-items-item guest"
+          [ngClass]="{ 'nav-top-items-item--active': this.dropdown === 'menu' }"
+          appTour
+          tourName="EPOS Overview"
+          tourStage="20"
+          tourDescription="The tour can be accessed again from this menu."
+          tourTitle="Tour Complete!"
+          tourPosition="left"
+          (tourForwardFunction)="handleTourFinish()">
+          <a class="nav-top-items-item-text" (click)="toggleDropdown('menu')" data-toggle="dropdown">
+            <mat-icon>menu</mat-icon>
+            <span class="hidden-xs login-text">Menu</span>
+          </a>
+          <div [hidden]="this.dropdown !== 'menu'" class="dropdown-menu dropdown-menu--userdropdown">
+            <div class="dropdown-menu-body">
+              <div class="wrapper">
+                <div class="menuitem" (click)="openExternalUrl(urlAboutpage, true)">
+                  <span>About</span>
+                </div>
+                <div class="menuitem" (click)="openFeedback()">
+                  <span>Feedback</span>
+                </div>
+                <div class="menuitem" (click)="startGuidedTour($event)">
+                  <span>Guided Tour</span>
+                </div>
+                <div class="menuitem" (click)="openVideoGuideDialog()">
+                  <span>Video Guides</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</header>

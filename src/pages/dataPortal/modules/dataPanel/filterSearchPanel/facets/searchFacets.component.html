@@ -1,0 +1,95 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<div class="wrapper">
+  <div class="location-select" appTour tourName="EPOS Overview" tourStage="2"
+    tourDescription="Add spatial filter by either drawing a bounding box with the draw button, or selecting a geolocation from the dropdown."
+    tourTitle="Spatial Filter" tourPosition="right" (tourEnterFunction)="geolocationSelection(demoCountry)"
+    (tourForwardFunction)="geolocationHighlight()">
+    <span class="radio">
+      <mat-form-field>
+        <mat-select [(ngModel)]="locationRadioSelect">
+          <mat-option value="coordinates">Coordinates</mat-option>
+          <mat-option value="geolocation">Geolocation</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </span>
+    <span class="coords">
+      <mat-form-field *ngIf="locationRadioSelect === locationRadioSelectTypeGeolocation">
+        <input id="selectCountry" matInput type="text" (ngModelChange)="geolocationSelection($event)"
+          [matAutocomplete]="auto" [formControl]="autoCompleteCountryFormControl" placeholder="{{
+            countrySelected ? countrySelected.name : 'Select Country'
+          }}" />
+        <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayCountry" class="nice-scrollbar">
+          <mat-option *ngFor="let country of filteredCountries | async" [value]="country">
+            {{ country.name }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+
+      <app-spatial-controls *ngIf="locationRadioSelect === locationRadioSelectTypeCoordinates" class="flex-grow"
+        [bbox]="bBoxFromModel" (setBBox)="setBBoxFromControl($event)"
+        (setEditableBBox)="setEditableBBoxFromControl($event)"
+        (clearCountriesSelect)="clearCountriesSelect()" (resetGeolocation)="resetGeolocation()">
+      </app-spatial-controls>
+    </span>
+  </div>
+  <app-temporal-controls appTour tourName="EPOS Overview" tourStage="4"
+    tourDescription="Add a temporal filter by selecting a start and end date, or one of the pre-defined selections."
+    tourTitle="Temporal Filter" tourPosition="right"
+    (tourEnterFunction)="tourService.triggerDemoTemporalSelectionCall()" class="flex-grow"
+    [temporalRangeSource]="temporalRangeSource">
+  </app-temporal-controls>
+
+  <div class="organisation-wrapper">
+    <mat-form-field appTour tourName="EPOS Overview" tourStage="5"
+      tourDescription="Select a Data and Service provider facet here." tourTitle="Data and Service Provider"
+      tourPosition="right">
+      <mat-label>Data and Service Providers</mat-label>
+      <mat-select #organisationsSelect multiple [(ngModel)]="selectedOrganisations"
+        (openedChange)="organisationsToggleSelected($event)">
+        <mat-select-trigger>
+          {{ numberOrganisationSelected }} item(s) selected
+        </mat-select-trigger>
+        <mat-option #allOrganisationsSelected (click)="organisationsToggleAllSelection()" [value]="null"
+          *ngIf="organisations !== undefined && organisations.length > 1">Select All ({{ organisations.length }})
+        </mat-option>
+        <mat-option *ngFor="let organisation of organisations" [value]="organisation"
+          (click)="organisationsToggleAllSelection(true)" matTooltip="{{ organisation.label }}">
+          {{ organisation.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div class="row">
+    <div class="type-wrapper half">
+      <mat-form-field>
+        <mat-label>{{ searchFacetTypeLabel }}</mat-label>
+        <mat-select #typesSelect multiple [(ngModel)]="selectedTypes" (openedChange)="typesToggleSelected($event)">
+          <mat-select-trigger>
+            {{ numberTypeSelected }} item(s) selected
+          </mat-select-trigger>
+          <mat-option *ngFor="let type of types" [value]="type">
+            {{ type }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <div class="button-container half">
+      <button [disabled]="!clearEnabled" class="adv-search-buttons" mat-flat-button color="primary" (click)="clearAll()"
+        matTooltip="Clear all filters">
+        Clear All <i class="fas fa-times icon" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</div>

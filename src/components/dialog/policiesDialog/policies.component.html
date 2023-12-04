@@ -1,0 +1,58 @@
+<!--
+         Copyright 2021 EPOS ERIC
+ 
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+ 
+   http://www.apache.org/licenses/LICENSE-2.0
+ 
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<h1>EPOS POLICIES</h1>
+<div class="policies-grid nice-scrollbar">
+  <mat-checkbox #toggleTerms [checked]="false"></mat-checkbox>
+  <label id="terms-checkbox-label" [for]="toggleTerms.inputId">I consent to Terms and Conditions</label>
+  <p class="details">
+    Here you will find the conditions under which you use the EPOS ICS-C portal. This includes acceptable use
+    and liability disclaimer. If you do not consent to such use of the portal, further access to the portal is
+    denied.
+    <a target="_blank" rel="noopener noreferrer"
+      href="https://www.epos-eu.org/sites/default/files/Terms_and_Conditions.pdf">
+      <mat-icon aria-hidden="false">description</mat-icon>
+    </a>
+  </p>
+
+  <mat-checkbox #togglePrivacy [checked]="false"></mat-checkbox>
+  <label id="privacy-checkbox-label" [for]="togglePrivacy.inputId">I understand and acknowledge the Privacy Policy
+    document</label>
+  <p class="details">
+    The Privacy policy explains how EPOS-ERIC manages and protects personal data, particularly in the sense of
+    GDPR (General Data Protection Regulation).
+    If you do not consent to such use of your personal data, further access to the portal is denied.
+    <a target="_blank" rel="noopener noreferrer" href="https://www.epos-eu.org/sites/default/files/Privacy_Policy.pdf">
+      <mat-icon aria-hidden="false">description</mat-icon>
+    </a>
+  </p>
+
+  <mat-slide-toggle #cookiesToggle [(ngModel)]="cookiePolicy"></mat-slide-toggle>
+  <label [for]="cookiesToggle.inputId">COOKIES</label>
+  <p class="details">
+    Websites utilise cookies to store certain information. EPOS-ERIC ICS-C portal uses cookies only to monitor
+    performance anonymously, information used in improving the portal. You may choose to allow these cookies or
+    not. Either choice does not prevent use of the portal.
+    <a target="_blank" rel="noopener noreferrer" href="https://www.epos-eu.org/sites/default/files/Cookie_Policy.pdf">
+      <mat-icon aria-hidden="false">description</mat-icon>
+    </a>
+  </p>
+
+  <div class="actions">
+    <button class="submit-butt" mat-flat-button color="primary"
+      [disabled]="!toggleTerms.checked || !togglePrivacy.checked" (click)="setStorage()">Submit</button>
+  </div>
+
+</div>

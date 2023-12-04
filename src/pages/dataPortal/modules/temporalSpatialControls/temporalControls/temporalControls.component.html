@@ -1,0 +1,52 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<div #wrapper class='date-input-wrapper'>
+
+  <button [disabled]="temporalInputsDisabled" class="small-button" mat-flat-button color="primary"
+    matTooltip="Start Date (UTC)" id="daterangepickerstart">
+    <i class="far fa-calendar left-icon" aria-hidden="true"></i><i class="fas fa-caret-right icon"
+      aria-hidden="true"></i>
+  </button>
+  <mat-form-field appearance="fill">
+    <input matInput [disabled]="temporalInputsDisabled" id="daterangepickerstart-input" type="text"
+      [placeholder]="DATE_FORMAT" [(ngModel)]="startDisplayDate" (change)="startDateChange()" autocomplete="off"
+      size="15" matTooltip="Start Date (UTC)" />
+  </mat-form-field>
+
+  <mat-form-field appearance="fill">
+    <input matInput [disabled]="temporalInputsDisabled" id="daterangepickerend-input" type="text"
+      [placeholder]="DATE_FORMAT" [(ngModel)]="endDisplayDate" (change)="endDateChange()" autocomplete="off" size="15"
+      matTooltip="End Date (UTC)" />
+  </mat-form-field>
+
+
+  <button [disabled]="temporalInputsDisabled" class="small-button" mat-flat-button color="primary"
+    matTooltip="End Date (UTC)" id="daterangepickerend">
+    <i class="fas fa-caret-left left-icon" aria-hidden="true"></i><i class="far fa-calendar icon"
+      aria-hidden="true"></i>
+  </button>
+
+  <!-- button [disabled]="temporalInputsDisabled || temporalClearDisabled" matTooltip="Clear Temporal Filter"
+    id="clear-button" mat-flat-button color="primary" class="small-button clear temporal-clear"
+    (click)="datePickerClearClick($event)">
+    <i class="fas fa-times icon" aria-hidden="true"></i>
+  </button -->
+</div>
+<mat-radio-group *ngIf="!disabledRadioButton" (change)="setRadioDate($event)" [(ngModel)]="radioControlDate">
+  <mat-radio-button value="30">Last Month</mat-radio-button>
+  <mat-radio-button value="7">Last Week</mat-radio-button>
+  <mat-radio-button value="1">Last Day</mat-radio-button>
+</mat-radio-group>

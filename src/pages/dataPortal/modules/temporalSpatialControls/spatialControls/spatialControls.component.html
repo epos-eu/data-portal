@@ -1,0 +1,35 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<div class="spatio-temporal-control">
+  <ng-container class="container">
+    <app-simple-spatial-control [class.north-change]="northEdited" [class.east-change]="eastEdited"
+      [class.south-change]="southEdited" [class.west-change]="westEdited" (clearBBox)="clearBBox()"
+      (applyEdited)="applyEdited()" (changeBBox)="changeEditableBBox($event)" [bbox]="editedBBox"
+      [inputsDisabled]="disabled" [showClearButton]="true">
+    </app-simple-spatial-control>
+
+    <div class="button-wrapper">
+
+      <button id="apply-button" class="small-button" *ngIf="showApplyButton" [disabled]="(!boundsEdited)"
+        mat-flat-button color="primary" matTooltip="Confirm" (click)="applyEdited(false)">
+        <i class="fas fa-check icon" aria-hidden="true"></i>
+      </button>
+
+      <app-drawing-spatial-control *ngIf="showDrawButton"></app-drawing-spatial-control>
+
+    </div>
+  </ng-container>
+</div>

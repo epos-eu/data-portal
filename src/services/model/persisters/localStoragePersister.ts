@@ -1,0 +1,158 @@
+/*
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ */
+import { LocalStorageVariables } from './localStorageVariables.enum';
+import { Persister } from './persister';
+
+/**
+ * A {@link Persister} that persists {@link ModelItem}s in local storage.
+ */
+export class LocalStoragePersister implements Persister {
+  /** Prefix for all stored items */
+  private readonly STORAGE_PREFIX = LocalStorageVariables.STORAGE_PREFIX;
+
+  /**
+   * The `set` function is used to store data in the local storage, with support for nested keys and
+   * circular references.
+   * @param {string} key - A string representing the key under which the value will be stored in the
+   * local storage.
+   * @param {unknown} value - The `value` parameter is the value that you want to store in the local
+   * storage. It can be of any type (`string`, `number`, `boolean`, `object`, etc.) or `null`.
+   * @param [circular=false] - The `circular` parameter is a boolean flag that determines whether
+   * circular references should be handled when storing the value in local storage. If `circular` is
+   * set to `true`, a special replacer function is used to handle circular references in the value
+   * before storing it. If `circular`
+   * @param {boolean | string} [subKey=false] - The `subKey` parameter is an optional parameter that
+   * can be either a boolean or a string. It is used to specify a subkey within the main key for
+   * storing data in local storage. If a subKey is provided, the function will retrieve the existing
+   * data for the main key and update or
+   */
+  public set(key: string, value: unknown, circular = false, subKey: boolean | string = false): void {
+    const storageKey = this.STORAGE_PREFIX + key;
+
+    if (subKey !== false) {
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      let data = this.getArrayLocalStorageItem(key);
+
+      if (value == null) {
+        // remove subKey from data
+        data = data.filter(v => { return v.type !== subKey; });
+      } else {
+
+        let found = false;
+        data.forEach((i, index) => {
+          if (i.type === subKey) {
+            found = true;
+            data[index] = { type: subKey as string, value: value as string };
+          }
+        });
+
+        if (data.length === 0 || found === false) {
+          // new subkey
+          data.push({ type: subKey as string, value: value as string });
+        }
+
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(data));
+
+    } else {
+      if (value == null) {
+        localStorage.removeItem(storageKey);
+      } else if (circular) {
+        const getCircularReplacer = () => {
+          const seen = new WeakSet();
+          // eslint-disable-next-line @typescript-eslint/no-shadow
+          return (_key, value) => {
+            if (typeof value === 'object' && value !== null) {
+              if (seen.has(value as object)) {
+                return;
+              }
+              seen.add(value as object);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            return value;
+          };
+        };
+        const stringified = JSON.stringify(value, getCircularReplacer());
+        localStorage.setItem(storageKey, stringified);
+      } else {
+        localStorage.setItem(storageKey, JSON.stringify(value));
+      }
+    }
+  }
+
+  /**
+   * Retrieves an item from local storage.
+   * @param key {string} that identifies the item.
+   */
+  public get(key: string): Promise<unknown> {
+    const storageKey = this.STORAGE_PREFIX + key;
+    const persistedValue = localStorage.getItem(storageKey);
+    const returnValue = (null == persistedValue) ? null : JSON.parse(persistedValue) as unknown;
+    return Promise.resolve(returnValue);
+  }
+
+  /**
+   * The function `getValue` retrieves a value from localStorage based on a given key and optional
+   * subKey.
+   * @param {string} key - The `key` parameter is a string that represents the main key used to retrieve
+   * a value from local storage.
+   * @param {boolean | string} [subKey=false] - The `subKey` parameter in the `getValue` function can be
+   * either a boolean value or a string. It has a default value of `false`.
+   * @returns a value of type string or null.
+   */
+  public getValue(key: string, subKey: boolean | string = false): null | string | number | Array<string | number> {
+    const storageKey = this.STORAGE_PREFIX + key;
+    const persistedValue = localStorage.getItem(storageKey);
+    let persistedValueParsed: string | Array<LocalStorageItem> | null | LocalStorageItem = null;
+
+    try {
+      persistedValueParsed = (null == persistedValue) ? null : JSON.parse(persistedValue) as string | Array<LocalStorageItem> | null | LocalStorageItem;
+    } catch (e) {
+    }
+
+    let returnValue: null | string | number | Array<string | number> = null;
+    if (subKey !== false) {
+      if (Array.isArray(persistedValueParsed) && persistedValueParsed !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        const localStorageItem = (persistedValueParsed as Array<LocalStorageItem>).find(item => item.type === subKey);
+        if (localStorageItem !== undefined) {
+          returnValue = (localStorageItem as LocalStorageItem).value as string;
+        }
+      }
+    } else {
+      returnValue = (null == persistedValue) ? null : JSON.parse(persistedValue) as null | string | number | Array<string | number>;
+    }
+    return returnValue as null | string | number | Array<string | number>;
+  }
+
+  private getArrayLocalStorageItem(key: string): Array<LocalStorageItem> {
+    const storageKey = this.STORAGE_PREFIX + key;
+    const persistedValue = localStorage.getItem(storageKey);
+
+    try {
+      return (null === persistedValue || '""' === persistedValue) ? [] : JSON.parse(persistedValue) as Array<LocalStorageItem>;
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+interface LocalStorageItem {
+  type: string;
+  value: string;
+}

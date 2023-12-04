@@ -1,0 +1,115 @@
+/*
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ */
+import { Injectable } from '@angular/core';
+import { ApiService } from 'api/api.service';
+import { DictionaryType } from 'api/webApi/classes/dictionaryType.enum';
+import { SearchCriteria } from 'api/webApi/classes/searchCriteria.enum';
+import { Dictionary } from 'api/webApi/data/dictionary.interface';
+import { ItemSummary } from 'api/webApi/data/itemSummary.interface';
+import { DistributionSummary } from 'api/webApi/data/distributionSummary.interface';
+import { DistributionDetails } from 'api/webApi/data/distributionDetails.interface';
+import { LoggingService } from './logging.service';
+
+/**
+ * A service that exposes methods for accessing the webAPI search functionality
+ * to the rest of the GUI.
+ */
+@Injectable()
+export class SearchService {
+
+  /**
+   * Cache of {@link DistributionDetails} so that we don't call out multiple times
+   * for the same objects.
+   */
+  private readonly cachedDistDetails = new Map<string, DistributionDetails>();
+
+  constructor(
+    private readonly apiService: ApiService,
+    private readonly loggingService: LoggingService,
+  ) {
+  }
+
+  /**
+   * Performs a search using the searchCriteriaMap and the {@link ApiService}.
+   * Also logs the call using the {@link LoggingService}.
+   * @param searchCriteriaMap Map containing search criteria values.
+   */
+  public doSearch(searchCriteriaMap: Map<SearchCriteria, unknown>): Promise<Array<ItemSummary>> {
+    // If want a common actionable in the data, here is where we will need to "upgrade" the
+    // results with actions. Could use a decorator of the ItemResultList to "add" actions.
+
+    return this.loggingService.logForPromise(this.apiService.doSearch(searchCriteriaMap), 'Item Search API Call');
+  }
+
+  /**
+   * Retrives the details of a search result item.  Uses {@link getDetailsById}.
+   * @param summaryItem A search result item summarising a result.
+   */
+  public getDetails(summaryItem: DistributionSummary): Promise<DistributionDetails> {
+    return this.loggingService.logForPromise(this.getDetailsById(summaryItem.getIdentifier()), //
+      this.getDetailsLogMessage(summaryItem.getIdentifier()));
+  }
+
+  /**
+   * Retrives the details of a search result item either from cache or by calling {@link goGetDetails}.
+   * Also logs the call using the {@link LoggingService}.
+   * @param id The id of a search result item.
+   */
+  public getDetailsById(id: string): Promise<DistributionDetails> {
+    const cachedValue = this.cachedDistDetails.get(id);
+
+    return this.loggingService.logForPromise((cachedValue != null) //
+      ? Promise.resolve(cachedValue) : this.goGetDetails(id), //
+      this.getDetailsLogMessage(id));
+  }
+
+  /**
+   * Uses the {@link ApiService} to retrieve a dictionary of terms.
+   * Also logs the call using the {@link LoggingService}.
+   * @param type The type of dictionary to retrieve.
+   */
+  public getDictionary(type: DictionaryType): Promise<Dictionary> {
+    return this.loggingService.logForPromise(this.apiService.getDictionary(type), //
+      this.getDictionaryLogMessage(type));
+  }
+  /**
+    * Remove the details of a search result item by the cache.
+    * @param id The id of a search result item.
+    */
+  public removeCachedDistyId(id: string): void {
+    this.cachedDistDetails.delete(id);
+  }
+  /**
+   * Uses the {@link ApiService} to retrieve details of a search result item.
+   * Successful results are internally cached.
+   * @param id The id of a search result item.
+   */
+  private goGetDetails(id: string): Promise<DistributionDetails> {
+    return this.apiService.getDetailsById(id)
+      .then((distDetails: DistributionDetails) => {
+        this.cachedDistDetails.set(id, distDetails);
+        return distDetails;
+      });
+  }
+
+  private getDetailsLogMessage(id: string,): string {
+    return `Details API Call - id: ${id}`;
+  }
+
+  private getDictionaryLogMessage(type: DictionaryType,): string {
+    return `Dictionary API Call - type: ${type}`;
+  }
+}

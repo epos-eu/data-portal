@@ -1,0 +1,38 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<div class="wrapper" [class.disabled]="inputsDisabled">
+  <mat-form-field appearance="fill">
+    <input matInput [(ngModel)]="maxLatNorth" [disabled]="inputsDisabled" (input)="onChange()"
+      (keyup.enter)="applyExtent()" id="north-coord" type="number" step="0.01" min="-90" max="90"
+      matTooltip="&deg;North" placeholder="&deg;North">
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput [(ngModel)]="minLatSouth" [disabled]="inputsDisabled" (input)="onChange()"
+      (keyup.enter)="applyExtent()" id="south-coord" type="number" step="0.01" min="-90" max="90"
+      matTooltip="&deg;South" placeholder="&deg;South">
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput [(ngModel)]="minLonWest" [disabled]="inputsDisabled" (input)="onChange()"
+      (keyup.enter)="applyExtent()" id="west-coord" type="number" step="0.01" min="-180" max="180"
+      matTooltip="&deg;West" placeholder="&deg;West">
+  </mat-form-field>
+  <mat-form-field>
+    <input matInput [(ngModel)]="maxLonEast" [disabled]="inputsDisabled" (input)="onChange()"
+      (keyup.enter)="applyExtent()" id="east-coord" type="number" step="0.01" min="-180" max="180"
+      matTooltip="&deg;East" placeholder="&deg;East">
+  </mat-form-field>
+
+</div>

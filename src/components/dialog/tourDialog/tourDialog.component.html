@@ -1,0 +1,32 @@
+<!--
+         Copyright 2021 EPOS ERIC
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+
+<h2 mat-dialog-title>
+  EPOS Data Portal Guided Tour
+</h2>
+<div mat-dialog-content>
+  By starting the tour, all filter selections will be lost. Are you sure you want to continue?
+</div>
+<div class="flex-wrapper">
+  <mat-checkbox class="example-margin" color="primary" (change)="handleShowAgain($event.checked)">
+    Don't show this again
+  </mat-checkbox>
+  <div mat-dialog-actions>
+    <button class="close-dialog" mat-stroked-button (click)="handleClose()">
+      Cancel
+    </button>
+    <button mat-flat-button color="primary" mat-dialog-close (click)="handleStartTour($event)">
+      Start Tour
+    </button>
+  </div>
+</div>

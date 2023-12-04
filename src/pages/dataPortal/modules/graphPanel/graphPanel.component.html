@@ -1,0 +1,43 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+
+<app-loading [visible]="loading" [scale]="4"></app-loading>
+<div *ngIf="currentTraces.size === 0; else gotGraphableConfigurables" class="empty-message">
+  Data cannot be visualised in a graphable format.
+</div>
+<ng-template #gotGraphableConfigurables>
+  <div class="data-trace-selector-wrapper flex-shrink-no">
+    <app-data-trace-selector [traceMap]="currentTraces" (selectedTraces)="setSelectedTraces($event)">
+    </app-data-trace-selector>
+  </div>
+  <div class="top-menu flex">
+    <div class="flex-shrink flex-grow">
+      <!-- intentionally empty -->
+    </div>
+
+    <div class="display-type-selector flex-shrink-no flex-grow">
+      <span class="selector-label display-type-item">Y-axes:</span>
+      <mat-button-toggle-group aria-label="Display Type" [value]="selectedDisplayType" class="display-type-item"
+        (change)="setDisplayType($event)">
+        <mat-button-toggle class="primary" [value]="DISPLAY_TYPES.STACK">Stack</mat-button-toggle>
+        <mat-button-toggle class="primary" [value]="DISPLAY_TYPES.OVERLAY">Overlay</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </div>
+  <app-data-graph-display class="nice-scrollbar flex flex-grow" [traces]="selectedTraces"
+    [selectedDisplayType]="selectedDisplayType">
+  </app-data-graph-display>
+</ng-template>

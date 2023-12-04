@@ -1,0 +1,83 @@
+<!--
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ -->
+<mat-drawer-container class="sidenav-container sidenav-container-left" autosize>
+  <ng-container *ngIf="hasModuleData">
+    <mat-button-toggle class="left-sidenav-toggle" matTooltip="{{ filterPanel.opened ? 'Close' : 'Open ' }} Data Tab" (click)="filterPanelToggle()">
+      <mat-icon aria-hidden="false" aria-label="LeftSidenav icon">
+        {{ filterPanel.opened ? 'chevron_left' : 'chevron_right' }}
+      </mat-icon>
+      <span class="button-text">DATA</span>
+      <span *ngIf="counterData > 0 && !filterPanel.opened" matBadge="{{ counterData }}" matBadgeOverlap="false"></span>
+    </mat-button-toggle>
+    <mat-sidenav
+      id="sidenavleft"
+      (closedStart)="filterPanelStatusChange(true)"
+      (openedStart)="filterPanelStatusChange(false)"
+      #filterPanel
+      [class]="{
+        sidenav: true,
+        'sidenav-left': true,
+        'sidenav-left-close': !filterPanel.opened
+      }"
+      opened
+      mode="side">
+      <div #element>
+        <app-data-panel></app-data-panel>
+      </div>
+    </mat-sidenav>
+  </ng-container>
+
+  <ng-container *ngIf="hasModuleData">
+    <div *ngIf="tableInResults">
+      <mat-button-toggle id="table-vis-toggle" class="right-sidenav-toggle" matTooltip="{{ tablePanel.opened ? 'Close' : 'Open ' }} Table Tab" (click)="tablePanelToggle()">
+        <mat-icon aria-hidden="false" aria-label="RightSidenav icon">
+          {{ tablePanel.opened ? 'chevron_right' : 'chevron_left' }}
+        </mat-icon>
+        <span class="button-text">TABLE</span>
+        <span *ngIf="counterTable > 0 && !tablePanel.opened" matBadge="{{ counterTable }}" matBadgeOverlap="false"></span>
+      </mat-button-toggle>
+      <mat-sidenav
+        #tablePanel
+        [class]="{
+          sidenav: true,
+          'sidenav-right': true,
+          'sidenav-right-close': !tablePanel.opened
+        }"
+        [ngStyle]="{ 'width.px': currentScreenWidth - (leftNavWidth + 120) }"
+        mode="side"
+        position="end">
+        <app-table-panel (closeSideNav)="tablePanelToggle()" class="flex flex-grow nice-scrollbar" [dataConfigurablesArraySource]="visPanelConfigurablesArraySource"></app-table-panel>
+      </mat-sidenav>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="hasModuleData">
+    <div *ngIf="graphInResults">
+      <mat-button-toggle id="graph-vis-toggle" class="bottom-sidenav-toggle" matTooltip="{{ graphPanel.opened ? 'Close' : 'Open ' }} Gragh Tab" (click)="graphPanelToggle()">
+        <mat-icon aria-hidden="false" aria-label="BottomSidenav icon">
+          {{ graphPanel.opened ? 'chevron_right' : 'chevron_left' }}
+        </mat-icon>
+        <span class="button-text">GRAPH</span>
+        <span *ngIf="counterGraph > 0" matBadge="{{ counterGraph }}" matBadgeOverlap="false"></span>
+      </mat-button-toggle>
+      <mat-sidenav #graphPanel class="sidenav sidenav-bottom" [ngStyle]="{ 'width.px': currentScreenWidth - (leftNavWidth + 120) }" mode="side" position="end">
+        <app-graph-panel class="flex flex-grow nice-scrollbar" [dataConfigurablesArraySource]="visPanelConfigurablesArraySource"></app-graph-panel>
+      </mat-sidenav>
+    </div>
+  </ng-container>
+
+  <app-map></app-map>
+</mat-drawer-container>
