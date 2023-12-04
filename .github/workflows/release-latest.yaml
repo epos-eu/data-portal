@@ -9,23 +9,9 @@ jobs:
     permissions: write-all
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Java for publishing to Docker Hub
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11
-      - name: Update version in pom.xml
-        run: mvn -B versions:set -DnewVersion=latest -DgenerateBackupPoms=false
-      - name: build artifact
-        run: mvn clean install -DskipTests
-      - name: Temporarily save jar artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: jar-artifact
-          path: ${{ github.workspace }}/backoffice-service/target/*.jar
-          retention-days: 1
       - name: Docker build
         run: |
-          docker build . -t epos/backoffice-service:latest
+          docker build . -t epos/data-portal:latest
       - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
@@ -33,4 +19,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Docker push
         run: |
-          docker push epos/backoffice-service:latest
+          docker push epos/data-portal:latest
+          
