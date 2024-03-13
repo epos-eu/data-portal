@@ -55,7 +55,6 @@ export class DevDetailsApi implements DetailsApi {
 
   private buildDetailsURL(id: string): string {
 
-    return this.baseUrl.urlBuilder().addPathElements('details')
-      .addParameter('id', id).build();
+    return this.baseUrl.urlBuilder().addPathElements('details', id).build();
   }
 }
