@@ -1,12 +1,12 @@
 <!--
          Copyright 2021 EPOS ERIC
- 
+
  Licensed under the Apache License, Version 2.0 (the License); you may not
  use this file except in compliance with the License.  You may obtain a copy
  of the License at
- 
+
    http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an AS IS BASIS, WITHOUT
  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -15,7 +15,7 @@
  -->
 <h1>EPOS POLICIES</h1>
 <div class="policies-grid nice-scrollbar">
-  <mat-checkbox #toggleTerms [checked]="false"></mat-checkbox>
+  <mat-checkbox #toggleTerms [checked]="false" data-cy="toggle-terms-checkbox"></mat-checkbox>
   <label id="terms-checkbox-label" [for]="toggleTerms.inputId">I consent to Terms and Conditions</label>
   <p class="details">
     Here you will find the conditions under which you use the EPOS ICS-C portal. This includes acceptable use
@@ -27,7 +27,7 @@
     </a>
   </p>
 
-  <mat-checkbox #togglePrivacy [checked]="false"></mat-checkbox>
+  <mat-checkbox #togglePrivacy [checked]="false" data-cy="toggle-privacy-checkbox"></mat-checkbox>
   <label id="privacy-checkbox-label" [for]="togglePrivacy.inputId">I understand and acknowledge the Privacy Policy
     document</label>
   <p class="details">
@@ -52,7 +52,7 @@
 
   <div class="actions">
     <button class="submit-butt" mat-flat-button color="primary"
-      [disabled]="!toggleTerms.checked || !togglePrivacy.checked" (click)="setStorage()">Submit</button>
+      [disabled]="!toggleTerms.checked || !togglePrivacy.checked" (click)="setStorage()" data-cy="accept-terms-button">Submit</button>
   </div>
 
 </div>

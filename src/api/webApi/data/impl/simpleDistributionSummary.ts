@@ -23,7 +23,6 @@ export class SimpleDistributionSummary implements DistributionSummary {
   public readonly isGraphable: boolean;
   public readonly isTabularable: boolean;
   public readonly isOnlyDownloadable: boolean;
-  public readonly statusNumber: number;
   public readonly statusTimestampString: string;
 
   protected constructor(
@@ -38,7 +37,6 @@ export class SimpleDistributionSummary implements DistributionSummary {
     this.isDownloadable = (this.getDownloadableFormats().length > 0);
     this.isTabularable = (this.getTabularableFormats().length > 0);
     this.isOnlyDownloadable = false;
-    this.statusNumber = status;
     this.statusTimestampString = statusTimestamp;
   }
 
@@ -84,7 +82,7 @@ export class SimpleDistributionSummary implements DistributionSummary {
   }
 
   getStatus(): number {
-    return this.statusNumber;
+    return this.status;
   }
 
   getStatusTimestamp(): string {

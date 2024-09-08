@@ -23,19 +23,14 @@ import { environment } from 'environments/environment';
 @Injectable()
 export class LiveDeploymentService {
 
-  private readonly LIVE_DOMAIN = environment.url;
-
-  private readonly isLiveDomain = (window.location.host === this.LIVE_DOMAIN);
-
-  constructor(
-  ) {
-  }
-
   /**
-   * @returns True if the url indicates that this application is the live deployment.
+   * The function returns a boolean value indicating whether the application is in a live deployment
+   * environment.
+   * @returns The method `getIsLiveDeployment()` is returning the value of `environment.production`,
+   * which is a boolean value indicating whether the code is running in a production environment.
    */
   public getIsLiveDeployment(): boolean {
-    return (this.isLiveDomain);
+    return environment.production;
   }
 
 }

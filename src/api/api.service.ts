@@ -23,6 +23,8 @@ import { DistributionDetails } from './webApi/data/distributionDetails.interface
 import { ParameterValue } from './webApi/data/parameterValue.interface';
 import { DiscoverResponse, DiscoverRequest } from './webApi/classes/discoverApi.interface';
 import { DistributionFormat } from './webApi/data/distributionFormat.interface';
+import { Organization } from './webApi/data/organization.interface';
+import { Domain } from './webApi/data/domain.interface';
 
 export class ApiService implements Api {
 
@@ -113,6 +115,15 @@ export class ApiService implements Api {
 
   // -----------------
 
+  public getFilters(context: string): Promise<null | DiscoverResponse> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getFilters(context);
+  }
+
+  public getDomains(context: string): Promise<null | Array<Domain>> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getDomains(context);
+  }
 
   public getDictionary(type: DictionaryType): Promise<Dictionary> {
     this.checkApiBeforeCall();
@@ -124,13 +135,28 @@ export class ApiService implements Api {
     return this.delegate!.doSearch(searchCriteriaMap);
   }
 
-  public getDetails(summary: DistributionSummary): Promise<null | DistributionDetails> {
+  /**
+   * The function `getOrganizations` checks the API before making a call and returns a promise that
+   * resolves to an array of `Organization` objects or `null`.
+   * @returns a Promise that resolves to either an array of Organization objects or null.
+   */
+  public getOrganizations(type: string): Promise<Organization[] | null> {
     this.checkApiBeforeCall();
-    return this.delegate!.getDetails(summary);
+    return this.delegate!.getOrganizations(type);
   }
-  public getDetailsById(id: string): Promise<null | DistributionDetails> {
+
+  public getOrganizationById(id: string): Promise<Organization | null> {
     this.checkApiBeforeCall();
-    return this.delegate!.getDetailsById(id);
+    return this.delegate!.getOrganizationById(id);
+  }
+
+  public getDetails(summary: DistributionSummary, context: string): Promise<null | DistributionDetails> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getDetails(summary, context);
+  }
+  public getDetailsById(id: string, context: string): Promise<null | DistributionDetails> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getDetailsById(id, context);
   }
 
   // exectution
@@ -168,6 +194,30 @@ export class ApiService implements Api {
   public getOriginatorUrl(distribution: DistributionSummary, params: null | Array<ParameterValue>): Promise<string> {
     this.checkApiBeforeCall();
     return this.delegate!.getOriginatorUrl(distribution, params);
+  }
+
+  /**
+   * The function `saveConfigurables` saves a configurable value after checking the API before making
+   * the call.
+   * @param {string} value - The `value` parameter in the `saveConfigurables` function is a string that
+   * represents the configuration data that needs to be saved.
+   * @returns The `saveConfigurables` method is returning a Promise that resolves to a string value.
+   */
+  public saveConfigurables(value: string): Promise<string> {
+    this.checkApiBeforeCall();
+    return this.delegate!.saveConfigurables(value);
+  }
+
+  /**
+   * The function retrieveConfigurables retrieves configurable settings based on a given key.
+   * @param {string} key - The `key` parameter in the `retrieveConfigurables` function is a string that
+   * represents the configuration key used to retrieve configurable settings or values.
+   * @returns The `retrieveConfigurables` method returns a `Promise` that resolves to a `string` or
+   * `null`.
+   */
+  public retrieveConfigurables(key: string): Promise<string | null> {
+    this.checkApiBeforeCall();
+    return this.delegate!.retrieveConfigurables(key);
   }
 
   private checkApiBeforeCall() {

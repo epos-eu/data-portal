@@ -102,7 +102,7 @@ export class GeoJsonLayerFeatureItemGenerator implements FeatureDisplayItemGener
       const latLngActualClickPoint = leafletObj.mouseEventToLatLng(clickEvent.originalEvent);
 
       const featureItemsMap = new Map<number, FeatureDisplayItem>();
-      if (this.geoJsonData != null && JSON.stringify(this.geoJsonData) !== '{}' && this.geoJsonData.type.toString() !== 'Coverage') {
+      if (this.geoJsonData != null && JSON.stringify(this.geoJsonData) !== '{}' && (this.geoJsonData.type !== undefined && this.geoJsonData.type.toString() !== 'Coverage')) {
         const fixedClickBufferMeters = this.getZoomBufferSize(clickEvent.latlng, this.fixedClickBufferPx);
         turf.flattenEach(
           this.geoJsonData as Feature<Geometry, Record<string, unknown>>,

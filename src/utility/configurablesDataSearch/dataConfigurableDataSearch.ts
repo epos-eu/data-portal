@@ -31,6 +31,8 @@ import { DataConfigurableDataSearchI } from './dataConfigurableDataSearchI.inter
 import { DistributionLevel } from 'api/webApi/data/distributionLevel.interface';
 import { SimpleDistributionLevel } from 'api/webApi/data/impl/SimpleDistributionLevel';
 import { NotificationService } from 'services/notification.service';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 export class DataConfigurableDataSearch
   extends DataConfigurableParamValues
@@ -85,9 +87,10 @@ export class DataConfigurableDataSearch
   public static makeFromSimpleObject(
     object: Record<string, unknown>,
     injector: Injector,
+    context: string,
   ): Promise<null | DataConfigurableDataSearch> {
     const searchService = injector.get(SearchService);
-    return Promise.resolve<null | DataConfigurableDataSearch>(searchService.getDetailsById(String(object.id))
+    return Promise.resolve<null | DataConfigurableDataSearch>(searchService.getDetailsById(String(object.id), context)
       .then((dist: DistributionDetails) => {
         const paramValues = (object.paramValues as Array<Record<string, unknown>>)
           .map((obj: Record<string, unknown>) => new SimpleParameterValue(String(obj.name), String(obj.value)));
@@ -190,16 +193,25 @@ export class DataConfigurableDataSearch
     return exe.getOriginatorUrl(this.distributionDetails, this.getParameterDefinitions(), paramValues);
   }
 
-  private doSetToDefaultsAction(): void {
-    this.setParameterValuesToDefaults();
-    this.reload();
-  }
-
-  private doApplyAction(
+  /**
+   * The function `doApplyAction` sets loading to true, creates a new `DataConfigurableDataSearch`
+   * object with updated parameters, and reloads the data with the new configuration.
+   * @param newCurrentParams - The `newCurrentParams` parameter is an array of `ParameterValue` objects
+   * that are used as input for the `doApplyAction` method.
+   * @param [newNewParams] - The `newNewParams` parameter in the `doApplyAction` method is an optional
+   * array of `ParameterValue` objects. It is used to update the parameters of a
+   * `DataConfigurableDataSearch` instance along with the `newCurrentParams`. If `newNewParams` is
+   * provided, it
+   * @returns The method `doApplyAction` is returning an instance of `DataConfigurableDataSearch`.
+   */
+  protected doApplyAction(
     newCurrentParams: Array<ParameterValue>,
     newNewParams?: Array<ParameterValue>,
   ): DataConfigurableDataSearch {
     this.setLoading(true);
+
+    const tracker = this.injector.get(Tracker);
+    tracker.trackEvent(TrackerCategory.DISTRIBUTION, TrackerAction.APPLY_PARAMETERS, this.distributionDetails.getDomainCode() + Tracker.TARCKER_DATA_SEPARATION + this.distributionDetails.getName());
 
     const newConfigurable = new DataConfigurableDataSearch(
       this.injector,
@@ -221,6 +233,11 @@ export class DataConfigurableDataSearch
     this.reload(newConfigurable);
 
     return newConfigurable;
+  }
+
+  private doSetToDefaultsAction(): void {
+    this.setParameterValuesToDefaults();
+    this.reload();
   }
 
   private doCopyUrlAction(): void {

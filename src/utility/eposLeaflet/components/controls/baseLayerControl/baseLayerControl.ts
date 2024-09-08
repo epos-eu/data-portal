@@ -17,13 +17,13 @@
 import * as L from 'leaflet';
 import { AbstractControl } from '../abstractControl/abstractControl';
 import { BaseLayerOption } from './baseLayerOption';
-import { baseLayerDefaultOptions } from './baseLayerDefaultOptions';
 import { MapLayer } from '../../layers/mapLayer.abstract';
+import { baseLayerOptions } from './baseLayerOptions';
 
 export class BaseLayerControl extends AbstractControl {
   protected selector: HTMLSelectElement;
 
-  protected baseLayerOptions = baseLayerDefaultOptions;
+  protected baseLayerOptions = baseLayerOptions;
 
   protected selectedIndex = 0;
   protected currentLayers = new Array<MapLayer>();

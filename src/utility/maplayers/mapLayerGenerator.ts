@@ -29,6 +29,7 @@ import { CompositeMapLayerFactory } from './compositeMapLayerFactory';
 import { GeoJSONImageOverlayMapLayerFactory } from './geoJSONImageOverlayMapLayerFactory';
 import { Injector } from '@angular/core';
 import { CovJSONMapLayerFactory } from './covJSONMapLayerFactory';
+import { WMTSMapLayerFactory } from './wmtsMapLayerFactory';
 
 /** The `MapLayerGenerator` class is responsible for generating map layers based on configurable data
 and map configurations. */
@@ -70,6 +71,7 @@ export class MapLayerGenerator {
     factoryMap.set(DistributionFormatType.APP_EPOS_GEOJSON, geoJSONCompositeFactory);
     factoryMap.set(DistributionFormatType.APP_EPOS_MAP_GEOJSON, geoJSONCompositeFactory);
     factoryMap.set(DistributionFormatType.APP_OGC_WMS, new WMSMapLayerFactory(injector));
+    factoryMap.set(DistributionFormatType.APP_OGC_WMTS, new WMTSMapLayerFactory(injector));
     factoryMap.set(DistributionFormatType.APP_COV_JSON, covJSONCompositeFactory);
 
     return new MapLayerGenerator(injector, fromConfigurable, factoryMap);
@@ -107,6 +109,13 @@ export class MapLayerGenerator {
         ])):
           return this.createGeoJSONLayers(dataConfigurable, mapConfig, factory, format);
         case (DistributionFormatType.is(formatString, DistributionFormatType.APP_OGC_WMS)):
+          return this.fromConfigurable.createMapLayersFrom(
+            dataConfigurable,
+            mapConfig,
+            factory,
+            () => Promise.resolve(this.executionService.getExecuteUrl(format)),
+          );
+        case (DistributionFormatType.is(formatString, DistributionFormatType.APP_OGC_WMTS)):
           return this.fromConfigurable.createMapLayersFrom(
             dataConfigurable,
             mapConfig,

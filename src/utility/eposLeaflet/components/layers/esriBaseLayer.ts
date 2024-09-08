@@ -14,28 +14,14 @@
  the License.
  */
 
-import * as L from 'leaflet';
-import * as esri from 'esri-leaflet';
-// import * as vector from 'esri-leaflet-vector';
 
 import { TileLayer } from './tileLayer';
 
-export type EsriBaseMapsOverride = esri.Basemaps | 'ImageryFirefly' | 'Physical';
-
 export class EsriBaseLayer extends TileLayer {
-  public esriBasemapType: EsriBaseMapsOverride;
 
   constructor(id: string, name?: string) {
     super(id, name);
   }
 
-  public getLeafletLayer(): Promise<L.Layer> {
-    // return Promise.resolve(vector.vectorBasemapLayer(this.esriBasemapType as esri.Basemaps, this.options.getAll()) as esri.BasemapLayer);
-    return Promise.resolve(esri.basemapLayer(this.esriBasemapType as esri.Basemaps, this.options.getAll()));
-  }
-
-  public setEsriType(esriBasemapType: EsriBaseMapsOverride): this {
-    this.esriBasemapType = esriBasemapType;
-    return this;
-  }
 }
+

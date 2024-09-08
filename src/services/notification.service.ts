@@ -14,8 +14,8 @@
  the License.
  */
 import { Injectable } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { NotificationComponent } from 'components/notification/notification.component';
+import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
+import { NotificationSnackComponent } from 'components/notificationSnack/notificationSnack.component';
 import { BehaviorSubject } from 'rxjs';
 
 /** The line `export interface NotificationMessage {` is declaring an interface named
@@ -89,6 +89,13 @@ export class NotificationService {
   notification when calling the `sendNotification` method. */
   public static TYPE_INFO = 'info';
 
+  /** The line `public static TYPE_CUSTOM = 'custom';` is declaring a public static property named
+   * `TYPE_CUSTOM` with the value `'custom'`. This property is a constant that represents the type of a
+   * custom notification in the `NotificationService` class. It can be used to specify the type of a
+   * notification when calling the `sendNotification` method.
+   */
+  public static LOADING_DISTRIBUTION = 'loading-distribution';
+
   /** The line `private distributionNotification = new BehaviorSubject<NotificationMessage | null>(null);`
   is declaring a private property named `distributionNotification` and initializing it with a new
   instance of the `BehaviorSubject` class. */
@@ -123,20 +130,28 @@ export class NotificationService {
    * duration (in milliseconds) for which the notification should be displayed. If a value is provided
    * for duration, it will be used as the duration for the notification. If no value is provided, the
    * default duration of 3000 milliseconds (3 seconds)
+   * @param indefinite - The indefinite parameter is an optional parameter that specifies whether the
+   * notification should be displayed indefinitely. If the indefinite parameter is set to true, the
+   * notification will be displayed indefinitely until the user interacts with it or it is dismissed manually.
+   * @param customIcon - The customIcon parameter is an optional parameter that specifies the URL of a
+   * custom icon to be displayed in the notification. If a custom icon URL is provided, the notification
+   * will display the custom icon instead of the default icon.
    */
   public sendNotification(
     title: string,
     action: string,
     type: string,
-    duration?: number,
-  ): void {
-
-    this.snackBar.openFromComponent(NotificationComponent, {
-      duration: duration ? duration : 3000,
+    duration: number = 3000,
+    indefinite: boolean = false,
+    customIcon: string | null = null,
+  ): MatSnackBarRef<NotificationSnackComponent> {
+    return this.snackBar.openFromComponent(NotificationSnackComponent, {
+      duration: indefinite ? undefined : duration,
       data: {
         title,
         action,
-        type,
+        type: type,
+        customIcon,
       },
       panelClass: ['snackbar', 'mat-toolbar', 'snackbar-' + type],
       horizontalPosition: 'center'
@@ -171,5 +186,9 @@ export class NotificationService {
    */
   public sendErrorNotification(message: string, title = ''): void {
     this.sendNotification(title, message, NotificationService.TYPE_ERROR);
+  }
+
+  public sendLoadingNotification(message: string, customIconUrl: string | null): MatSnackBarRef<NotificationSnackComponent> {
+    return this.sendNotification(message, 'x', NotificationService.LOADING_DISTRIBUTION, undefined, true, customIconUrl);
   }
 }

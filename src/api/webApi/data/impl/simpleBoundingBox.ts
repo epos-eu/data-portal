@@ -19,6 +19,7 @@ import { Feature, BBox } from '@turf/turf';
 
 export class SimpleBoundingBox implements BoundingBox {
 
+  private id: string;
   private bounded: boolean;
   private maxLat: number;
   private maxLon: number;
@@ -74,9 +75,9 @@ export class SimpleBoundingBox implements BoundingBox {
     return new SimpleBoundingBox(bbox[3], bbox[2], bbox[1], bbox[0]);
   }
 
-  // private toPrecision(value: number): number {
-  //   return Math.round(value * Math.pow(10, this.PRECISION_DP)) / Math.pow(10, this.PRECISION_DP);
-  // }
+  getId(): string {
+    return this.id;
+  }
 
   getMaxLat(): number {
     return this.maxLat;
@@ -100,5 +101,28 @@ export class SimpleBoundingBox implements BoundingBox {
       this.getMinLat(),
       this.getMinLon(),
     ];
+  }
+
+  asArrayFormat(format = 'nesw'): [number, number, number, number] {
+    let result: [number, number, number, number] = this.asArray();
+    switch (format) {
+      case 'nswe':
+        result = [
+          this.getMaxLat(),
+          this.getMinLat(),
+          this.getMinLon(),
+          this.getMaxLon(),
+        ];
+        break;
+
+      default:
+        break;
+    }
+    return result;
+  }
+
+  setId(id: string): SimpleBoundingBox {
+    this.id = id;
+    return this;
   }
 }

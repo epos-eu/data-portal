@@ -1,0 +1,21 @@
+div.buttons {
+  margin-top: 20px;
+}
+
+button {
+  font-weight: bold;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+div.citation-wrapper {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  align-items: center;
+
+  mat-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}

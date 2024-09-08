@@ -14,10 +14,9 @@
  the License.
  */
 
-@import "src/sassFramework/variables.scss";
+@import 'src/sassFramework/variables.scss';
 
 :host {
-
   .mat-button-toggle {
     background-color: $color-background-panel;
     border-radius: 0%;
@@ -27,9 +26,13 @@
     .mat-icon {
       font-weight: bold;
       color: white;
+
+      &.selected {
+        color: $color-secondary;
+      }
     }
 
-    .mat-badge-content {
+    ::ng-deep.mat-badge-content {
       right: -11px;
       background-color: $color-secondary;
     }
@@ -56,7 +59,7 @@
     }
   }
 
-  .left-sidenav-toggle {
+  .left-sidenav-data-toggle {
     position: absolute;
     z-index: 3;
     top: $sidenav-left-top;
@@ -102,7 +105,6 @@
     align-items: center;
     flex-direction: column;
     justify-content: space-around;
-    gap: 5px;
 
     .mat-icon {
       margin-top: 5px;
@@ -118,10 +120,9 @@
     width: $sidenav-button-width;
   }
 
-  .left-sidenav-toggle,
+  .left-sidenav-data-toggle,
   .right-sidenav-toggle,
   .bottom-sidenav-toggle {
-
     background-color: $header-background-color;
     color: white;
     height: $button-toggle-height;
@@ -133,6 +134,10 @@
       transform: rotate(-90deg);
       margin-bottom: 15px;
       font-size: 1.3vh;
+    }
+
+    .selected {
+      color: $color-secondary;
     }
   }
 
@@ -178,16 +183,15 @@
     }
   }
 
-  .environment-panel-button-wrapper {
-    position: absolute;
-    transition-property: top;
-    transition-duration: 0.2s;
-  }
+  .right-sidenav-header {
+    background-color: $color-background-panel;
+    padding: $padding-background-panel;
+    width: 100%;
+    display: flex;
+    flex-direction: row-reverse;
 
-  .environmentPanel {
-    position: absolute;
-    min-width: 40vw;
-    transition-property: top, left;
-    transition-duration: 0.2s;
+    .mat-icon {
+      cursor: pointer;
+    }
   }
 }

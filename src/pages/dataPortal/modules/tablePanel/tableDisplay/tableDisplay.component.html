@@ -14,7 +14,6 @@
  the License.
  -->
 <div #containerTable [hidden]="showSpinner" class="container nice-scrollbar">
-
   <div class="controls-container">
     <mat-form-field [hidden]="showSpinner">
       <mat-label>
@@ -22,8 +21,7 @@
         <span *ngIf="showFilterRowCounter">Filter table results:</span>
         <span *ngIf="showFilterRowCounter" class="column-count">{{ dataSource.filteredData.length }}/{{ dataSource.data.length }} Rows</span>
       </mat-label>
-      <input #filterInput matInput name="epos-table-data-filter" (keyup)="applyFilter($event)"
-        placeholder="Search table rows">
+      <input #filterInput matInput name="epos-table-data-filter" (keyup)="applyFilter($event)" placeholder="Search table rows" />
     </mat-form-field>
 
     <mat-form-field [hidden]="showSpinner">
@@ -31,83 +29,103 @@
         <span>Select Columns</span>
         <span class="column-count">{{ activeColumnCount | async }}/{{ totalColumnCount }}</span>
       </mat-label>
-      <mat-select [(value)]="customHeaders" multiple (valueChange)="updateTable($event)"
-        (selectionChange)="handleSelectionChange($event)">
-        <mat-option *ngFor="let header of tableHeaders;" [value]="header"
-          [class]="{'hide': header === pointsOnMapHeader || header === propertyIdHeader || header === rowActionsHeader}">
-          {{header}}
+      <mat-select [(value)]="customHeaders" multiple (valueChange)="updateTable($event)" (selectionChange)="handleSelectionChange($event)">
+        <mat-option *ngFor="let header of tableHeaders" [value]="header" [class]="{ hide: header === pointsOnMapHeader || header === propertyIdHeader || header === imagesHeader }">
+          {{ header }}
         </mat-option>
       </mat-select>
     </mat-form-field>
-
-    <!-- <button mat-mini-fab color="primary" #resetButton (click)="reload()" matTooltip="Reset column widths">
-      <i class="fas fa-undo-alt icon" aria-hidden="true"></i>
-    </button> -->
 
     <mat-checkbox #checkBox color="primary" labelPosition="before" id="checkBox">Expand all</mat-checkbox>
 
     <mat-form-field class="page-number">
       <mat-label>Page number:</mat-label>
-      <input matInput type="number" placeholder="Enter page number" [(ngModel)]="pageNumber"
-        (ngModelChange)="goToPage()" min="1" max="{{maxPageNumber? maxPageNumber : 0}}">
+      <input matInput type="number" placeholder="Enter page number" [(ngModel)]="pageNumber" (ngModelChange)="goToPage()" min="1" max="{{ maxPageNumber ? maxPageNumber : 0 }}" />
     </mat-form-field>
-    <mat-paginator #paginator matPaginator [pageSize]="rowInPage" [pageSizeOptions]="[5, 10, 25, 50, 100]"
-      (page)="checkingPageData()">
-    </mat-paginator>
+    <mat-paginator #paginator matPaginator [pageSize]="rowInPage" [pageSizeOptions]="[5, 10, 25, 50, 100]" (page)="checkingPageData()"></mat-paginator>
 
     <span class="total">Total Results: {{ dataSource.data.length }}</span>
 
-    <button id="exportButton" mat-mini-fab color="primary" (click)="exportTableData()" matTooltip="Export Data" ><mat-icon>download</mat-icon></button>
+    <button id="exportButton" mat-mini-fab color="primary" (click)="exportTableData()" matTooltip="Export Data"><mat-icon>download</mat-icon></button>
   </div>
 
   <div class="table-container">
     <table *ngIf="showTable" mat-table matSort [dataSource]="dataSource">
-      <caption>{{dataConfigurable.name}} - Data</caption>
+      <caption>{{ dataConfigurable.name }} - Data</caption>
 
-      <ng-container [matColumnDef]="label" *ngFor="let label of customHeaders; let columnIndex = index;">
-
-        <th mat-header-cell *matHeaderCellDef mat-sort-header mwlResizable [enableGhostResize]="false" scope="col"
+      <ng-container [matColumnDef]="label" *ngFor="let label of customHeaders; let columnIndex = index">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          mat-sort-header
+          [disabled]="columnIndex < 2 && isMappable"
+          mwlResizable
+          [enableGhostResize]="false"
+          scope="col"
           (resizeEnd)="onResizeEnd($event, label)"
           (click)="selectedRow = null">
-          {{label}}</th>
+          <span *ngIf="columnIndex > 1 || !isMappable">{{ label }}</span>
+          <i
+            *ngIf="columnIndex === 1 && isMappable"
+            class="fas fa-eye{{ someOnMapHide && !toggleOnMapDisabled ? '-slash' : '' }} action {{ toggleOnMapDisabled ? 'disabled' : '' }}"
+            aria-hidden="true"
+            [matTooltip]="'Toggle all data on map (' + dataSource.filteredData.length + ')' + toggleOnMapDisabledMessage"
+            (click)="!toggleOnMapDisabled ? toggleAllMapFeature() : false"></i>
+        </th>
 
-        <td mat-cell class="normal-row" *matCellDef="let rowData; let rowIndex = index"
-          [class.expand-row]="selectedRow === rowIndex || checkBox.checked" 
-          (click)="expandRow(rowIndex, rowData)">
-          <!-- switch on type -->
-          <ng-container *ngIf="(rowData[columnIndex]?? null) !== null" [ngSwitch]="rowData[columnIndex].type">
-            <ng-container *ngSwitchCase="DISPLAY_ITEM_TYPES.AUTHENTICATED_DOWNLOAD">
-              <a [routerLink]="[]" (click)="openAuthLink($event, rowData[columnIndex])">
-                <span [innerHTML]="rowData[columnIndex].authenticatedDownloadFileName"></span>
-              </a>
+        <td
+          mat-cell
+          class="normal-row"
+          *matCellDef="let rowData; let rowIndex = index"
+          [class.expand-row]="selectedRow === rowIndex || checkBox.checked"
+          (click)="expandRow(rowIndex, rowData, columnIndex)">
+          <!-- switch on name -->
+          <ng-container *ngIf="(rowData[columnIndex] ?? null) !== null" [ngSwitch]="rowData[columnIndex].name">
+            <!-- show on map action -->
+            <ng-container *ngSwitchCase="showOnMapHeader">
+              <i *ngIf="isMappable" class="fa-solid fa-location-crosshairs action" matTooltip="Show on map" (click)="showOnMap(rowData, rowData[columnIndex].valuesConcatString)"></i>
             </ng-container>
-            <ng-container *ngSwitchCase="DISPLAY_ITEM_TYPES.ACTIONS">
-              <mat-icon *ngIf="isMappable" class="action" matTooltip="Show on Map"
-                (click)="expandRow(rowIndex, rowData, true)">
-                gps_fixed
-              </mat-icon>
+
+            <!-- toggle on map action -->
+            <ng-container *ngSwitchCase="toggleOnMapHeader">
+              <i
+                *ngIf="isMappable"
+                class="fas fa-eye{{ !toggleOnMapSelected[rowData[columnIndex].valuesConcatString] && !toggleOnMapDisabled ? '-slash' : '' }} action {{ toggleOnMapDisabled ? 'disabled' : '' }}"
+                aria-hidden="true"
+                [matTooltip]="'Toggle data on map' + toggleOnMapDisabledMessage"
+                (click)="!toggleOnMapDisabled ? toggleMapFeature(rowData, !toggleOnMapSelected[rowData[columnIndex].valuesConcatString]) : false"></i>
             </ng-container>
+
             <!--default case when there are no matches -->
             <ng-container *ngSwitchDefault>
-              <span [innerHTML]="rowData[columnIndex].values"></span>
+              <!-- switch on type -->
+              <ng-container *ngIf="(rowData[columnIndex] ?? null) !== null" [ngSwitch]="rowData[columnIndex].type">
+                <ng-container *ngSwitchCase="DISPLAY_ITEM_TYPES.AUTHENTICATED_DOWNLOAD">
+                  <a [routerLink]="[]" (click)="openAuthLink($event, rowData[columnIndex])">
+                    <span [innerHTML]="rowData[columnIndex].authenticatedDownloadFileName"></span>
+                  </a>
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  <span [innerHTML]="rowData[columnIndex].values"></span>
+                </ng-container>
+              </ng-container>
             </ng-container>
           </ng-container>
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="customHeaders; sticky: true"></tr>
-      <tr mat-row *matRowDef="let element; columns: customHeaders; let i = index" class="row">
-      </tr>
+      <tr mat-header-row *matHeaderRowDef="customHeaders; sticky: true" [style.display]="dataSource.data.length === 0 ? 'none' : ''"></tr>
+      <tr mat-row *matRowDef="let element; columns: customHeaders; let i = index" class="row"></tr>
       <tr class="no-data-row" *matNoDataRow>
         <td class="no-filtered-data" *ngIf="dataSource.data.length > 0" colspan="4">
-          No data matching the filter "<span class="italic">{{filterInput.value}}</span>"
+          No data matching the filter "
+          <span class="italic">{{ filterInput.value }}</span>
+          "
         </td>
         <td class="no-data" *ngIf="dataSource.data.length === 0" colspan="4">No data available for this service.</td>
       </tr>
-
     </table>
   </div>
-
 </div>
 
 <div class="spinner" *ngIf="showSpinner">

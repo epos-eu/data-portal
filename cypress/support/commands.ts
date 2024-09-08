@@ -3,6 +3,7 @@
 import moment from 'moment-es6';
 import { InformationsService } from 'services/informationsService.service';
 import { PoliciesService } from 'services/policiesService.service';
+import { GNSS_STATIONS_WITH_PRODUCTS, Service } from './constants';
 
 // ***********************************************
 // This example namespace declaration will help
@@ -50,33 +51,94 @@ import { PoliciesService } from 'services/policiesService.service';
 //
 
 
-
 // *********** TYPE DECLARATIONS IN commands.d.ts file ***************/
 
 // // -- Accept policies
 Cypress.Commands.add('policyAccept', () => {
-  PoliciesService.storeConsentsTimestamp(moment());
-  PoliciesService.storeCookieConsent(true);
+  // PoliciesService.storeConsentsTimestamp(moment());
+  // PoliciesService.storeCookieConsent(true);
+
+  cy.getByDataCy('toggle-terms-checkbox').find('.mat-checkbox-inner-container').click();
+  cy.getByDataCy('toggle-privacy-checkbox').find('.mat-checkbox-inner-container').click();
+  cy.getByDataCy('accept-terms-button').click();
+
+  cy.contains('EPOS POLICIES').should('not.exist');
 });
 
 // // -- Disable Welcome Popup
 Cypress.Commands.add('welcomePopup', () => {
-  InformationsService.storeInfoCheck(true);
+  cy.contains('CONTINUE TO PORTAL').click();
+  cy.contains('Welcome to the EPOS Data Portal!').should('not.exist');
 });
 
-Cypress.Commands.add('openService', (tcs, name) => {
-  cy.get(tcs).click();
-  cy.wait(2000);
-  cy.contains(name).click();
-  cy.wait(10000);
+Cypress.Commands.add('policyAcceptAndWelcomePopup', () => {
+  cy.visit('/');
+  cy.policyAccept();
+  cy.welcomePopup();
 });
 
-// Cypress.Commands.add('getLocalStorage', (key) => {
-//   return cy.window().then((window) => window.localStorage.getItem(key));
-// });
+// Command to do get('[data-cy="..."') in a more readable way
+// Example: cy.getByDataCy('domain-list > #list').first().click();
+Cypress.Commands.add('getByDataCy', (args) => {
+  // Get the first element of the string
+  const dataCy = args.split(' > ')[0];
+  const string = `[data-cy="${dataCy}"] ${args.replace(dataCy, '')}`;
+  return cy.get(string);
+});
 
-// Cypress.Commands.add('setLocalStorage', (key, value) => {
-//   cy.window().then((window) => {
-//     window.localStorage.setItem(key, value)
-//   })
-// });
+Cypress.Commands.add('init', () => {
+  cy.intercept('GET', /testpath\/api\/v1\/resources\/search(\?q=)?$/, { fixture: 'distributions.json' }).as('search');
+  cy.policyAcceptAndWelcomePopup();
+  cy.wait(['@search', '@search', '@search', '@search']);
+});
+
+Cypress.Commands.add('freeTextSearch', (text: string) => {
+  // Intercept the request to filter the results
+  cy.intercept('GET', '/testpath/api/v1/resources/search*').as('search');
+
+  // Search for the test service
+  cy.getByDataCy('search-panel-free-text-input').type(text + '{enter}');
+
+  // Wait for the list to be filtered
+  cy.wait('@search');
+});
+
+Cypress.Commands.add('getLeafletPane', (id: string) => {
+  return cy.get('.leaflet-' + id + '-pane');
+});
+
+// Search for a specific service and show only it
+Cypress.Commands.add('searchForService', (service: Service) => {
+  // Intercept the search request
+  cy.intercept(
+    'GET', /.*\/resources\/search(\?q=)?/,
+    { fixture: service.searchJson() });
+
+  // Search for the fake distribution
+  cy.freeTextSearch(service.name);
+});
+
+Cypress.Commands.add('interceptService', (service: Service) => {
+  // Intercept all the possible request for this service, stubbing them with the correct fixture and save a reference to the request to be able to wait on it
+  // The details
+  cy.intercept(
+    'GET',
+    new RegExp('.*/resources/details/' + service.id), // Match all the request to the details of the service
+    // Stub the request with the correct fixture and save a reference to the request to be able to wait on it
+    { fixture: service.detailsJson() }).as(service.detailsRequest.substring(1)); // Use the detailsRequest without the @
+  // The complete data
+  cy.intercept(
+    'GET',
+    new RegExp('.*/execute/' + service.id + '\\?.*'),
+    { fixture: service.dataJson() }).as(service.dataRequest.substring(1));
+  // The search request
+  cy.intercept(
+    'GET',
+    new RegExp('.*/resources/search\\?q=' + encodeURIComponent(service.name)),
+    { fixture: service.searchJson() }).as(service.searchRequest.substring(1));
+  // The bbox filtered data
+  cy.intercept(
+    'GET', new
+    RegExp('.*/execute/' + service.id + '\\?.*minLon.*-3.86719.*maxLat.*43.99281.*maxLon.*3.16406.*minLat.*30.03106.*'),
+    { fixture: service.bboxFilteredJson() }).as(service.bboxFilteredRequest.substring(1));
+});

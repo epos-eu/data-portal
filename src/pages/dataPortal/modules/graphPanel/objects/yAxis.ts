@@ -16,6 +16,7 @@
 import { LayoutAxis } from 'plotly.js';
 import { YAxisDisplaySide } from './yAxisDisplaySide.enum';
 import { YAxisDisplayType } from './yAxisDisplayType.enum';
+import { Trace } from './trace';
 
 /**
  * Object representing the y-axis that needs to be generated for the plot.
@@ -71,27 +72,36 @@ export class YAxis {
     this._displayPosition = position;
   }
 
-  public getPlotlyObject(displaytype: YAxisDisplayType, totalYAxes: number): Partial<LayoutAxis> {
+  public getPlotlyObject(displaytype: YAxisDisplayType, totalYAxes: number, trace: Trace): Partial<LayoutAxis> {
+
+    const tracktitle = this.unitLabel + ' (' + this.unit + ')';
+
     let returnObject: Partial<LayoutAxis> = {
-      title: `${this.unitLabel} (${this.unit})`,
-      // titlefont: {color: '#ff7f0e'},
-      // tickfont: {color: '#ff7f0e'},
-      automargin: true,
     };
+
+    // get color style
+    const style = trace.getStyle();
+    if (style !== null) {
+      returnObject = {
+        ...returnObject,
+        color: style.color1CssString
+      };
+    }
 
     switch (displaytype) {
       case (YAxisDisplayType.OVERLAY):
         returnObject = {
           ...returnObject,
+          title: tracktitle,
           position: this.displayPosition,
           side: this.displaySide, // the side the title is of the y-axis values
-          // anchor: 'free',
           overlaying: (this.index === 0) ? undefined : 'y',
         };
         break;
       case (YAxisDisplayType.STACK):
         returnObject = {
           ...returnObject,
+          title: tracktitle.length > 15 ? tracktitle.replace(/ /g, '<br>') : tracktitle,
           domain: [
             (1 / totalYAxes) * this.index,
             ((1 / totalYAxes) * (this.index + 1)) - 0.05,

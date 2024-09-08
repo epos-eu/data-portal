@@ -96,13 +96,14 @@ export class LocalStoragePersister implements Persister {
   }
 
   /**
-   * Retrieves an item from local storage.
-   * @param key {string} that identifies the item.
+   * The function `get` retrieves a value from a key-value store and returns it as a Promise.
+   * @param {string} key - A string representing the main key to retrieve a value from.
+   * @param {boolean | string} [subKey=false] - The `subKey` parameter is an optional parameter that
+   * can be either a boolean or a string. It is set to `false` by default.
+   * @returns a Promise that resolves to an unknown value.
    */
-  public get(key: string): Promise<unknown> {
-    const storageKey = this.STORAGE_PREFIX + key;
-    const persistedValue = localStorage.getItem(storageKey);
-    const returnValue = (null == persistedValue) ? null : JSON.parse(persistedValue) as unknown;
+  public get(key: string, subKey: boolean | string = false): Promise<unknown> {
+    const returnValue = this.getValue(key, subKey);
     return Promise.resolve(returnValue);
   }
 
@@ -115,7 +116,7 @@ export class LocalStoragePersister implements Persister {
    * either a boolean value or a string. It has a default value of `false`.
    * @returns a value of type string or null.
    */
-  public getValue(key: string, subKey: boolean | string = false): null | string | number | Array<string | number> {
+  public getValue(key: string, subKey: boolean | string = false): null | string | number | boolean | Array<string | number> {
     const storageKey = this.STORAGE_PREFIX + key;
     const persistedValue = localStorage.getItem(storageKey);
     let persistedValueParsed: string | Array<LocalStorageItem> | null | LocalStorageItem = null;
@@ -140,6 +141,27 @@ export class LocalStoragePersister implements Persister {
     return returnValue as null | string | number | Array<string | number>;
   }
 
+  /**
+   * The function `resetAllVariables` clears the localStorage and optionally reloads the page.
+   * @param [reloads=false] - The `reloads` parameter in the `resetAllVariables` function is a boolean
+   * parameter that determines whether the page should be reloaded after clearing the localStorage. If
+   * `reloads` is set to `true`, the page will be reloaded using `location.reload()`. If `reloads`
+   */
+  public resetAllVariables(reloads = false): void {
+    localStorage.clear();
+
+    if (reloads) {
+      // reloads the page
+      location.reload();
+    }
+  }
+
+  /**
+   * The function retrieves an array of items from local storage using a specified key.
+   * @param {string} key - The `key` parameter is a string that represents the key used to retrieve the
+   * item from the local storage.
+   * @returns an array of LocalStorageItem objects.
+   */
   private getArrayLocalStorageItem(key: string): Array<LocalStorageItem> {
     const storageKey = this.STORAGE_PREFIX + key;
     const persistedValue = localStorage.getItem(storageKey);
@@ -152,7 +174,19 @@ export class LocalStoragePersister implements Persister {
   }
 }
 
-interface LocalStorageItem {
+/** The `interface LocalStorageItem` is defining the structure of an object that represents an item
+stored in local storage. It has two properties: `type` and `value`, both of which are of type
+`string`. This interface is used in the `LocalStoragePersister` class to define the type of the
+items stored in local storage. */
+export interface LocalStorageItem {
+  /** The `type: string;` property in the `LocalStorageItem` interface is defining a property named
+  `type` with a type of `string`. This property is used to store the type or identifier of the item
+  being stored in local storage. It provides a way to differentiate between different types of items
+  stored in local storage. */
   type: string;
+  /** The `value: string;` property in the `LocalStorageItem` interface is defining a property named
+  `value` with a type of `string`. This property is used to store the actual value of the item being
+  stored in local storage. It represents the data that is associated with the `type` property and is
+  specific to the item being stored. */
   value: string;
 }

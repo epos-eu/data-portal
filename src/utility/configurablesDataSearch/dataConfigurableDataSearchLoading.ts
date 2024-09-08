@@ -42,6 +42,7 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
   public readonly isGraphable = false;
   public readonly isDownloadable = false;
   public readonly isTabularable = false;
+  public readonly context: string;
 
   public levels: Array<DistributionLevel>;
 
@@ -63,7 +64,6 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
     public readonly id: string,
   ) {
   }
-  // shouldn't ever be called
   public getDistributionDetails(): DistributionDetails {
     throw new Error('Method not implemented.');
   }
@@ -79,7 +79,8 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
   public getGraphableFormats(): DistributionFormat[] {
     return [];
   }
-  public setNewParams(newParamValues: ParameterValue[]): void {
+  public setNewParams(newParamValues: ParameterValue[]): this {
+    return this;
   }
   public isSpatialLinked(): boolean {
     return false;
@@ -90,31 +91,26 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
   public getCurrentSpatialBounds(): BoundingBox {
     throw new Error('Method not implemented.');
   }
-  // shouldn't ever be called
   public getNewSpatialBounds(): BoundingBox {
     throw new Error('Method not implemented.');
   }
   public isTemporalLinked(): boolean {
     return false;
   }
-  // shouldn't ever be called
   public setTemporalLinked(linked: boolean): this {
     throw new Error('Method not implemented.');
   }
-  // shouldn't ever be called
   public getCurrentTemporalRange(): TemporalRange {
     throw new Error('Method not implemented.');
   }
-  // shouldn't ever be called
   public getNewTemporalRange(): TemporalRange {
     throw new Error('Method not implemented.');
   }
-  // shouldn't ever be called
   public setTriggerReloadFunc(func: (configurable: DataConfigurable) => void): this {
-    return this;
+    throw new Error('Method not implemented.');
   }
-  // shouldn't ever be called
-  public reload(newConfigurable?: DataConfigurable): void {
+  public reload(newConfigurable?: DataConfigurable): this {
+    throw new Error('Method not implemented.');
   }
   public setShowSpatialCoverage(show: boolean): this {
     return this;
@@ -125,7 +121,6 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
   public getSpatialCoverage(): null | SpatialRange {
     return null;
   }
-  // shouldn't ever be called
   public getParameterDefinitions(): ParameterDefinitions {
     throw new Error('Method not implemented.');
   }
@@ -146,12 +141,11 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
   public setSelected(selected: boolean): this {
     return this;
   }
-  // shouldn't ever be called
   public setLoading(): this {
-    return this;
+    throw new Error('Method not implemented.');
   }
-  // shouldn't ever be called
   public updateLinkedTemporalParams(tempRange: TemporalRange, newParams = true): void {
+    throw new Error('Method not implemented.');
   }
 
   /**

@@ -31,6 +31,8 @@ import { Config, Data, Layout } from 'plotly.js';
 })
 export class GraphDisplayComponent {
 
+  @Input() plotlyVHeight: number | boolean = false;
+
   /** Variable representing data, passed into plotly component. */
   public data: Array<Data>;
   /** Variable representing layout, passed into plotly component. */
@@ -110,7 +112,6 @@ export class GraphDisplayComponent {
    */
   private getLayoutObject(): Partial<Layout> {
     let returnObject: Partial<Layout> = {
-      // title: 'multiple y-axes example',
       autosize: true,
       height: this.getWrapperHeight(),
       margin: {
@@ -147,8 +148,8 @@ export class GraphDisplayComponent {
       }
     }
 
-    this.currentYAxes.forEach((yAxis: YAxis) => {
-      returnObject[yAxis.key] = yAxis.getPlotlyObject(this._selectedDisplayType, this.currentYAxes.length);
+    this.currentYAxes.forEach((yAxis: YAxis, index: number) => {
+      returnObject[yAxis.key] = yAxis.getPlotlyObject(this._selectedDisplayType, this.currentYAxes.length, this.currentTraces[index]);
     });
 
     return returnObject;

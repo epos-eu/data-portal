@@ -27,12 +27,11 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TablePanelModule } from './modules/tablePanel/tablePanel.module';
 import { GraphPanelModule } from './modules/graphPanel/graphPanel.module';
 import { MatBadgeModule } from '@angular/material/badge';
-import { DataSearchConfigurablesService } from './services/dataSearchConfigurables.service';
+import { DataSearchConfigurablesServiceResource } from './modules/dataPanel/services/dataSearchConfigurables.service';
 import { ResultsPanelService } from './services/resultsPanel.service';
-import { LandingService } from './services/landing.service';
-import { UserNotificationService } from './services/userNotification.service';
+import { BaseLandingService } from './services/baseLanding.service';
 import { MapModule } from './modules/map/map.modules';
-
+import { DirectivesModule } from 'directives/directives.module';
 
 
 @NgModule({
@@ -52,15 +51,15 @@ import { MapModule } from './modules/map/map.modules';
     MatBadgeModule,
     TablePanelModule,
     GraphPanelModule,
+    DirectivesModule,
   ],
   exports: [
   ],
   providers: [
     MapInteractionService,
-    DataSearchConfigurablesService,
     ResultsPanelService,
-    LandingService,
-    UserNotificationService,
+    BaseLandingService,
+    DataSearchConfigurablesServiceResource,
   ]
 })
 

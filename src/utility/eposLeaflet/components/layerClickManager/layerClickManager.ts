@@ -29,6 +29,7 @@ import { Injector } from '@angular/core';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { GeoJSONHelper } from 'utility/maplayers/geoJSONHelper';
+import { Lightbox, IAlbum } from 'ngx-lightbox';
 
 export class LayerClickManager {
   protected leafletMapObj: L.Map;
@@ -39,10 +40,12 @@ export class LayerClickManager {
 
   private panelEvent: PanelsEmitterService;
   private localStoragePersister: LocalStoragePersister;
+  private lightbox: Lightbox;
 
   constructor(protected injector: Injector,) {
     this.panelEvent = injector.get<PanelsEmitterService>(PanelsEmitterService);
     this.localStoragePersister = injector.get<LocalStoragePersister>(LocalStoragePersister);
+    this.lightbox = injector.get<Lightbox>(Lightbox);
   }
 
   public init(leafletMapObj: L.Map, http: HttpClient, eposLeaflet: EposLeafletComponent): this {
@@ -64,7 +67,7 @@ export class LayerClickManager {
         this.eposLeaflet.getLayersOrdered().forEach((layer: MapLayer) => {
           if (!layer.hidden.get()
             // layer != bbox spatial
-            && (layer.id !== MapLayer.BBOX_LAYER_ID && layer.id !== MapLayer.BBOX_EDITABLE_LAYER_ID)) {
+            && (!layer.id.includes(MapLayer.BBOX_LAYER_ID) && !layer.id.includes(MapLayer.BBOX_EDITABLE_LAYER_ID))) {
             layer.click(clickEvent);
 
             promiseArray.push(layer.getLayerClickFeatureItem(clickEvent, this.http));
@@ -116,6 +119,13 @@ export class LayerClickManager {
     if (showOnGraphContent.length > 0) {
       showOnGraphContent.forEach((e: Element) => {
         e.addEventListener('click', (event) => { this.showOnGraph(content, event); });
+      });
+    }
+
+    const openGalleryContent: Element[] = Array.from(content.getElementsByClassName('openGallery'));
+    if (openGalleryContent.length > 0) {
+      openGalleryContent.forEach((e: Element) => {
+        e.addEventListener('click', () => { this.openGallery(content); });
       });
     }
 
@@ -191,15 +201,45 @@ export class LayerClickManager {
     this.eposLeaflet.clearRowOnTablePanel();
   }
 
+  /**
+   * The function `openGallery` retrieves a list of images from a given HTML element and opens a
+   * slideshow using a lightbox with the images.
+   * @param {HTMLElement} content - The `content` parameter in the `openGallery` function represents
+   * the HTML element that contains the gallery content. This function is responsible for extracting
+   * information about the images in the gallery from the provided content element and then opening a
+   * slideshow using a lightbox with the images.
+   */
+  protected openGallery(content: HTMLElement): void {
+
+    const title = content.getElementsByClassName('popup-title');
+    const slides = content.getElementsByClassName('slide') as HTMLCollection;
+    const indexImage = Array.from(slides).findIndex((e: HTMLElement) => e.classList.contains('selected'));
+
+    // retrieve list of images
+    const listImages: Array<IAlbum> = [];
+    const imagesOnContent = content.getElementsByClassName('openGallery') as HTMLCollection;
+    Array.from(imagesOnContent).forEach(img => {
+      listImages.push({
+        src: img.getAttribute('src') ?? '',
+        thumb: '',
+        caption: title[0].innerHTML + ' - ' + img.getAttribute('data-caption') ?? ''
+      });
+    });
+
+    if (listImages.length > 0) {
+      // open slideshow
+      void this.lightbox.open(listImages, indexImage, {
+        showImageNumberLabel: true,
+        centerVertically: true,
+      });
+    }
+
+  }
+
   protected showOnTable(content: HTMLElement, event: Event): void {
 
     // check popup position and move if over panel table
-    const wh = window.innerHeight;
-    const py = (event as PointerEvent).y;
-
-    if (wh / 2 > py) {
-      this.eposLeaflet.moveToPoint(0, wh / 2 - (py - 100));
-    }
+    this.eposLeaflet.moveMapEventPoint(event, 0, 100, false);
 
     // get current slide on popup
     const slide = content.getElementsByClassName('selected');
@@ -242,12 +282,7 @@ export class LayerClickManager {
   protected showOnGraph(content: HTMLElement, event: Event): void {
 
     // check popup position and move if over panel graph
-    const wh = window.innerHeight;
-    const py = (event as PointerEvent).y;
-
-    if (wh / 2 < py) {
-      this.eposLeaflet.moveToPoint(0, wh / 2 - (py + 100));
-    }
+    this.eposLeaflet.moveMapEventPoint(event, 0, 100, true);
 
     // get current slide on popup
     const slide = content.getElementsByClassName('selected');

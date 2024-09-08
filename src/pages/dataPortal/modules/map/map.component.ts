@@ -36,17 +36,19 @@ import { BoundingBox } from 'api/webApi/data/boundingBox.interface';
 import { Style } from 'utility/styler/style';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { DataConfigurableI } from 'utility/configurables/dataConfigurableI.interface';
-import { DataSearchConfigurablesService } from '../../services/dataSearchConfigurables.service';
 import { MapInteractionService } from '../../../../utility/eposLeaflet/services/mapInteraction.service';
 import { LayersService } from 'utility/eposLeaflet/services/layers.service';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
-import { Model } from 'services/model/model.service';
 import { GeoJSONMapLayer } from 'utility/maplayers/geoJSONMapLayer';
 import { Stylable } from 'utility/styler/stylable.interface';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { GeoJSONImageOverlayMapLayer } from 'utility/maplayers/geoJSONImageOverlayMapLayer';
 import { GeoJSONHelper } from 'utility/maplayers/geoJSONHelper';
+import { Feature } from 'geojson';
+import { PopupProperty } from 'utility/maplayers/popupProperty';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { DataSearchConfigurablesServiceResource } from '../dataPanel/services/dataSearchConfigurables.service';
 
 @OnAttachDetach('onAttachComponents')
 @Unsubscriber('subscriptions')
@@ -73,14 +75,16 @@ export class MapComponent {
 
   private readonly defaultEditBboxStyle = { color: '#007c41', weight: 3, opacity: 1, fillOpacity: 0.2, enable: true };
   private readonly defaultBboxStyle = { color: '#3388ff', fillColor: '#3388ff', weight: 3, opacity: 1, fillOpacity: 0.2, enable: true };
+  private readonly defaultBboxStyleSecond = { color: '#ffff00', fillColor: '#ffff00', weight: 3, opacity: 1, fillOpacity: 0.2, enable: true };
+
+  private bboxContext: string | null = null;
 
   constructor(
     private injector: Injector,
-    private readonly configurables: DataSearchConfigurablesService,
+    private readonly configurables: DataSearchConfigurablesServiceResource,
     private readonly mapInteractionService: MapInteractionService,
     private readonly layersService: LayersService,
     private readonly panelsEvent: PanelsEmitterService,
-    private readonly model: Model,
     private readonly localStoragePersister: LocalStoragePersister,
   ) {
     this.mapLayerGenerator = MapLayerGenerator.make(injector);
@@ -117,44 +121,75 @@ export class MapComponent {
     });
   }
 
+  /**
+   * The function `configurablesExecute` manages a list of data configurables by adding, removing, and
+   * updating items based on certain conditions.
+   * @param dataConfigurables - The `dataConfigurables` parameter is an array of objects that implement
+   * the `DataConfigurableI` interface. These objects represent configurable data items with properties
+   * such as `id`, `isMappable`, and `context`.
+   * @param {string} context - The `context` parameter in the `configurablesExecute` function is a
+   * string that is used to set the context for the data configurables. It is passed as an argument to
+   * the function and is used to filter and manipulate the data configurables based on their context.
+   */
+  private configurablesExecute(dataConfigurables: Array<DataConfigurableI>, context: string) {
+
+    // set context. TODO: move it on dataConfigurables creation logic
+    dataConfigurables.map(conf => {
+      conf.context = context;
+    });
+
+    // select only mappable configs
+    const mappableConfigurables = dataConfigurables.filter((thisConfig: DataConfigurableI) => thisConfig.isMappable);
+
+    // add items who are not in the current list
+    const configsToAdd = mappableConfigurables.filter((thisConfig: DataConfigurableI) => {
+      // find id in current configs
+      const currentItem = this.currentDataConfigurables.find((testConfig: DataConfigurableI) => {
+        return (testConfig === thisConfig && testConfig.context === context);
+      });
+      return (currentItem == null);
+    });
+
+    configsToAdd.forEach((thisConfig: DataConfigurable) => {
+      this.addConfigDisplayItem(thisConfig);
+    });
+
+    // remove items who are not in the new list
+    const configsToRemove = this.currentDataConfigurables.filter((thisConfig: DataConfigurableI) => {
+      // find id in current configs
+      const thisItem = (mappableConfigurables.find((testConfig: DataConfigurableI) => {
+        return (testConfig.id === thisConfig.id && thisConfig.context === context);
+      }));
+      return (thisItem == null);
+    });
+
+    if (configsToRemove.length > 0) {
+      this.removeConfigDisplayItems(configsToRemove, context);
+    }
+
+    const newDataArray = this.currentDataConfigurables.filter((conf) => {
+      return conf.context !== context;
+    });
+
+    this.currentDataConfigurables = [...newDataArray, ...mappableConfigurables];
+
+  }
+
   private initSubscriptions(): void {
 
     let previousBbox: EposLeafletBoundingBox;
 
     this.subscriptions.push(
+
       this.configurables.watchAll().subscribe((dataConfigurables: Array<DataConfigurableI>) => {
         if (dataConfigurables != null) {
+          this.configurablesExecute(dataConfigurables, CONTEXT_RESOURCE);
+        }
+      }),
 
-          // select only mappable configs
-          const mappableConfigurables = dataConfigurables.filter((thisConfig: DataConfigurableI) => thisConfig.isMappable);
-
-          // add items who are not in the current list
-          // test with object equating as items with same id but not same object need replacing
-          const configsToAdd = mappableConfigurables.filter((thisConfig: DataConfigurableI) => {
-            // find id in current configs
-            const currentItem = this.currentDataConfigurables.find((testConfig: DataConfigurableI) => {
-              return (testConfig === thisConfig);
-            });
-            return (currentItem == null);
-          });
-          // remove items who are not in the new list
-          // test with id equating as we only want to remove items that aren't going to be updated
-          const configsToRemove = this.currentDataConfigurables.filter((thisConfig: DataConfigurableI) => {
-            // find id in current configs
-            const thisItem = (mappableConfigurables.find((testConfig: DataConfigurableI) => {
-              return (testConfig.id === thisConfig.id);
-            }));
-            return (thisItem == null);
-          });
-
-          this.removeConfigDisplayItems(configsToRemove);
-
-          configsToAdd.forEach((thisConfig: DataConfigurable) => {
-            this.addConfigDisplayItem(thisConfig);
-          });
-
-          this.currentDataConfigurables = mappableConfigurables;
-
+      this.mapInteractionService.bboxContext.observable.subscribe((context: string | null) => {
+        if (context !== null) {
+          this.bboxContext = context;
         }
       }),
 
@@ -176,42 +211,49 @@ export class MapComponent {
       })
       ,
       this.bboxControl.watchBoundingBox().subscribe((newBounds: EposLeafletBoundingBox) => {
-        // only if changed
-        if (previousBbox !== newBounds) {
-          previousBbox = newBounds;
-          const newBox = this.normalizeBbox(newBounds);
-          this.mapInteractionService.mapBBox.set(newBox);
+
+        if (this.bboxContext !== null) {
+          newBounds.setId(this.bboxContext);
+
+          // only if changed
+          if (previousBbox !== newBounds) {
+            previousBbox = newBounds;
+            const newBox = this.normalizeBbox(newBounds);
+            this.mapInteractionService.mapBBox.set(newBox);
+          }
         }
       }),
 
       this.mapInteractionService.spatialRange.observable.subscribe((bbox: BoundingBox) => {
-        const oldBox = this.normalizeBbox(this.bboxControl.getBoundingBox());
-        if (SimpleBoundingBox.isDifferent(bbox, oldBox)) {
-          // Should it be set to null if unbounded?
-          this.bboxControl.setBoundingBox(bbox as EposLeafletBoundingBox);
-        }
+
+        void this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_BBOX_STYLE).then((styleMapString: string) => {
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const styleMap = styleMapString !== null ? new Map(Object.entries(JSON.parse(styleMapString))) : new Map();
+          let style = JSON.stringify(this.defaultBboxStyle) as string;
+
+          if (styleMap.has(bbox.getId() + MapLayer.BBOX_LAYER_ID)) {
+            style = JSON.stringify(styleMap.get(bbox.getId() + MapLayer.BBOX_LAYER_ID));
+          }
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          this.addBox(bbox, MapLayer.BBOX_LAYER_ID, JSON.parse(style));
+
+          // hide overlayPane (leaflet interactive)
+          this.eposLeaflet.hidePaneById('overlayPane');
+          const overlayPanes = document.getElementsByClassName('leaflet-overlay-pane') as HTMLCollection;
+          Array.from(overlayPanes).forEach((overlayPane: HTMLElement) => {
+            const leafletInteractives = overlayPane.getElementsByClassName('leaflet-interactive');
+            Array.from(leafletInteractives).forEach((_v: HTMLElement) => {
+              _v.outerHTML = '';
+            });
+          });
+        });
       }),
 
       /* Editing spatial bounding box. */
       this.mapInteractionService.editableSpatialRange.observable.subscribe((bbox: BoundingBox) => {
         this.addBox(bbox, MapLayer.BBOX_EDITABLE_LAYER_ID, this.defaultEditBboxStyle);
-      }),
-
-      /* persistent local storage bbox */
-      this.model.dataSearchBounds.valueObs.subscribe((bbox: BoundingBox) => {
-
-        // get style from localStorage
-        let style = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_BBOX_STYLE) as string;
-        if (style === null) {
-          style = JSON.stringify(this.defaultBboxStyle);
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        this.addBox(bbox, MapLayer.BBOX_LAYER_ID, JSON.parse(style));
-
-        // hide overlayPane (leaflet interactive)
-        this.eposLeaflet.hidePaneById('overlayPane');
-
       }),
 
       this.layersService.layerChangeSourceObs.subscribe((layer: MapLayer) => {
@@ -262,7 +304,12 @@ export class MapComponent {
                 style.setClustering(layer.options.customLayerOptionClustering.get()!);
               }
 
-              void this.configurables.updateStyle(realId, style);
+              this.configurables.updateStyle(realId, style);
+
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+              this.mapInteractionService.hideMarkerOnMap(layer, dataSearchToggleOnMap, false);
             }
           }
         }
@@ -279,6 +326,65 @@ export class MapComponent {
         if (value === true) {
           this.panelsEvent.invokeTablePanelClose.emit();
         }
+      }),
+
+      // show or hide info on map (marker, image overlay, point, multiline...)
+      this.mapInteractionService.featureOnlayerToggle.subscribe((featureOnLayer: Map<string, Array<number> | string | boolean>) => {
+        const show = featureOnLayer.get('show');
+        const propertyId = featureOnLayer.get('propertyId');
+        const imageOverlay = featureOnLayer.get('imageOverlay');
+        let layerId = featureOnLayer.get('layerId') as string;
+        if (imageOverlay) {
+          layerId += GeoJSONHelper.IMAGE_OVERLAY_ID_SUFFIX;
+        }
+
+        this.eposLeaflet.getLeafletObject().eachLayer((_l: MyLayer) => {
+
+          if (_l !== undefined) {
+            const options = _l.options;
+            let elementOnMap: HTMLElement | undefined;
+
+            if (options.pane === layerId) {
+
+              // if propertyId on layer feature
+              if (_l.feature !== undefined) {
+                const feature: Feature = _l.feature;
+                const properties = feature.properties;
+                if (properties !== null) {
+                  if (properties[PopupProperty.PROPERTY_ID] === propertyId) {
+                    // eslint-disable-next-line no-underscore-dangle
+                    elementOnMap = _l._path;
+                  }
+                }
+
+              } else {
+
+                // if propertyId on layer options
+                if (options[PopupProperty.PROPERTY_ID] === propertyId) {
+
+                  // eslint-disable-next-line no-underscore-dangle
+                  elementOnMap = _l._icon;
+                  if (elementOnMap === undefined) {
+                    // eslint-disable-next-line no-underscore-dangle
+                    elementOnMap = _l._image;
+                  }
+                  if (elementOnMap === undefined) {
+                    // eslint-disable-next-line no-underscore-dangle
+                    elementOnMap = _l._path;
+                  }
+                }
+              }
+
+              if (elementOnMap !== undefined) {
+                if (show === false) {
+                  elementOnMap.style.setProperty('display', 'none');
+                } else {
+                  elementOnMap.style.removeProperty('display');
+                }
+              }
+            }
+          }
+        });
       }),
 
       this.mapInteractionService.pointOnlayerTriggered.subscribe((pointOnLayer: Map<string, Array<number> | string>) => {
@@ -345,7 +451,17 @@ export class MapComponent {
     }
   }
 
-  private addBox(bbox: BoundingBox, id: string, style: Record<string, unknown>): void {
+  private addBox(bbox: BoundingBox, type: string, style: Record<string, unknown>): void {
+
+    let id = type;
+
+    if (bbox.getId() !== undefined) {
+      id = bbox.getId() + type;
+    }
+
+    // prevent remove type layer
+    this.eposLeaflet.removeLayerById(type);
+
     if (!bbox.isBounded()) {
       this.eposLeaflet.removeLayerById(id);
     } else {
@@ -373,7 +489,7 @@ export class MapComponent {
         .setStylingFunction(() => style)
         .visibleOnLayerControl.set(true);
 
-      layer.name = 'Spatial Filter';
+      layer.name = 'Data Spatial Filter';
 
       layer.options.customLayerOptionOpacity.set(style.opacity as number);
       layer.options.customLayerOptionMarkerType.set(MapLayer.MARKERTYPE_POLYGON);
@@ -394,6 +510,11 @@ export class MapComponent {
     // ensure between -180 and +180
     const convertFunc = (num: number) => ((((num + 180) % 360) + 360) % 360) - 180;
     const roundFunc = (num: number, precDP = 5) => Math.round(num * Math.pow(10, precDP)) / Math.pow(10, precDP);
+
+    if (this.bboxContext !== null) {
+      bbox.setId(this.bboxContext);
+    }
+
     return (!bbox.isBounded())
       ? SimpleBoundingBox.makeUnbounded()
       : new SimpleBoundingBox(
@@ -405,17 +526,17 @@ export class MapComponent {
   }
 
 
-  private removeConfigDisplayItems(dataConfigurables: Array<DataConfigurableI>): void {
+  private removeConfigDisplayItems(dataConfigurables: Array<DataConfigurableI>, context: string): void {
     dataConfigurables.forEach((dataConfigurable: DataConfigurable) => {
       const mapLayerIds = this.currentIdToMapLayerIdMap.get(dataConfigurable.id);
-      if (null != mapLayerIds) {
+      if (null != mapLayerIds && dataConfigurable.context === context) {
         mapLayerIds.forEach((id: string) => {
           this.eposLeaflet.removeLayerById(id);
         });
-      }
 
-      this.removeConfigurableStyleSubscription(dataConfigurable.id);
-      this.currentIdToMapLayerIdMap.delete(dataConfigurable.id);
+        this.removeConfigurableStyleSubscription(dataConfigurable.id);
+        this.currentIdToMapLayerIdMap.delete(dataConfigurable.id);
+      }
     });
   }
 
@@ -485,4 +606,11 @@ class BboxStyle implements Stylable {
     return this.styleSrc.value;
   }
 
+}
+
+interface MyLayer extends L.Layer {
+  feature: Feature;
+  _path: HTMLElement;
+  _icon: HTMLElement;
+  _image: HTMLElement;
 }

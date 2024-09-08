@@ -32,19 +32,20 @@
     tourDescription="Click the green funnel icon to view, and sort by associated TCS categories."
     tourTitle="Categories"
     tourPosition="auto"
-    (tourEnterFunction)="addServiceItemTourStep()">
-    <button class="facet-expand" mat-icon-button [hidden]="activeDomainData !== null && (activeDomainData.code === 'FAV' || activeDomainData.code === 'ALL')" (click)="toggleFacetExpansionPanel()">
+    (tourEnterFunction)="addServiceItemTourStep()"
+    data-cy="results-title">
+    <button class="facet-expand" mat-icon-button [hidden]="activeDomainData.code === 'FAV' || activeDomainData.code === 'ALL'" (click)="toggleFacetExpansionPanel()">
       <mat-icon matTooltip="Filter by categories">filter_alt</mat-icon>
     </button>
     <p (click)="toggleDomain(activeDomainData!.code)">
-      <span>{{ activeDomainData!.title }}</span>
+      <span>{{ activeDomainData.title }}</span>
     </p>
-    <p (click)="toggleDomain(activeDomainData!.code)" class="last">
-      <span *ngIf="activeDomainData !== null">{{ domainResultsCounter[activeDomainData!.code] }}</span>
+    <p (click)="toggleDomain(activeDomainData!.code)" class="last" data-cy="results-title-counter">
+      <span>{{ domainResultsCounter[activeDomainData!.code] }}</span>
     </p>
   </div>
   <div class="results-buttons" *ngIf="activeDomainData?.code === 'FAV'">
-    <button id="clear-favourites-button" class="adv-search-buttons" mat-flat-button color="primary" (click)="removeAllFavourites()" matTooltip="Clear all favourites">
+    <button id="clear-favourites-button" class="adv-search-buttons" mat-flat-button color="primary" (click)="removeAllFavourites()" matTooltip="Clear all favourites" data-cy="clear-favourites-button">
       Clear all favourites
       <i class="fas fa-times icon" aria-hidden="true"></i>
     </button>
@@ -55,36 +56,40 @@
     [facetExpansionHidden]="facetExpansionHidden"
     [rawTreeData]="rawTreeData"
     (setSelectedFacets)="setSelectedFacets($event)"></app-facet-dropdown>
-  <div *ngIf="!showLoading && (dataSource.filteredData.length === 0 || dataSource.filteredData[0] === undefined)" class="results-container">
+  <div *ngIf="!showLoading && dataSource !== undefined && (dataSource.filteredData.length === 0 || dataSource.filteredData[0] === undefined)" class="results-container">
     <div class="results-no-data">
       <p>No results found on {{ activeDomainData!.title }}</p>
     </div>
   </div>
-  <div *ngIf="(!showLoading && dataSource.filteredData[0] !== undefined) || (messageShow && messageType === 'error')" class="results-container nice-scrollbar">
+  <div
+    *ngIf="(!showLoading && dataSource !== undefined && dataSource.filteredData[0] !== undefined) || (messageShow && messageType === 'error')"
+    class="results-container nice-scrollbar"
+    data-cy="results-container">
     <div class="results-table">
-      <table mat-table [dataSource]="dataSource" multiTemplateDataRows id="distributionListTable">
+      <table mat-table [dataSource]="dataSource" multiTemplateDataRows id="distributionListTable" data-cy="distribution-list-table">
         <ng-container matColumnDef="{{ column }}" *ngFor="let column of columnsToDisplay" sticky>
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let element; let i = dataIndex" [class]="{ 'cell-result': true }" [style.border-left-color]="element.color">
-            <div [class]="{ container: true, 'mat-elevation-z8': expandedElement !== null && expandedElement.id === element.id }" *ngIf="element !== undefined && itemShow(element)">
+            <div
+              [class]="{ container: true, 'mat-elevation-z8': expandedElement !== null && expandedElement.id === element.id }"
+              *ngIf="element !== undefined && (activeDomainData?.code === 'FAV' || element.hideToResult === false)">
               <div [class]="{ 'item-header': true, selected: expandedElement !== null && expandedElement.id === element.id }">
                 <div class="item-name">
-                  <p (click)="expandedElement = expandedElement !== null && expandedElement.id === element.id ? null : element; select(expandedElement)">
+                  <p (click)="expandedElement = expandedElement !== null && expandedElement.id === element.id ? null : element; select(expandedElement, $event)" data-cy="results-panel-item-name">
                     {{ element.name }}
                   </p>
                 </div>
                 <div class="item-actions">
                   <ng-container>
-                    <img class="icon" (click)="openDialog(element)" matTooltip="Details" src="assets/img/info.png" />
-                    <mat-icon *ngIf="!checkFavourite(element)" (click)="favourite(element)" matTooltip="Add to favourites">star_border</mat-icon>
+                    <img class="icon" (click)="openDialog(element)" matTooltip="Details" src="assets/img/info.png" alt="info" data-cy="item-info-button" />
+                    <mat-icon *ngIf="!element.isPinned" (click)="favourite(element, $event)" matTooltip="Add to favourites" data-cy="add-to-favourites">star_border</mat-icon>
                   </ng-container>
-                  <mat-icon *ngIf="checkFavourite(element)" (click)="favourite(element)" class="yellow" matTooltip="Remove from favourites">star</mat-icon>
+                  <mat-icon *ngIf="element.isPinned" (click)="favourite(element, $event)" class="yellow" matTooltip="Remove from favourites" data-cy="remove-from-favourites">star</mat-icon>
                   <mat-icon
-                    *ngIf="element.name !== 'VisualizeVulnerability.ipynb'"
                     [class]="expandedElement !== null && expandedElement.id === element.id ? 'icon-up' : 'icon-down'"
                     aria-hidden="true"
                     aria-label="expand-more"
-                    (click)="expandedElement = expandedElement !== null && expandedElement.id === element.id ? null : element; select(expandedElement)"
+                    (click)="expandedElement = expandedElement !== null && expandedElement.id === element.id ? null : element; select(expandedElement, $event)"
                     matTooltip="Advanced search filters">
                     expand_more
                   </mat-icon>
@@ -92,11 +97,11 @@
               </div>
               <ng-container>
                 <div [class]="{ informations: true, selected: expandedElement !== null && expandedElement.id === element.id }">
-                  <app-breadcrumb [levels]="element.levels" [showFirst]="activeDomainData !== null && (activeDomainData.code === 'FAV' || activeDomainData.code === 'ALL')"></app-breadcrumb>
+                  <app-breadcrumb [levels]="element.levels" [showFirst]="activeDomainData.code === 'FAV' || activeDomainData.code === 'ALL'"></app-breadcrumb>
                   <div class="informations-bottom">
                     <div class="informations-bottom-left">
                       <ng-container>
-                        <app-visible-on [item]="element"></app-visible-on>
+                        <app-visible-on [item]="element" [configurables]="configurables" data-cy="results-panel-visible-on"></app-visible-on>
                       </ng-container>
                     </div>
                     <div class="informations-bottom-right"></div>
@@ -105,14 +110,14 @@
               </ng-container>
               <div [class]="{ 'results-element-detail': true }" *ngIf="element !== undefined && expandedElement?.id === element.id">
                 <div [ngClass]="{ 'advanced-search-container': true, 'nice-scrollbar': true, 'advanced-search-container-min': messageShow }">
-                  <app-notification-panel
+                  <app-notification
                     id="{{ messageId }}"
                     [showMessage]="messageShow"
                     type="{{ messageType }}"
                     [checkShowAgain]="messageCheckShowAgain"
                     title="{{ messageTitle }}"
                     message="{{ messageText }}"
-                    (showMessageEvent)="showMessage($event)"></app-notification-panel>
+                    (showMessageEvent)="showMessage($event)"></app-notification>
                   <app-data-configuration
                     [ngClass]="{ 'flex, flex-col, flex-grow': true, disabled: messageShow }"
                     [dataConfigurableSource]="selectedConfigurableSource"
@@ -128,7 +133,7 @@
           *matRowDef="let element; columns: columnsToDisplay"
           [id]="element !== undefined ? element.id : null"
           [style.background-color]="expandedElement !== null && expandedElement!.id === element.id ? element.lcolor : ''"
-          [class]="{ hidden: !itemShow(element) }"></tr>
+          [class]="{ hidden: !(element !== undefined && (activeDomainData.code === 'FAV' || element.hideToResult === false)) }"></tr>
       </table>
     </div>
   </div>

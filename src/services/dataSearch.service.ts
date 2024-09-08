@@ -19,6 +19,8 @@ import { DiscoverRequest, DiscoverResponse } from 'api/webApi/classes/discoverAp
 import { Model } from './model/model.service';
 
 import { LoggingService } from './logging.service';
+import { Organization } from 'api/webApi/data/organization.interface';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 /**
  * A service that exposes the "discover" webAPI functionality to the rest of the GUI.
@@ -27,8 +29,8 @@ import { LoggingService } from './logging.service';
 export class DataSearchService {
 
   constructor(
-    private readonly apiService: ApiService,
-    private readonly loggingService: LoggingService,
+    protected readonly apiService: ApiService,
+    protected readonly loggingService: LoggingService,
     protected readonly model: Model,
   ) {
   }
@@ -44,8 +46,8 @@ export class DataSearchService {
       this.getLogMessage(discoverRequest),
     ).then((r: DiscoverResponse) => {
 
-      switch (this.getContextualStartPath()) {
-        case 'resources': {
+      switch (discoverRequest.getContext()) {
+        case CONTEXT_RESOURCE: {
           this.model.dataDiscoverResponse.set(r);
           break;
         }
@@ -56,26 +58,19 @@ export class DataSearchService {
 
   }
 
-  private getContextualStartPath(): string {
-    const lastUrlPath = window.location.pathname.split('/').pop();
-    let startPathElements = '';
-
-    switch (lastUrlPath) {
-      case '': {
-        startPathElements = 'resources';
-        break;
-      }
-
-    }
-    return startPathElements;
+  /**
+   * The function "getOrganizations" returns a promise that resolves to an array of Organization
+   * objects.
+   * @returns a Promise that resolves to an array of Organization objects.
+   */
+  public getOrganizations(type: string): Promise<Array<Organization>> {
+    return this.apiService.getOrganizations(type)
+      .then((r: Array<Organization>) => {
+        return r;
+      });
   }
 
-  private getLogMessage(discoverRequest: DiscoverRequest): string {
-    return `Search API Call - ${this.discoverRequestToLogString(discoverRequest)}`;
-  }
-
-
-  private discoverRequestToLogString(request: DiscoverRequest): string {
+  protected discoverRequestToLogString(request: DiscoverRequest): string {
 
     let s = '';
 
@@ -129,6 +124,10 @@ export class DataSearchService {
 
     return s;
 
+  }
+
+  protected getLogMessage(discoverRequest: DiscoverRequest): string {
+    return `Search API Call - ${this.discoverRequestToLogString(discoverRequest)}`;
   }
 
 }

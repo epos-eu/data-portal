@@ -27,10 +27,6 @@ import { OAuthModule } from 'angular-oauth2-oidc';
     HttpClientModule,
     OAuthModule,
   ],
-  // providers: [
-  //   selectableApiServiceProvider,
-  //   aaaiServiceProvider,
-  // ],
 })
 export class ApiModule {
   static forRoot(): ModuleWithProviders<ApiModule> {

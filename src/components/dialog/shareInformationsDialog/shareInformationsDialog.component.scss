@@ -1,0 +1,111 @@
+/*
+         Copyright 2021 EPOS ERIC
+
+ Licensed under the Apache License, Version 2.0 (the License); you may not
+ use this file except in compliance with the License.  You may obtain a copy
+ of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ License for the specific language governing permissions and limitations under
+ the License.
+ */
+@import 'src/sassFramework/variables';
+
+:host {
+  color: $color-primary;
+
+  ::ng-deep .mat-dialog-content {
+    overflow: hidden;
+  }
+
+  ::ng-deep h1 {
+    font-size: 1.2em;
+    font-weight: bold;
+
+    margin-bottom: 10px;
+  }
+
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+
+    .items-bar {
+      width: 100%;
+
+      img {
+        width: 100%;
+      }
+    }
+
+    .body-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      width: 100%;
+      font-size: 1.2em;
+
+      .first-content {
+        margin-top: 0.75rem;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .version-info {
+        border: 2px solid red;
+        padding: 10px;
+        margin-top: 0.9rem;
+        display: flex;
+        flex-direction: column;
+        color: black;
+        font-weight: bold;
+
+        .versions {
+          text-align: left;
+
+          .version {
+            color: $color-primary;
+          }
+
+          .version-load {
+            color: red;
+          }
+        }
+      }
+
+      .footer {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+      }
+    }
+  }
+
+  .button-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-bottom: 10px;
+
+    button {
+      width: 200px;
+      color: white;
+      font-weight: bold;
+      margin-left: 0px;
+      margin-right: 0px;
+      padding-top: 15px;
+      padding-bottom: 15px;
+      flex: 1;
+
+      &.confirm {
+        font-size: 13px;
+        font-family: 'Open Sans';
+      }
+    }
+  }
+}

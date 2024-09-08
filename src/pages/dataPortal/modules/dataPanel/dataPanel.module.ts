@@ -19,7 +19,6 @@ import { DataPanelComponent } from './dataPanel.component';
 import { ResultsPanelComponent } from './resultsPanel/resultsPanel.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTableModule } from '@angular/material/table';
@@ -38,34 +37,26 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ComponentsModule } from 'components/components.module';
 import { SpatialTemporalControlsModule } from '../temporalSpatialControls/spatialTemporalControls.module';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { VisibleOnComponent } from './resultsPanel/visibleOn/visibleOn.component';
-import { MyPaginatorIntl } from './resultsPanel/paginator/myPaginatorIntl';
+import { MyPaginatorIntl } from 'utility/paginator/myPaginatorIntl';
 import { MatBadgeModule } from '@angular/material/badge';
-import { ResultPanelFluidHeightDirective } from './resultsPanel/directive/resultPanelFluidHeight.directive';
-import { FacetDropdownComponent } from './resultsPanel/facetDropdown/facetDropdown.component';
-import { MatTreeModule } from '@angular/material/tree';
-import { BreadcrumbComponent } from './resultsPanel/breadcrumb/breadcrumb.component';
 import { DirectivesModule } from 'directives/directives.module';
 import { ServicesModule } from 'services/services.module';
-import { NotificationComponent } from './resultsPanel/notification/notification.component';
-import { DataConfigurationModule } from './configuration/dataConfiguration.module';
+import { DataConfigurationModule } from '../dataConfiguration/dataConfiguration.module';
+import { DataSearchConfigurablesServiceResource } from './services/dataSearchConfigurables.service';
+import { LandingService } from './services/landing.service';
 
 @NgModule({
   declarations: [
     DataPanelComponent,
     ResultsPanelComponent,
     LandingPanelComponent,
-    VisibleOnComponent,
-    BreadcrumbComponent,
-    ResultPanelFluidHeightDirective,
-    FacetDropdownComponent,
-    NotificationComponent,
   ],
   imports: [
     CommonModule,
+    ComponentsModule,
+    DirectivesModule,
     MatInputModule,
     MatIconModule,
-    MatExpansionModule,
     MatButtonToggleModule,
     MatTooltipModule,
     MatTableModule,
@@ -79,20 +70,20 @@ import { DataConfigurationModule } from './configuration/dataConfiguration.modul
     FormsModule,
     FilterSearchModule,
     MatProgressSpinnerModule,
-    ComponentsModule,
     SpatialTemporalControlsModule,
     MatSlideToggleModule,
     MatBadgeModule,
-    MatTreeModule,
     MatCheckboxModule,
     DirectivesModule,
-    ServicesModule,
+    ServicesModule.forRoot(),
     DataConfigurationModule,
   ],
   exports: [
     DataPanelComponent,
   ],
   providers: [
+    DataSearchConfigurablesServiceResource,
+    LandingService,
     { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'fill' } },
     { provide: MatPaginatorIntl, useClass: MyPaginatorIntl },
     { provide: ResultsPanelComponent },

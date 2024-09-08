@@ -22,6 +22,7 @@ import { ConfirmationDataIn, ConfirmationDialogComponent } from './confirmationD
 import { DisclaimerDialogComponent } from './disclaimerDialog/disclaimerDialog.component';
 import { DetailsDataIn, DetailsDialogComponent } from './detailsDialog/detailsDialog.component';
 import { ParametersDialogComponent } from './parametersDialog/parametersDialog.component';
+import { InformationsDialogComponent } from './informationsDialog/informationsDialog.component';
 import { DownloadsDialogComponent } from './downloadsDialog/downloadsDialog.component';
 import { DataConfigurableI } from 'utility/configurables/dataConfigurableI.interface';
 import { VideoGuidesDialogComponent } from './videoGuidesDialog/videoGuidesDialog.component';
@@ -29,6 +30,14 @@ import { MobileDisclaimerDialogComponent } from './mobileDisclaimerDialog/mobile
 import { ContactFormDialogComponent } from './contactFormDialog/contactFormDialog.component';
 import { PoliciesComponent } from './policiesDialog/policies.component';
 import { DataConfigurationType } from 'utility/configurables/dataConfigurationType.enum';
+import { DataProviderFilterDialogComponent } from './dataProviderFilterDialog/dataProviderFilterDialog.component';
+import { Organization } from 'api/webApi/data/organization.interface';
+import { Domain } from 'api/webApi/data/domain.interface';
+import { GraphPanelDialogComponent } from './graphPanelDialog/graphPanelDialog.component';
+import { TablePanelDialogComponent } from './tablePanelDialog/tablePanelDialog.component';
+import { CitationDialogComponent, CitationsDataIn } from './citationDialog/citationDialog.component';
+import { DistributionDetails } from '../../api/webApi/data/distributionDetails.interface';
+import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
 
 
 /**
@@ -126,6 +135,8 @@ export class DialogService extends BaseDialogService {
    */
   public openDetailsDialog(
     distId: string,
+    context: string,
+    domains: Array<Domain>,
     width = '50vw',
   ): Promise<null | DialogData> {
 
@@ -138,6 +149,8 @@ export class DialogService extends BaseDialogService {
       true,
       {
         distId: distId,
+        context: context,
+        domains: domains,
       },
       {
         width: width,
@@ -162,7 +175,6 @@ export class DialogService extends BaseDialogService {
       true,
       {
         dataConfigurable,
-        environmentOps: false,
       },
       {
         width: width,
@@ -170,6 +182,26 @@ export class DialogService extends BaseDialogService {
           top: top,
           left: left
         }
+      }
+    );
+  }
+
+  public openDownloadCitationDialog(
+    distributionDetails: DistributionDetails | null,
+    citationsToShow: number[],
+    width: string,
+  ): Promise<null | DialogData> {
+    return this.openDialog<CitationsDataIn>(
+      'citationsDialog',
+      CitationDialogComponent,
+      'epos-dialog',
+      true,
+      {
+        distributionDetails,
+        citationsToShow,
+      },
+      {
+        width: width,
       }
     );
   }
@@ -187,7 +219,6 @@ export class DialogService extends BaseDialogService {
       true,
       {
         dataConfigurable,
-        environmentOps: true,
       },
       {
         width: width,
@@ -207,12 +238,12 @@ export class DialogService extends BaseDialogService {
   }
 
   public openParametersDialog(
-    title = 'Title',
     distId: string | undefined,
     width: string,
     top: string,
     left: string,
     component: DataConfigurationType = DataConfigurationType.DATA,
+    title = 'Title',
   ): Promise<null | DialogData> {
 
     return this.openDialog<DetailsDataIn>(
@@ -265,6 +296,33 @@ export class DialogService extends BaseDialogService {
     this.closeDialogById('noMobileDisclaimer');
   }
 
+  public openInformationBanner(
+    messageHtml = 'Confirm action',
+    closable = true,
+    confirmButtonHtml = 'CONTINUE TO PORTAL',
+    confirmButtonCssClass = 'confirm',
+    cancelButtonHtml = 'Cancel',
+  ): Promise<boolean> {
+    return this.openDialog<ConfirmationDataIn>(
+      'informations',
+      InformationsDialogComponent,
+      'no-resize',
+      closable,
+      {
+        messageHtml: messageHtml,
+        confirmButtonHtml: confirmButtonHtml,
+        cancelButtonHtml: cancelButtonHtml,
+        confirmButtonCssClass: confirmButtonCssClass,
+      },
+      {
+        width: '600px',
+        position: {
+          top: '200px'
+        }
+      }
+    ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
+  }
+
   public closeInformationBanner(): void {
     this.closeDialogById('informations');
   }
@@ -275,6 +333,131 @@ export class DialogService extends BaseDialogService {
       VideoGuidesDialogComponent,
       'no-resize',
     );
+  }
+
+  public openDataProvidersFilter(dataProviders: Array<Organization>,
+    dataProvidersSelected: Array<string>,
+    title = 'Filter by Data and Service Providers'): Promise<null | DialogData> {
+
+    const widthWindows = window.innerWidth;
+    let percWidth = 50;
+    if (widthWindows < 2000) {
+      percWidth = 80;
+    }
+
+    return this.openDialog(
+      'dataProviderFilter',
+      DataProviderFilterDialogComponent,
+      'epos-dialog',
+      false,
+      {
+        dataProviders: dataProviders,
+        dataProvidersSelected: dataProvidersSelected,
+        title: title,
+      },
+      {
+        width: String(percWidth) + '%',
+        height: '650px',
+      }
+    );
+  }
+
+  public openGraphPanel(): void {
+
+    const widthWindows = window.innerWidth;
+    let percWidth = 50;
+    if (widthWindows < 2000) {
+      percWidth = 80;
+    }
+
+    void this.openDialog(
+      'graphPanel',
+      GraphPanelDialogComponent,
+      'epos-dialog',
+      true,
+      {
+        title: 'Graph panel'
+      },
+      {
+        width: String(percWidth) + '%',
+        hasBackdrop: false,
+      }
+    );
+  }
+
+  public openTablePanel(): void {
+
+    const elemPosition = document.getElementById('table-vis-toggle')!.getBoundingClientRect();
+
+    const widthWindows = window.innerWidth;
+    let percWidth = 50;
+    if (widthWindows < 2000) {
+      percWidth = 80;
+    }
+
+    void this.openDialog(
+      'tablePanel',
+      TablePanelDialogComponent,
+      'epos-dialog',
+      true,
+      {
+        title: 'Table panel'
+      },
+      {
+        width: String(percWidth) + '%',
+        hasBackdrop: false,
+        position: {
+          top: String(elemPosition.top) + 'px',
+        }
+      }
+    );
+  }
+
+
+  /**
+   * This function opens a dialog for sharing information with configurable options such as confirm
+   * button text and CSS class.
+   * @param [step=createUrl] - The `step` parameter in the `openShareInformationBanner` function is
+   * used to specify the current step of the process. In this case, the default value is set to
+   * `'createUrl'`.
+   * @param [confirmButtonHtml=YES] - The `confirmButtonHtml` parameter in the
+   * `openShareInformationBanner` function is used to specify the HTML content for the confirm button
+   * in the dialog box. In this case, the default value for `confirmButtonHtml` is set to 'LOAD NEW
+   * CONFIGURABLES'.
+   * @param [confirmButtonCssClass=confirm] - The `confirmButtonCssClass` parameter in the
+   * `openShareInformationBanner` function is used to specify the CSS class that will be applied to the
+   * "YES" button in the dialog box. In this case, the default CSS class is set to
+   * `'confirm'`. This
+   * @param [cancelButtonHtml=Cancel] - The `cancelButtonHtml` parameter in the
+   * `openShareInformationBanner` function is used to specify the HTML content for the cancel button in
+   * the dialog box. In this case, the default value for `cancelButtonHtml` is set to 'Cancel'. This
+   * text will be displayed on the cancel button
+   * @returns The `openShareInformationBanner` function returns a Promise<boolean>.
+   */
+  public openShareInformationBanner(
+    step = 'createUrl',
+    confirmButtonHtml = 'YES',
+    confirmButtonCssClass = 'confirm',
+    cancelButtonHtml = 'Cancel',
+  ): Promise<boolean> {
+    return this.openDialog<ConfirmationDataIn>(
+      'shareInformations',
+      ShareInformationsDialogComponent,
+      'no-resize',
+      true,
+      {
+        step: step,
+        confirmButtonHtml: confirmButtonHtml,
+        cancelButtonHtml: cancelButtonHtml,
+        confirmButtonCssClass: confirmButtonCssClass,
+      },
+      {
+        width: '600px',
+        position: {
+          top: '200px'
+        }
+      }
+    ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
   }
 
   private closeDialogById(dialogId: string): void {

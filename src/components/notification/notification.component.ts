@@ -13,32 +13,61 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, Inject } from '@angular/core';
-import {
-  MatSnackBarRef,
-  MAT_SNACK_BAR_DATA,
-} from '@angular/material/snack-bar';
-import { NotificationService } from 'services/notification.service';
-import { ISnackbar } from './notification.interface';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { NotificationService } from './notification.service';
+import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 
 @Component({
   selector: 'app-notification',
   templateUrl: './notification.component.html',
   styleUrls: ['./notification.component.scss'],
 })
-export class NotificationComponent {
+export class NotificationComponent implements OnInit {
 
-  public typeSuccess = NotificationService.TYPE_SUCCESS;
-  public typeInfo = NotificationService.TYPE_INFO;
-  public typeWarning = NotificationService.TYPE_WARNING;
-  public typeError = NotificationService.TYPE_ERROR;
+  @Input() showMessage = true;
+  @Input() type = NotificationService.TYPE_INFO;
+  @Input() id = '';
+  @Input() checkShowAgain = false;
+  @Input() title = '';
+  @Input() message = '';
+
+  @Output() showMessageEvent = new EventEmitter<boolean>();
+
+  public icon = 'info';
 
   constructor(
-    @Inject(MAT_SNACK_BAR_DATA) public data: ISnackbar,
-    private snackbarRef: MatSnackBarRef<NotificationComponent>
-  ) { }
+    private readonly localStoragePersister: LocalStoragePersister,
+  ) {
+  }
+  ngOnInit(): void {
+    switch (this.type) {
+      case NotificationService.TYPE_INFO:
+        this.icon = 'info';
+        break;
+      case NotificationService.TYPE_WARNING:
+        this.icon = 'warning';
+        break;
+      case NotificationService.TYPE_ERROR:
+        this.icon = 'error';
+        break;
+    }
+  }
+
+  public handleShowAgain(checked: boolean): void {
+    if (this.checkShowAgain) {
+      if (checked) {
+        // Don't show again
+        this.localStoragePersister.set(this.id, false);
+      } else {
+        // Keep showing
+        this.localStoragePersister.set(this.id, true);
+      }
+    }
+  }
 
   public handleClose(): void {
-    this.snackbarRef.dismiss();
+    this.showMessage = false;
+    this.showMessageEvent.emit(false);
   }
+
 }

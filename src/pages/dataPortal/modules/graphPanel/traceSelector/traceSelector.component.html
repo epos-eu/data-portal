@@ -1,35 +1,25 @@
 <!--
          Copyright 2021 EPOS ERIC
- 
+
  Licensed under the Apache License, Version 2.0 (the License); you may not
  use this file except in compliance with the License.  You may obtain a copy
  of the License at
- 
+
    http://www.apache.org/licenses/LICENSE-2.0
- 
+
  Unless required by applicable law or agreed to in writing, software
  distributed under the License is distributed on an AS IS BASIS, WITHOUT
  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
  License for the specific language governing permissions and limitations under
  the License.
  -->
-<!-- mat-button-toggle (change)="toggled($event)" value="true" [checked]="isOpen"
-  class="selector-toggle accent flex-shrink-no" type="checkbox">Trace Selector
-  <mat-icon [class]="isOpen ? 'icon-up' : 'icon-down'" aria-hidden="true">
-    expand_more</mat-icon>
-</mat-button-toggle-->
-
 <mat-expansion-panel [expanded]="traceSelectorExpanded">
   <mat-expansion-panel-header>
-    <mat-panel-title>
-      Trace Selector
-    </mat-panel-title>
+    <mat-panel-title>Trace Selector</mat-panel-title>
   </mat-expansion-panel-header>
   <div class="distribution-list flex flex-col flex-shrink nice-scrollbar">
     <ul *ngFor="let configurable of configurables">
       <li class="distribution-item flex">
-        <!-- div class="style-indicator" [style.background-color]="$any(configurable.styleObs | async)?.color1CssString">
-        </div -->
         <table class="traces-from-configurable">
           <caption>Trace Selector</caption>
           <thead>
@@ -40,44 +30,35 @@
           </thead>
           <tbody>
             <tr class="group-row">
-              <td colspan="99">{{configurable.name}}
+              <td colspan="99">
+                {{ configurable.name }}
                 <mat-icon *ngIf="$any(configurable.pinnedObs | async)" class="yellow">star</mat-icon>
               </td>
             </tr>
-            <tr
-              *ngIf="(null === (traceRecord[configurable.id]?? null)) || (traceRecord[configurable.id]?.length === 0); else gotTraces;">
-              <td colspan="99">
-                ** {{(null === (traceRecord[configurable.id]?? null)) ? 'Requesting Data...' : 'No Traces Found'}} **
-              </td>
+            <tr *ngIf="null === (traceRecord[configurable.id] ?? null) || traceRecord[configurable.id]?.length === 0; else gotTraces">
+              <td colspan="99">** {{ null === (traceRecord[configurable.id] ?? null) ? 'Requesting Data...' : 'No Traces Found' }} **</td>
             </tr>
             <ng-template #gotTraces>
-              <tr *ngFor="let trace of traceRecord[configurable.id]" class="plot-item"
-                [class.add-disabled]="addIsDisabled" [style.color]="$any(trace.styleObs | async)?.color1CssString">
-                <td *ngIf="null !== (_selectedTraces[trace.id]?? null); else traceNotSelected;" colspan="2"
-                  class="double-cell">
-                  <i (click)="setSelected(trace, false)" class="remove-button fas fa-minus-circle" matTooltip="Remove"
-                    aria-hidden="true"></i>
+              <tr *ngFor="let trace of traceRecord[configurable.id]" class="plot-item" [class.add-disabled]="addIsDisabled" [style.color]="$any(trace.styleObs | async)?.color1CssString">
+                <td *ngIf="null !== (_selectedTraces[trace.id] ?? null); else traceNotSelected" colspan="2" class="double-cell">
+                  <i (click)="selectTrace(configurable.id, trace, false)" class="remove-button fas fa-minus-circle" matTooltip="Remove" aria-hidden="true"></i>
                 </td>
                 <ng-template #traceNotSelected>
-                  <ng-container *ngIf="(_selectedTraces | reusableYAxes:trace).length > 0 ; else noReusableYAxis;">
+                  <ng-container *ngIf="(_selectedTraces | reusableYAxes : trace).length > 0; else noReusableYAxis">
                     <td>
-                      <i (click)="setSelected(trace, true)" class="add-button fas fa-plus-circle" aria-hidden="true"
-                        matTooltip="Add with new y-axis"></i>
+                      <i (click)="selectTrace(configurable.id, trace, true)" class="add-button fas fa-plus-circle" aria-hidden="true" matTooltip="Add with new y-axis"></i>
                     </td>
                     <td>
-                      <i class="add-button fas fa-plus-square" [matMenuTriggerData]="{trace: trace}" aria-hidden="true"
-                        [matMenuTriggerFor]="yAxisMenu" matTooltip="Add with shared y-axis">
-                      </i>
+                      <i class="add-button fas fa-plus-square" [matMenuTriggerData]="{ trace: trace }" aria-hidden="true" [matMenuTriggerFor]="yAxisMenu" matTooltip="Add with shared y-axis"></i>
                     </td>
                   </ng-container>
                   <ng-template #noReusableYAxis>
                     <td colspan="2" class="double-cell">
-                      <i (click)="setSelected(trace, true)" class="fas fa-plus-circle" matTooltip="Add with new y-axis"
-                        aria-hidden="true"></i>
+                      <i (click)="selectTrace(configurable.id, trace, true)" class="fas fa-plus-circle" matTooltip="Add with new y-axis" aria-hidden="true"></i>
                     </td>
                   </ng-template>
                 </ng-template>
-                <td>{{trace.name}}</td>
+                <td>{{ trace.name }}</td>
               </tr>
             </ng-template>
           </tbody>
@@ -90,13 +71,11 @@
 <mat-menu #yAxisMenu="matMenu" class="graph-visualization-sub-menu">
   <ng-template matMenuContent let-trace="trace">
     <h5 class="heading">Share y-axis with:</h5>
-    <button mat-menu-item *ngFor="let yAxis of (_selectedTraces | reusableYAxes:trace)" class="flex flex-col"
-      (click)="setSelected(trace, true, yAxis)">
+    <button mat-menu-item *ngFor="let yAxis of _selectedTraces | reusableYAxes : trace" class="flex flex-col" (click)="setSelected(trace, true, yAxis)">
       <ul>
         <!-- this is a popup menu that gets populated after a click, so binding efficiency not really an issue -->
-        <li *ngFor="let axisTrace of getTracesForYAxis(yAxis)"
-          [style.color]="$any(axisTrace.styleObs | async)?.color1CssString">
-          {{axisTrace.name}}
+        <li *ngFor="let axisTrace of getTracesForYAxis(yAxis)" [style.color]="$any(axisTrace.styleObs | async)?.color1CssString">
+          {{ axisTrace.name }}
         </li>
       </ul>
     </button>

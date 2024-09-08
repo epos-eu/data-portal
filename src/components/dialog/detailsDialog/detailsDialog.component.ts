@@ -24,7 +24,6 @@ import { SpatialRange } from 'api/webApi/data/spatialRange.interface';
 import { TourService } from 'services/tour.service';
 import * as Driver from 'driver.js';
 import { DataProvider } from 'api/webApi/data/dataProvider.interface';
-import { DomainInfo, domainLinks } from 'pages/dataPortal/modules/dataPanel/links';
 import { AuthenticatedClickService } from 'services/authenticatedClick.service';
 import { SearchService } from 'services/search.service';
 import { DistributionCategories } from 'api/webApi/data/distributionCategories.interface';
@@ -33,9 +32,13 @@ import { NestedTreeControl } from '@angular/cdk/tree';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { Subscription } from 'rxjs';
+import { Domain } from 'api/webApi/data/domain.interface';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 export interface DetailsDataIn {
   distId: string;
+  context: string;
+  domains: Array<Domain>;
 }
 
 /**
@@ -44,11 +47,9 @@ export interface DetailsDataIn {
 @Component({
   selector: 'app-details-dialog',
   templateUrl: './detailsDialog.component.html',
-  styleUrls: ['./detailsDialog.component.scss']
+  styleUrls: ['./detailsDialog.component.scss'],
 })
 export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy {
-
-  public readonly domainLinks = domainLinks;
 
   public nullDataString = 'Unspecified';
   public nullDataHtml: string;
@@ -64,6 +65,16 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   public dataService: MatTableDataSource<KeyValue>;
   public dataProvider: MatTableDataSource<DataProvider>;
 
+  public hasContactUsButton = true;
+
+  public context = CONTEXT_RESOURCE;
+
+  /**
+   * The citations to show in the citation component for this dialog
+   */
+  public citationsToShow: number[] = [];
+
+  private domains: null | Array<Domain> = null;
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
@@ -78,7 +89,14 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   public ngOnInit(): void {
-    void this.searchService.getDetailsById(this.data.dataIn.distId)
+
+    this.context = this.data.dataIn.context;
+    this.domains = this.data.dataIn.domains;
+
+    // Set the citations to show in the citation component based on the context
+    this.citationsToShow = this.getCitationsToShow();
+
+    void this.searchService.getDetailsById(this.data.dataIn.distId, this.context)
       .then((distributionDetails: DistributionDetails) => {
         this.detailsData = distributionDetails;
         if (this.detailsData !== undefined) {
@@ -132,7 +150,7 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
             this.tourService.triggerAddInfoIconStep();
             this.dialogService.closeDetailsDialog();
           }
-        })
+        }),
       );
     }
   }
@@ -168,6 +186,11 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
       // Alternative value for missing data
       const alt = this.nullDataHtml;
 
+      // check contact us button
+      if (itemDetails.getAvailableContactPoints().length === 0) {
+        this.hasContactUsButton = false;
+      }
+
       tableData.push(this.makeKeyValue('Name', this.stringOrElse(itemDetails.getName(), alt)));
       tableData.push(this.makeKeyValue('Domain', this.stringOrElse(itemDetails.getDomain(), alt)));
       this.getCategories();
@@ -177,11 +200,22 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
       // Spatial
       tableData.push(this.makeKeyValue('Spatial Coverage', this.getSpatialValue(itemDetails)));
 
-      tableData.push(this.makeKeyValue('Temporal Coverage', this.getTemporalValue(itemDetails)));
+      if (this.context === CONTEXT_RESOURCE) {
+        tableData.push(this.makeKeyValue('Temporal Coverage', this.getTemporalValue(itemDetails)));
+      }
+
       tableData.push(this.makeKeyValue('Persistent Identifier(s)', this.stringOrElse(this.getDOIAsLink(itemDetails), alt)));
-      tableData.push(this.makeKeyValue('License', this.stringOrElse(itemDetails.getLicense(), alt)));
+
+      if (this.context === CONTEXT_RESOURCE) {
+        tableData.push(this.makeKeyValue('License', this.stringOrElse(itemDetails.getLicense(), alt)));
+      }
+
       tableData.push(this.makeKeyValue('Keywords', this.stringOrElse(this.getJoinedKeywords(itemDetails), alt)));
-      tableData.push(this.makeKeyValue('Update Frequency', this.stringOrElse(itemDetails.getFrequencyUpdate(), alt)));
+
+      if (this.context === CONTEXT_RESOURCE) {
+        tableData.push(this.makeKeyValue('Update Frequency', this.stringOrElse(itemDetails.getFrequencyUpdate(), alt)));
+      }
+
       if (itemDetails.getQualityAssurance() !== '') {
         tableData.push(this.makeKeyValue('Quality Assurance', this.stringOrElse(itemDetails.getQualityAssurance(), '')));
       }
@@ -192,19 +226,27 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
         tableProvider.push(provider);
       });
 
-      tableData.push(this.makeKeyValue('Further information', this.stringOrElse(this.getDomainLink(), alt)));
+      // Further information
+      let furtherInformation = '';
+      if (this.context === CONTEXT_RESOURCE) {
+        furtherInformation = this.stringOrElse(this.getDomainLink(), alt);
+      }
+      tableData.push(this.makeKeyValue('Further information', furtherInformation));
 
-      if (itemDetails.isOnlyDownloadable) { // it is a downloadable file
-        tableData.push(this.makeKeyValue('Download URL', this.stringOrElse(itemDetails.getDownloadURL(), alt)));
-      } else {
-        tableService.push(this.makeKeyValue('Service Name', this.stringOrElse(itemDetails.getWebServiceName(), alt)));
-        tableService.push(this.makeKeyValue('Service Description', this.stringOrElse(itemDetails.getWebServiceDescription(), alt)));
+      if (this.context === CONTEXT_RESOURCE) {
 
-        const serviceProvider = itemDetails.getWebServiceProvider();
-        tableService.push(this.makeKeyValue('Service Provider', serviceProvider));
+        if (itemDetails.isOnlyDownloadable) { // it is a downloadable file
+          tableData.push(this.makeKeyValue('Download URL', this.stringOrElse(itemDetails.getDownloadURL(), alt)));
+        } else {
+          tableService.push(this.makeKeyValue('Service Name', this.stringOrElse(itemDetails.getWebServiceName(), alt)));
+          tableService.push(this.makeKeyValue('Service Description', this.stringOrElse(itemDetails.getWebServiceDescription(), alt)));
 
-        tableService.push(this.makeKeyValue('Service Endpoint', this.stringOrElse(itemDetails.getWebServiceEndpoint(), alt)));
-        tableService.push(this.makeKeyValue('Service Documentation', this.stringOrElse(itemDetails.getDocumentation(), alt)));
+          const serviceProvider = itemDetails.getWebServiceProvider();
+          tableService.push(this.makeKeyValue('Service Provider', serviceProvider));
+
+          tableService.push(this.makeKeyValue('Service Endpoint', this.stringOrElse(itemDetails.getWebServiceEndpoint(), alt)));
+          tableService.push(this.makeKeyValue('Service Documentation', this.stringOrElse(itemDetails.getDocumentation(), alt)));
+        }
       }
     }
 
@@ -213,14 +255,23 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
     this.dataProvider = new MatTableDataSource<DataProvider>(tableProvider);
   }
 
+  /**
+   * Returns the citation to show based on the panel that was used to open the details popup:
+   * - Data: show the first, second and third citation
+   * @returns {number[]} - An array of numbers that represent the citation to be shown in the citation component
+   */
+  private getCitationsToShow(): number[] {
+    return [0, 1, 2];
+  }
+
   private getDomainLink(): string | null {
     if (this.detailsData !== undefined) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const domainName = this.detailsData.getDomain();
-      if (domainName !== undefined) {
-        const domain: DomainInfo | undefined = this.domainLinks.find((d) => d.title.toLowerCase() === domainName.toLowerCase());
+      if (domainName !== undefined && this.domains !== null) {
+        const domain: Domain | undefined = this.domains.find((d) => d.title !== undefined && d.title.toLowerCase() === domainName.toLowerCase());
         if (domain !== undefined) {
-          return domain.linkUrl;
+          return domain.linkUrl ?? '';
         }
       }
     }

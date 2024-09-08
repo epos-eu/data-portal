@@ -28,6 +28,9 @@ import { DistributionDetails } from '../../data/distributionDetails.interface';
 import { ParameterValue } from '../../data/parameterValue.interface';
 import { AaaiApi } from 'api/webApi/classes/aaaiApi.interface';
 import { DistributionFormat } from 'api/webApi/data/distributionFormat.interface';
+import { Organization } from 'api/webApi/data/organization.interface';
+import { Domain } from 'api/webApi/data/domain.interface';
+import { ShareApi } from 'api/webApi/classes/shareApi.interface';
 
 export class DevCompositeApi implements Api {
 
@@ -38,6 +41,7 @@ export class DevCompositeApi implements Api {
     private readonly searchApi: SearchApi,
     private readonly detailsApi: DetailsApi,
     private readonly executionApi: ExecutionApi,
+    private readonly shareApi: ShareApi,
   ) { }
 
   // ---------------------------
@@ -46,14 +50,22 @@ export class DevCompositeApi implements Api {
     return this.discoverApi.discover(request);
   }
 
-  // ---------------------------
-
-  getDetails(summary: DistributionSummary): Promise<null | DistributionDetails> {
-    return this.detailsApi.getDetails(summary);
+  getFilters(context: string): Promise<null | DiscoverResponse> {
+    return this.discoverApi.getFilters(context);
   }
 
-  getDetailsById(id: string): Promise<null | DistributionDetails> {
-    return this.detailsApi.getDetailsById(id);
+  getDomains(context: string): Promise<null | Array<Domain>> {
+    return this.discoverApi.getDomains(context);
+  }
+
+  // ---------------------------
+
+  getDetails(summary: DistributionSummary, context: string): Promise<null | DistributionDetails> {
+    return this.detailsApi.getDetails(summary, context);
+  }
+
+  getDetailsById(id: string, context: string): Promise<null | DistributionDetails> {
+    return this.detailsApi.getDetailsById(id, context);
   }
 
   // ---------------------------
@@ -66,6 +78,14 @@ export class DevCompositeApi implements Api {
 
   getDictionary(type: DictionaryType): Promise<Dictionary> {
     return this.dictionaryApi.getDictionary(type);
+  }
+
+  getOrganizations(type: string): Promise<Organization[] | null> {
+    return this.searchApi.getOrganizations(type);
+  }
+
+  getOrganizationById(organizationId: string): Promise<Organization | null> {
+    return this.searchApi.getOrganizationById(organizationId);
   }
 
   // ---------------------------
@@ -109,4 +129,29 @@ export class DevCompositeApi implements Api {
   ): Promise<string> {
     return this.executionApi.getOriginatorUrl(distribution, params);
   }
+
+
+  /**
+   * The function `saveConfigurables` saves a string value using the `shareApi` and returns a Promise
+   * with the saved value.
+   * @param {string} value - The `value` parameter in the `saveConfigurables` function is a string that
+   * represents the configuration data that needs to be saved.
+   * @returns The `saveConfigurables` function returns a Promise that resolves to a string value.
+   */
+  saveConfigurables(value: string): Promise<string> {
+    return this.shareApi.saveConfigurables(value);
+  }
+
+  /**
+   * The function `retrieveConfigurables` retrieves configurable settings based on a given key
+   * asynchronously.
+   * @param {string} key - The `key` parameter is a string that is used to retrieve configurable
+   * settings from the `shareApi`.
+   * @returns The `retrieveConfigurables` function is returning a Promise that resolves to a string or
+   * null value.
+   */
+  retrieveConfigurables(key: string): Promise<string | null> {
+    return this.shareApi.retrieveConfigurables(key);
+  }
+
 }

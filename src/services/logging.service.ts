@@ -83,9 +83,6 @@ export class LoggingService {
   private readonly logEntries = new Array<LogEntry>();
   private readonly newConsoleEntrySource = new Subject<LogEntry>();
 
-  constructor() {
-  }
-
   /**
    * Creates a DEBUG level log entry.
    * @param message The content of the log entry.

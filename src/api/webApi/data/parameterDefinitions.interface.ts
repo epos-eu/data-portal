@@ -57,4 +57,6 @@ export interface ParameterDefinitions {
     values: Array<ParameterValue>,
     filterIn: boolean,
   ): Array<ParameterValue>;
+
+  replaceParamValueInArray(params: Array<ParameterValue>, paramName: string, newValue: ParameterValue): void;
 }

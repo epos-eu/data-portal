@@ -21,14 +21,16 @@ import { AAAIUser } from 'api/aaai/aaaiUser.interface';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { Subscription } from 'rxjs';
 import { environment } from 'environments/environment';
-import { DialogService } from 'components/dialog/dialog.service';
 import { RouteInfoService } from 'services/routeInfo.service';
-import { Router } from '@angular/router';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 import { SimpleBoundingBox } from 'api/webApi/data/impl/simpleBoundingBox';
-import { DataSearchConfigurablesService } from 'pages/dataPortal/services/dataSearchConfigurables.service';
 import { TourService } from 'services/tour.service';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
+import { DataSearchConfigurablesServiceResource } from 'pages/dataPortal/modules/dataPanel/services/dataSearchConfigurables.service';
+import { MenuItem, MenuService } from 'components/menu/menu.service';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
+import { DialogService } from 'components/dialog/dialog.service';
 
 /**
  * The header component that is displayed in the app.
@@ -46,18 +48,33 @@ export class HeaderComponent implements OnInit {
   public version: unknown;
   public readonly urlHomepage = environment.homepage;
   public readonly urlAboutpage = environment.aboutpage;
+  public initialMenuData: MenuItem[] = [];
+  public shareMenu: MenuItem[] = [];
+
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
     private readonly aaai: AaaiService,
-    private readonly dialogService: DialogService,
     private readonly routeInfo: RouteInfoService,
-    private readonly router: Router,
     private mapInteractionService: MapInteractionService,
-    private dataConfigSearchService: DataSearchConfigurablesService,
+    private dataConfigSearchService: DataSearchConfigurablesServiceResource,
     private tourService: TourService,
     private panelsEvent: PanelsEmitterService,
-  ) { }
+    private menuService: MenuService,
+    private readonly tracker: Tracker,
+    private readonly dialogService: DialogService,
+  ) {
+    this.initialMenuData = this.menuService.rootLevelNodes;
+
+    // used if app-menu component is enabled
+    /* this.shareMenu = [
+      {
+        name: 'Url',
+        action: 'shareUrl',
+        icon: 'link'
+      }
+    ]; */
+  }
 
   public ngOnInit(): void {
     this.subscriptions.push(
@@ -97,30 +114,6 @@ export class HeaderComponent implements OnInit {
   }
 
   /**
-   * The function "openFeedback" toggles a dropdown and opens a feedback dialog.
-   */
-  public openFeedback(): void {
-    void this.toggleDropdown();
-    void this.dialogService.openFeedbackDialog();
-  }
-
-  /**
-   * The openPage function navigates to a specified page and toggles a dropdown if specified.
-   * @param [page] - The "page" parameter is a string that represents the page to navigate to. It is an
-   * optional parameter, so if no value is provided, it will default to an empty string.
-   * @param [dropdownCall=true] - The `dropdownCall` parameter is a boolean value that determines whether
-   * or not to toggle the dropdown before navigating to the specified page. If `dropdownCall` is `true`,
-   * the dropdown will be toggled before navigating. If `dropdownCall` is `false`, the dropdown will not
-   * be toggled
-   */
-  public openPage(page = '', dropdownCall = true): void {
-    if (dropdownCall) {
-      void this.toggleDropdown();
-    }
-    void this.router.navigate([page]);
-  }
-
-  /**
    * The function opens a URL either in a new tab or in the current tab and then toggles a dropdown.
    * @param {string} url - The `url` parameter is a string that represents the URL of the external
    * website you want to open.
@@ -138,12 +131,33 @@ export class HeaderComponent implements OnInit {
   }
 
   /**
-   * The startGuidedTour function starts a guided tour for epos filters and toggles a dropdown.
-   * @param {Event} event - The "event" parameter is an object of type "Event".
+   * The `clickItem` function in TypeScript handles different actions based on the input ID, such as
+   * opening feedback, external URLs, guided tours, video guides, and tracking events.
+   * @param input - The `clickItem` function takes an input object with the following parameters:
    */
-  public startGuidedTour(event: Event): void {
-    this.tourService.startEposFiltersTour(event);
-    this.toggleDropdown();
+  public clickItem(input: { id: string; event?: Event; url?: string; newTab?: boolean }): void {
+
+    let track = true;
+
+    switch (input.id) {
+
+      case 'externalUrl':
+        this.openExternalUrl(input.url ?? '', input.newTab ?? false);
+        track = false;
+        break;
+
+      case 'homepage':
+        this.openExternalUrl(input.url ?? '', input.newTab ?? false);
+        break;
+
+      default:
+        break;
+    }
+
+    if (track) {
+      this.tracker.trackEvent(TrackerCategory.GENERAL, TrackerAction.OPEN, input.id);
+    }
+
   }
 
   /**
@@ -165,12 +179,13 @@ export class HeaderComponent implements OnInit {
     this.tourService.triggerClearFiltersCall();
   }
 
+
   /**
-   * The function "openVideoGuideDialog" opens a video guide dialog and toggles a dropdown.
+   * The `share` function opens a dialog service to display a share information banner with a specified
+   * URL and message.
    */
-  public openVideoGuideDialog(): void {
-    this.dialogService.openVideoGuideDialog();
-    this.toggleDropdown();
+  public share(): void {
+    this.dialogService.openShareInformationBanner('createUrl', 'COPY URL ON CLIPBOARD');
   }
 
 }

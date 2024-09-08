@@ -56,6 +56,22 @@
       color: $color-icon-info;
     }
   }
+
+  &.snackbar-loading-distribution {
+    background: white;
+    border-left: 4px solid $color-primary;
+
+    .icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .custom-icon {
+      max-height: 40px;
+      width: auto;
+    }
+  }
 }
 
 .mat-snack-bar-container {

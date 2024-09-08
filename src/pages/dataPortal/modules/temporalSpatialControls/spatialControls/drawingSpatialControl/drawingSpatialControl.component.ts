@@ -20,7 +20,6 @@ import { OnAttachDetach } from 'decorators/onAttachDetach.decorator';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 import { Subscription } from 'rxjs';
-import { Model } from 'services/model/model.service';
 import { BoundingBox } from 'utility/eposLeaflet/eposLeaflet';
 
 @OnAttachDetach('onAttachComponents')
@@ -38,7 +37,6 @@ export class DrawingSpatialControlComponent implements OnInit {
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
-    private readonly model: Model,
     private readonly mapInteractionService: MapInteractionService,
   ) {
 
@@ -47,8 +45,8 @@ export class DrawingSpatialControlComponent implements OnInit {
   public ngOnInit(): void {
 
     this.subscriptions.push(
-      this.model.dataSearchBounds.valueObs.subscribe((bbox: BoundingBox) => {
-        if (null != bbox) {
+      this.mapInteractionService.mapBBox.observable.subscribe((bbox: BoundingBox) => {
+        if (bbox.isBounded()) {
           this.drawingBbox = false;
         }
       })
@@ -59,14 +57,8 @@ export class DrawingSpatialControlComponent implements OnInit {
    * The function toggles the drawing of a bounding box on a map.
    */
   public startDrawExtent(): void {
-    if (this.drawingBbox === false) {
-      this.model.dataSearchGeolocation.set(null);
-      this.drawingBbox = true;
-      this.mapInteractionService.startBBox.set(true);
-    } else {
-      this.drawingBbox = false;
-      this.mapInteractionService.startBBox.set(false);
-    }
+    this.drawingBbox = !this.drawingBbox;
+    this.mapInteractionService.startBBox.set(this.drawingBbox);
   }
 
 }

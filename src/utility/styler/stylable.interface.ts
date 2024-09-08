@@ -23,10 +23,11 @@ export interface Stylable {
   type `Observable<null | Style>`. */
   readonly styleObs: Observable<null | Style>;
 
-  /** The `setStyle` method is a function that takes a parameter called `style` of type `null | Style` and
-  returns `void`. This method is used to set the style of an object implementing the `Stylable`
-  interface. The `style` parameter can be either `null` or an instance of the `Style` class. */
-  setStyle(style: null | Style): void;
+
+  /* The `setStyle(style: null | Style, force?: boolean): void;` method in the `Stylable` interface is
+  a function that allows setting the style of an object that implements the `Stylable` interface. It
+  takes two parameters: */
+  setStyle(style: null | Style, force?: boolean): void;
 
   /** The `getStyle()` method is a function that does not take any parameters and returns a value of type
   `null | Style`. This method is used to retrieve the style of an object implementing the `Stylable`

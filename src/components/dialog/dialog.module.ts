@@ -53,9 +53,9 @@ import { FirstErrorMessagePipe } from './parametersDialog/firstErrorMessage.pipe
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { ParametersDialogComponent } from './parametersDialog/parametersDialog.component';
-import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.service';
 import { PipesModule } from 'pipes/pipes.module';
 import { SpatialCoverageMapComponent } from './detailsDialog/spatialCoverageMap/spatialCoverageMap.component';
+import { InformationsDialogComponent } from './informationsDialog/informationsDialog.component';
 import { TourDialogComponent } from './tourDialog/tourDialog.component';
 import { DownloadsDialogComponent } from './downloadsDialog/downloadsDialog.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
@@ -66,7 +66,16 @@ import { VideoComponent } from './videoGuidesDialog/videoComponent/video.compone
 import { MobileDisclaimerDialogComponent } from './mobileDisclaimerDialog/mobileDisclaimerDialog.component';
 import { ContactFormDialogComponent } from './contactFormDialog/contactFormDialog.component';
 import { MatTreeModule } from '@angular/material/tree';
-import { DataConfigurationModule } from 'pages/dataPortal/modules/dataPanel/configuration/dataConfiguration.module';
+import { DataConfigurationModule } from 'pages/dataPortal/modules/dataConfiguration/dataConfiguration.module';
+import { DataProviderFilterDialogComponent } from './dataProviderFilterDialog/dataProviderFilterDialog.component';
+import { GraphPanelDialogComponent } from './graphPanelDialog/graphPanelDialog.component';
+import { GraphPanelModule } from 'pages/dataPortal/modules/graphPanel/graphPanel.module';
+import { TablePanelModule } from 'pages/dataPortal/modules/tablePanel/tablePanel.module';
+import { TablePanelDialogComponent } from './tablePanelDialog/tablePanelDialog.component';
+import { CitationComponent } from './detailsDialog/citation/citation.component';
+import { CitationDialogComponent } from './citationDialog/citationDialog.component';
+import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
+
 
 /**
  * A module for conveniently registering new components used for dialogs.
@@ -85,12 +94,19 @@ import { DataConfigurationModule } from 'pages/dataPortal/modules/dataPanel/conf
     FirstErrorMessagePipe,
     ParametersDialogComponent,
     SpatialCoverageMapComponent,
+    InformationsDialogComponent,
     TourDialogComponent,
     DownloadsDialogComponent,
     VideoGuidesDialogComponent,
     VideoComponent,
     MobileDisclaimerDialogComponent,
     ContactFormDialogComponent,
+    DataProviderFilterDialogComponent,
+    GraphPanelDialogComponent,
+    TablePanelDialogComponent,
+    CitationComponent,
+    CitationDialogComponent,
+    ShareInformationsDialogComponent,
   ],
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   imports: [
@@ -129,9 +145,13 @@ import { DataConfigurationModule } from 'pages/dataPortal/modules/dataPanel/conf
     MatSlideToggleModule,
     MatTreeModule,
     DataConfigurationModule,
+    GraphPanelModule,
+    TablePanelModule,
+  ],
+  exports: [
+    BaseDialogComponent,
   ],
   providers: [
-
   ]
 })
 
@@ -141,7 +161,6 @@ export class DialogModule {
       ngModule: DialogModule,
       providers: [
         DialogService,
-        ResultsPanelService,
         { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'fill' } },
       ]
     };

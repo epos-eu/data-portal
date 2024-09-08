@@ -23,6 +23,7 @@ export class DistributionFormatType {
   public static readonly APP_EPOS_TABLE_GEOJSON = 'application/epos.table.geo+json';
   public static readonly APP_EPOS_MAP_GEOJSON = 'application/epos.map.geo+json';
   public static readonly APP_OGC_WMS = 'application/vnd.ogc.wms_xml';
+  public static readonly APP_OGC_WMTS = 'application/vnd.ogc.wmts_xml';
   public static readonly APP_COV_JSON = 'covjson';
 
   // download formats so already data-search downloadable by way of type DOWNLOADABLE_FILE
@@ -34,6 +35,7 @@ export class DistributionFormatType {
     DistributionFormatType.APP_GEOJSON,
     DistributionFormatType.APP_EPOS_GEOJSON,
     DistributionFormatType.APP_OGC_WMS,
+    DistributionFormatType.APP_OGC_WMTS,
     DistributionFormatType.APP_EPOS_MAP_GEOJSON,
     DistributionFormatType.APP_COV_JSON,
     // ...
@@ -49,7 +51,8 @@ export class DistributionFormatType {
   ];
 
   private static nonDownloadableFormats = [
-    DistributionFormatType.APP_OGC_WMS
+    DistributionFormatType.APP_OGC_WMS,
+    DistributionFormatType.APP_OGC_WMTS
   ];
 
   public static isMappable(format: string): boolean {

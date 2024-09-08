@@ -23,6 +23,8 @@ import { MatRadioChange } from '@angular/material/radio';
 import { Model } from 'services/model/model.service';
 import { TourService } from 'services/tour.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 @Unsubscriber('subscriptions')
 @Component({
@@ -48,9 +50,12 @@ export class TemporalControlsComponent implements OnInit, AfterViewInit {
 
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
+  private rangeFormat = { format: this.DATE_FORMAT, separator: Tracker.TARCKER_DATA_SEPARATION, undefinedStr: 'no defined' };
+
   constructor(
     private readonly model: Model,
     private readonly tourService: TourService,
+    private readonly tracker: Tracker,
   ) {
 
   }
@@ -75,8 +80,8 @@ export class TemporalControlsComponent implements OnInit, AfterViewInit {
       this.tourService.triggerDemoTemporalSelectionObservable.subscribe(() => {
         this.radioControlDate = '30';
         const lowerBound = moment().subtract(30, 'days');
-        this.setFunctionLower(lowerBound);
-        this.setFunctionUpper(moment());
+        this.setFunctionLower(lowerBound, false);
+        this.setFunctionUpper(moment(), false);
       }),
       this.model.dataSearchTemporalRange.valueObs.subscribe((bounds: SimpleTemporalRange) => {
         if (bounds.isUnbounded()) {
@@ -151,11 +156,17 @@ export class TemporalControlsComponent implements OnInit, AfterViewInit {
       ? (lowerBound: null | moment.Moment) => {
         const thisCurrentRange = this.temporalRangeSource.getValue();
         const tempRange = SimpleTemporalRange.makeUnchecked(lowerBound, thisCurrentRange.getUpperBound());
+        if (this.tourService.isActive() === false) {
+          this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.TEMPORAL_INTERVAL, tempRange.toFormattedStringExtra(this.rangeFormat));
+        }
         this.temporalRangeSource.next(tempRange);
       }
       : (upperBound: null | moment.Moment) => {
         const thisCurrentRange = this.temporalRangeSource.getValue();
         const tempRange = SimpleTemporalRange.makeUnchecked(thisCurrentRange.getLowerBound(), upperBound);
+        if (this.tourService.isActive() === false) {
+          this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.TEMPORAL_INTERVAL, tempRange.toFormattedStringExtra(this.rangeFormat));
+        }
         this.temporalRangeSource.next(tempRange);
       };
 
@@ -186,16 +197,28 @@ export class TemporalControlsComponent implements OnInit, AfterViewInit {
     });
   }
 
-  public setFunctionUpper(upperBound: moment.Moment): void {
+  public setFunctionUpper(upperBound: moment.Moment, track = true): void {
     const thisCurrentRange = this.temporalRangeSource.getValue();
     const tempRange = SimpleTemporalRange.makeUnchecked(thisCurrentRange.getLowerBound(), upperBound);
-    this.temporalRangeSource.next(tempRange);
+
+    if (tempRange.toFormattedString() !== (thisCurrentRange as SimpleTemporalRange).toFormattedString()) {
+      this.temporalRangeSource.next(tempRange);
+      if (track && (this.tourService.isActive() === false)) {
+        this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.TEMPORAL_INTERVAL, tempRange.toFormattedStringExtra(this.rangeFormat));
+      }
+    }
   }
 
-  public setFunctionLower(lowerBound: moment.Moment): void {
+  public setFunctionLower(lowerBound: moment.Moment, track = true): void {
     const thisCurrentRange = this.temporalRangeSource.getValue();
     const tempRange = SimpleTemporalRange.makeUnchecked(lowerBound, thisCurrentRange.getUpperBound());
-    this.temporalRangeSource.next(tempRange);
+
+    if (tempRange.toFormattedString() !== (thisCurrentRange as SimpleTemporalRange).toFormattedString()) {
+      this.temporalRangeSource.next(tempRange);
+      if (track && (this.tourService.isActive() === false)) {
+        this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.TEMPORAL_INTERVAL, tempRange.toFormattedStringExtra(this.rangeFormat));
+      }
+    }
   }
 
   public datePickerClearClick(event: Event): void {
@@ -239,7 +262,7 @@ export class TemporalControlsComponent implements OnInit, AfterViewInit {
 
   public setRadioDate(event: MatRadioChange): void {
     const lowerBound = moment().subtract(event.value as moment.DurationInputArg1, 'days');
-    this.setFunctionLower(lowerBound);
+    this.setFunctionLower(lowerBound, false);
     this.setFunctionUpper(moment());
   }
 

@@ -16,6 +16,5 @@
 
 
 export * from './baseLayerControl';
-export * from './baseLayerDefaultOptions';
 export * from './baseLayerOption';
 export * from './baseLayerOptions';

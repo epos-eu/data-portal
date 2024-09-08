@@ -26,7 +26,7 @@ import {
   Injector,
   HostListener,
 } from '@angular/core';
-import { Subscription, Subject, Observable } from 'rxjs';
+import { Subscription, Subject, Observable, BehaviorSubject } from 'rxjs';
 import { MapLayer } from './layers/mapLayer.abstract';
 import moment from 'moment-es6';
 
@@ -45,6 +45,7 @@ import { LocalStoragePersister } from 'services/model/persisters/localStoragePer
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
+import { LeafletLoadingService } from '../services/leafletLoading.service';
 
 @Unsubscriber('subscriptions')
 @Component({
@@ -78,6 +79,10 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   @ViewChild('mapElement', { static: true }) protected mapElement: ElementRef<HTMLElement>;
 
   public leafletMapObj: L.Map;
+  /**
+   * The `showLoader` property is a boolean flag that determines whether a loading spinner is displayed. It should not
+   * be set directly, but rather through the `showLoading` method that will emit the value to the observer.
+   */
   public showLoader = false;
 
   public layerControlOpened = new Subject<boolean>();
@@ -94,8 +99,6 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
 
   protected layerClickManager: null | LayerClickManager;
 
-  // protected legendControl: LegendControl;
-
   protected layerRedrawQueues = new Map<string, Array<MapLayer | string>>();
   protected redrawQueueProcessing = new Map<string, boolean>();
 
@@ -107,6 +110,9 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   protected layerPositionMonitorBack = new Map<string, Subscription>();
   protected layerSetNotHiddenMonitor = new Map<string, Subscription>();
 
+  private latLngSource = new BehaviorSubject<[number, number] | null>(null);
+  private zoomSource = new BehaviorSubject<number | null>(null);
+
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
@@ -117,6 +123,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     protected injector: Injector,
     protected localStoragePersister: LocalStoragePersister,
     protected mapInteractionService: MapInteractionService,
+    protected loaderService: LeafletLoadingService,
   ) {
   }
 
@@ -133,25 +140,23 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
         this.panelsEvent.setTimeSeriesPopupLayerIdUrl(layerId, url);
 
         // check popup position and move if over panel graph
-        const wh = window.innerHeight;
-        const py = (event as PointerEvent).y + 100;
-
-        if (wh / 2 < py) {
-          this.moveToPoint(0, wh / 2 - (py + 150));
-        }
+        this.moveMapEventPoint(event as Event, 100, 150, true);
       }
     }
   }
 
   public ngOnInit(): void {
     this.leafletMapObj = L.map(this.getMapElement(), {
+      wheelPxPerZoomLevel: 1000,
       worldCopyJump: true,
       minZoom: this.minZoom,
       maxZoom: this.maxZoom,
       zoomControl: false,
-      // attributionControl: false,
       crs: this.crs,
     } as L.MapOptions);
+
+    this.zoomSource.next(this.initialZoom);
+    this.latLngSource.next(this.initialLatLng);
   }
 
   /* after html generated */
@@ -160,25 +165,20 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     this.leafletMapObj.on('load', () => this.onload.emit(this));
 
     // get initialLatLng from localStorage
-    setTimeout(() => {
-      // get initialZoom from localStorage
-      if (this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_ZOOM) !== null) {
-        this.initialZoom = Number(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_ZOOM));
-        this.leafletMapObj.setZoom(Number(this.initialZoom));
+    void this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_ZOOM).then((val: string) => {
+      if (val !== null) {
+        const initialZoom = Number(val);
+        this.zoomSource.next(initialZoom);
       }
+    });
 
-      if (this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_POSITION) !== null) {
+    void this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_POSITION).then((val: string) => {
+      if (val !== null) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const latLng = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_POSITION) as string || '[]');
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        this.leafletMapObj.setView(L.latLng(latLng), this.initialZoom);
+        const latLng = JSON.parse(val as string || '[]');
+        this.latLngSource.next(latLng as [number, number]);
       }
-    }, 500);
-
-    this.leafletMapObj.setView(L.latLng(this.initialLatLng), this.initialZoom);
-
-    // ensure map is not way up or down
-    this.fitMap();
+    });
 
     if (!this.zoomable) {
       this.leafletMapObj.removeControl(L.control.zoom());
@@ -212,6 +212,20 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     });
 
     this.subscriptions.push(
+
+      this.zoomSource.subscribe((val: number) => {
+        if (val !== null) {
+          this.leafletMapObj.setZoom(val);
+          this.initialZoom = val;
+        }
+      }),
+
+      this.latLngSource.subscribe((val: [number, number]) => {
+        if (val !== null) {
+          this.leafletMapObj.setView(L.latLng(val), this.initialZoom);
+        }
+      }),
+
       this.layersService.baseLayerChangeSourceObs.subscribe((layer: BaseLayerOption | null) => {
         if (null != layer) {
           this.updateBasemap(layer);
@@ -528,8 +542,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   }
 
   public clearRowOnTablePanel(): void {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    void this.panelsEvent.clearRowOnTablePanel();
+    this.panelsEvent.clearRowOnTablePanel();
   }
 
   public moveToPoint(x: number, y: number): void {
@@ -537,6 +550,29 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     const targetPoint = centerPoint.subtract([x, y]);
     const targetLatLng = this.leafletMapObj.containerPointToLatLng(targetPoint);
     this.leafletMapObj.panTo(targetLatLng);
+  }
+
+
+  /**
+   * The function `moveMapEventPoint` adjusts the position of a map based on a pointer event's
+   * y-coordinate and specified deltas.
+   * @param {Event} event - The `event` parameter is of type `Event`, but it is cast to `PointerEvent`
+   * within the function using TypeScript syntax.
+   * @param [deltaCheckPy=0] - The `deltaCheckPy` parameter is used to adjust the y-coordinate of the
+   * event pointer by a specified amount before calculating the final position.
+   * @param [deltaPy=100] - The `deltaPy` parameter is used to determine the amount by which the `py`
+   * value is adjusted in the `moveMapEventPoint` function. It is added to or subtracted from the `py`
+   * value based on the value of `checkSecondHalf`.
+   * @param [checkSecondHalf=false] - The `checkSecondHalf` parameter is a boolean flag that determines
+   * whether to add or subtract `deltaPy` from the calculated `extraPy` value. If `checkSecondHalf` is
+   * `true`, `deltaPy` will be added to `py`, otherwise it will be subtracted.
+   */
+  public moveMapEventPoint(event: Event, deltaCheckPy = 0, deltaPy = 100, checkSecondHalf = false): void {
+    const wh = window.innerHeight;
+    const py = (event as PointerEvent).y + deltaCheckPy;
+    const extraPy = checkSecondHalf ? py + deltaPy : py - deltaPy;
+
+    this.moveToPoint(0, wh / 2 - extraPy);
   }
 
   /**
@@ -683,7 +719,9 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
       if (this.loadingLayerCount < 1) {
         this.loadingLayerCount = 0;
         clearTimeout(this.loaderCheckInterval);
-        this.showLoader = false;
+
+        // Hide the loading spinner and emit the event to the observer
+        this.showLoading(false);
       }
     } else {
       this.loadingLayerCount++;
@@ -695,7 +733,9 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
             && (moment(date).add(this.LOADER_DELAY_MS, 'ms') < moment())
           ) {
             clearTimeout(this.loaderCheckInterval);
-            this.showLoader = true;
+
+            // Show the loading spinner and emit the event to the observer
+            this.showLoading(true);
           }
         }, this.LOADER_DELAY_MS / 2);
       }
@@ -796,6 +836,17 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
         LocalStorageVariables.LS_MAP_POSITION
       );
     }
+  }
+
+  /**
+   * The function `showLoading` sets the value of the `showLoader` property and emits the value to the
+   * observer.
+   * @param show - The `show` parameter is a boolean flag that determines whether the loading spinner
+   * should be displayed.
+   */
+  private showLoading(show: boolean): void {
+    this.showLoader = show;
+    this.loaderService.showLoading(show);
   }
 
 }

@@ -23,6 +23,7 @@ import { EposLeafletComponent } from '../../eposLeaflet.component';
 import { GeoJsonLayerFeatureItemGenerator } from './geoJsonLayerFeatureItemGenerator';
 import { LayerWithMarkers } from '../layerWithMarkers.interface';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { PopupProperty } from 'utility/maplayers/popupProperty';
 export class GeoJsonMarkerLayer extends MarkerLayer {
   public setMapObject(eposLeaflet: EposLeafletComponent): void {
     this.eposLeaflet = eposLeaflet;
@@ -316,6 +317,7 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
           },
           pointToLayer: (geoJsonPoint: Feature<Point, Record<string, unknown>>, latlng: L.LatLng): null | L.Layer => {
             let layer: null | L.Layer = this.pointToLayerFunction(geoJsonPoint, latlng);
+            layer.options[PopupProperty.PROPERTY_ID] = geoJsonPoint.properties[PopupProperty.PROPERTY_ID];
             // if it's a marker remove it and to our own marker layer,
             //  so that we can optionally cluster
             if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
@@ -428,7 +430,7 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
     latlng: L.LatLng,
   ): L.Layer {
     const icon = new FaMarker();
-    return L.marker(latlng, { icon: icon } as L.MarkerOptions);
+    return L.marker(latlng, { icon: icon, bubblingMouseEvents: true } as L.MarkerOptions);
   }
 
   /**
@@ -442,7 +444,7 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
    * The function `updateLeafletLayerMarker` updates the style and options of a Leaflet layer and
    * marker based on the values of custom layer options.
    */
-  protected updateLeafletLayerMarker(): void {
+  protected updateLeafletLayerMarker(): this {
     if (this.geoLayer != null && typeof this.geoLayer.setStyle === 'function') {
       const style = {
         color: this.options.customLayerOptionColor.get()!,
@@ -454,7 +456,7 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
 
       this.geoLayer.setStyle(style);
 
-      if (this.id === MapLayer.BBOX_LAYER_ID) {
+      if (this.id.includes(MapLayer.BBOX_LAYER_ID)) {
 
         const styleForBbox: Record<string, unknown> = style as Record<string, unknown>;
 
@@ -462,7 +464,18 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
         styleForBbox.enable = this.options.customLayerOptionEnable.get()!;
 
         const localStoragePersister = this.eposLeaflet.getLocalStoragePersister();
-        localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(styleForBbox), false, LocalStorageVariables.LS_BBOX_STYLE);
+
+        void localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_BBOX_STYLE).then((styleMapString: string) => {
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          const styleMap = styleMapString !== null ? new Map(Object.entries(JSON.parse(styleMapString))) : new Map();
+
+          styleMap.set(this.id, styleForBbox);
+
+          localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(Object.fromEntries(styleMap)), false, LocalStorageVariables.LS_BBOX_STYLE);
+
+        });
+
       }
     }
 
@@ -476,6 +489,8 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
       this.markerLayer.options.customLayerOptionFillColorOpacity.set(this.options.customLayerOptionFillColorOpacity.get()!);
       this.markerLayer.options.customLayerOptionWeight.set(this.options.customLayerOptionWeight.get()!);
     }
+
+    return this;
   }
 
   /**

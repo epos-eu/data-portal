@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, OnInit, Input, ViewChild, AfterViewInit, HostListener, ElementRef, Renderer2, Output } from '@angular/core';
+import { Component, OnInit, Input, ViewChild, AfterViewInit, HostListener, ElementRef, Renderer2, Output, OnDestroy } from '@angular/core';
 import { MatPaginator, PageEvent } from '@angular/material/paginator';
 import { MatSort, Sort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
@@ -30,23 +30,38 @@ import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
 import { BehaviorSubject, Subject, Subscription } from 'rxjs';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 import { MatSelectChange } from '@angular/material/select';
-import { DataSearchConfigurablesService } from 'pages/dataPortal/services/dataSearchConfigurables.service';
-import { UserNotificationService } from 'pages/dataPortal/services/userNotification.service';
-import { NotificationService } from 'services/notification.service';
+import { DataSearchConfigurablesServiceResource } from '../../dataPanel/services/dataSearchConfigurables.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
+import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
+import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { NotificationService } from 'components/notification/notification.service';
+import { Style } from 'utility/styler/style';
+
+/** The above code is defining an interface called `TableExportObject` in TypeScript. This interface is
+used to define the structure and properties of an object that can be exported from a table. */
 export interface TableExportObject {
+
+  /** The above code is declaring a variable called "headers" which is an array of strings in
+  TypeScript. */
   headers: Array<string>;
+
+  /** The above code is declaring a TypeScript variable called "data" which is an array of arrays of
+  strings. */
   data: Array<Array<string>>;
+
+  /** The above code is written in TypeScript and it declares a variable `fileName` of type string. */
   fileName: string;
 }
+
 @Unsubscriber('subscriptions')
 @Component({
   selector: 'app-table-display',
   templateUrl: './tableDisplay.component.html',
   styleUrls: ['./tableDisplay.component.scss']
 })
-export class TableDisplayComponent implements OnInit, AfterViewInit {
+export class TableDisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   @Input() dataConfigurable: DataConfigurableI;
+  @Input() onDialogComponent: boolean = false;
   @Output() exportData = new Subject<TableExportObject>();
 
   @ViewChild(MatPaginator, { static: true }) matPaginator: MatPaginator;
@@ -65,8 +80,10 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
 
   public rowInPage = 5;
   public pointsOnMapHeader = PopupProperty.POINTS_ON_MAP;
+  public showOnMapHeader = PopupProperty.SHOW_ON_MAP;
   public propertyIdHeader = PopupProperty.PROPERTY_ID;
-  public rowActionsHeader = PopupProperty.ROW_ACTIONS;
+  public toggleOnMapHeader = PopupProperty.TOGGLE_ON_MAP;
+  public imagesHeader = PopupProperty.IMAGES;
   public isMappable = true;
   public pageNumber = 1;
   public activeColumnCount: BehaviorSubject<number> = new BehaviorSubject<number>(0);
@@ -75,6 +92,10 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
 
   public showFilterRowCounter = false;
 
+  public toggleOnMapDisabled = false;
+  public toggleOnMapDisabledMessage = '';
+  public toggleOnMapSelected: { [key: string]: boolean } = {};
+  public someOnMapHide = false;
 
   /** Variable for keeping track of subscriptions, which are cleaned up by Unsubscriber */
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
@@ -85,7 +106,7 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
 
   private featureIndexToSelect: string | null;
 
-  private headersToRemove = [this.rowActionsHeader, this.pointsOnMapHeader, this.propertyIdHeader];
+  private headersToRemove = [this.pointsOnMapHeader, this.propertyIdHeader, this.imagesHeader];
 
   private imageOverlay = false;
 
@@ -96,7 +117,8 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     private readonly mapInteractionService: MapInteractionService,
     private renderer: Renderer2,
     private readonly notificationService: NotificationService,
-    private readonly configurables: DataSearchConfigurablesService,
+    private readonly configurables: DataSearchConfigurablesServiceResource,
+    private readonly localStoragePersister: LocalStoragePersister,
   ) {
   }
 
@@ -104,7 +126,6 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
 
     let sortedData = data.slice();
 
-    // const data = this.dataSource.data.slice();
     if (sort.active && sort.direction !== '') {
       sortedData = data.sort((a: Array<PopupProperty>, b: Array<PopupProperty>) => {
         const isAsc = (sort.direction === 'asc');
@@ -145,13 +166,15 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
   @HostListener('window:resize', ['$event'])
   resizeWindow(checkCurrentHeight = true): void {
 
-    const containerTableRect = (this.containerTable.nativeElement as HTMLElement).getBoundingClientRect();
-    const height = (window.innerHeight / 2) - containerTableRect.top - 20;
+    // if not in dialog component
+    if (this.onDialogComponent === false) {
+      const containerTableRect = (this.containerTable.nativeElement as HTMLElement).getBoundingClientRect();
+      const height = (window.innerHeight / 2) - containerTableRect.top - 10;
 
-    if (height < containerTableRect.height || checkCurrentHeight) {
-      this.renderer.setStyle(this.containerTable.nativeElement, 'height', `${height}px`);
+      if (height < containerTableRect.height || checkCurrentHeight) {
+        this.renderer.setStyle(this.containerTable.nativeElement, 'height', `${height}px`);
+      }
     }
-
   }
 
   public ngOnInit(): void {
@@ -163,6 +186,11 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
 
     // check if mappable
     this.isMappable = this.dataConfigurable.isMappable;
+
+    if (this.isMappable) {
+      // add header actions on map to headerToRemove variable
+      this.headersToRemove.push(...[this.showOnMapHeader, this.toggleOnMapHeader]);
+    }
 
     const distributionFormat = this.dataConfigurable.getDistributionDetails().getTabularableFormats()[0];
 
@@ -188,8 +216,8 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
               this.notificationService.sendDistributionNotification({
                 id: this.dataConfigurable.id,
                 title: 'Warning',
-                message: UserNotificationService.MESSAGE_NO_DATA,
-                type: UserNotificationService.TYPE_WARNING as string,
+                message: NotificationService.MESSAGE_NO_DATA,
+                type: NotificationService.TYPE_WARNING as string,
                 showAgain: false,
               });
             }
@@ -204,6 +232,7 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
       .catch((e) => {
       }).finally(() => {
         this.showSpinner = false;
+        this.refreshHiddenRowOnTable(1000);
       });
 
     this.subscriptions.push(
@@ -243,9 +272,31 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
       }),
       this.panelsEvent.invokeClearRowOnTable.subscribe(() => {
         this.selectedRow = null;
-      })
+      }),
+      this.dataConfigurable.styleObs.subscribe((style: Style) => {
+        this.toggleOnMapDisabled = style.getClustering() ?? false;
+        this.toggleOnMapDisabledMessage = this.toggleOnMapDisabled ? ' - Remove cluster option on this layer' : '';
+      }),
+      this.mapInteractionService.updateStatusHiddenMarker.subscribe(check => {
+        if (check === true) {
+          this.refreshIconOnTableFromLocalStorage();
+          this.checkSomeOnMapHide();
+        }
+      }),
+      this.mapInteractionService.toggleOnMapDisabled.subscribe(value => {
+        this.toggleOnMapDisabled = value;
+      }),
+
+      // useful for aligning the behaviors between the table in the popup and the table in the sidenav
+      this.mapInteractionService.featureOnlayerToggle.subscribe((featureOnLayer: Map<string, Array<number> | string | boolean>) => {
+        this.refreshIconOnTableFromLocalStorage();
+      }),
 
     );
+  }
+
+  public ngOnDestroy(): void {
+    this.removeLayerIdFromHiddenMarkerOnLocalStorage(this.dataConfigurable.id);
   }
 
   /**
@@ -256,6 +307,9 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     return GeoJSONHelper.hasImageOverlay(this.data.features);
   }
 
+  /**
+   * The ngAfterViewInit function initializes sorting and paging functionalities for a data source.
+   */
   public ngAfterViewInit(): void {
     /** initiallises sorting and paging functionallities */
     this.dataSource.filterPredicate = (propsArray: Array<PopupProperty>, filter: string): boolean => {
@@ -268,36 +322,94 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     this.dataSource.sortData = (data: Array<Array<null | PopupProperty>>, sort: Sort) => TableDisplayComponent.sortPredicate(data, sort);
 
     this.dataSource.paginator = this.matPaginator;
+
+    if (this.onDialogComponent) {
+      this.renderer.setStyle(this.containerTable.nativeElement, 'resize', 'none');
+      this.renderer.setStyle(this.containerTable.nativeElement, 'height', '100%');
+    }
   }
 
   /**
-   * The function expands a row in the table and centers the map on the selected row
-   * @param {number} i - the index of the row that was clicked
-   * @param element - Array<PopupProperty>
-   * @param [centerOnMap=false] - boolean - if true, the map will center on the selected row
+   * The function toggles a map feature based on the provided element and checked parameters, and
+   * updates the corresponding data and map display accordingly.
+   * @param element - An array of PopupProperty objects.
+   * @param {boolean} checked - The "checked" parameter is a boolean value that determines whether a
+   * map feature should be shown or hidden. If "checked" is true, the feature will be shown on the map.
+   * If "checked" is false, the feature will be hidden.
+   * @param [checkSomeOnMapHideFunc=true] - The parameter `checkSomeOnMapHideFunc` is a boolean value
+   * that determines whether to call the `checkSomeOnMapHide()` function after updating the
+   * `toggleOnMapSelected` array and refreshing the hidden marker on local storage. If
+   * `checkSomeOnMapHideFunc` is `true`,
    */
-  public expandRow(i: number, element: Array<PopupProperty>, centerOnMap = false): void {
+  public toggleMapFeature(element: Array<PopupProperty>, checked: boolean, checkSomeOnMapHideFunc = true): void {
+    const featureIndex = this.getPropertyIdFromArrayPopupProperty(element);
+    this.toggleOnMapSelected[featureIndex] = checked;
 
-    if (this.selectedRow === i && !centerOnMap) {
+    this.refreshHiddenMarkerOnLocalStorage(featureIndex, checked);
+
+    if (checkSomeOnMapHideFunc) {
+      this.checkSomeOnMapHide();
+    }
+    this.mapInteractionService.toggleFeature(this.dataConfigurable.id, featureIndex, checked, this.imageOverlay);
+  }
+
+  /**
+   * The function toggles all map features by iterating through the filtered data and calling the
+   * toggleMapFeature function for each item, and then checks if some features are hidden on the map.
+   */
+  public toggleAllMapFeature(): void {
+    this.dataSource.filteredData.map((_ap: Array<PopupProperty>) => {
+      this.toggleMapFeature(_ap, this.someOnMapHide, false);
+    });
+    this.checkSomeOnMapHide();
+  }
+
+  /**
+   * The function "showOnMap" checks if the data is mappable, filters the element array to get the
+   * latitude and longitude property, gets the coordinates using the getCoordinateByProperty function,
+   * sets the featureIndexToSelect and calls the clickOnMaps function to interact with the map.
+   * @param element - An array of objects of type PopupProperty.
+   * @param {string} propertyId - The `propertyId` parameter is a string that represents the ID of a
+   * property.
+   */
+  public showOnMap(element: Array<PopupProperty>, propertyId: string): void {
+    if (this.isMappable) {
+      const latlongProp = element.filter((val: PopupProperty) => val.name === this.pointsOnMapHeader);
+
+      const coordinates = this.getCoordinateByProperty(latlongProp[0]);
+
+      this.featureIndexToSelect = propertyId;
+
+      if (coordinates[0] !== GeoJSONHelper.NO_DATA[0]) {
+        this.mapInteractionService.clickOnMaps(this.dataConfigurable.id, this.featureIndexToSelect, coordinates as Array<number>, this.imageOverlay);
+      }
+
+    }
+  }
+
+  /**
+   * The `expandRow` function is used to expand or collapse a row in a table, based on the provided index
+   * and element data.
+   * @param {number} i - The parameter "i" is of type number and represents the index of the row being
+   * expanded.
+   * @param element - The `element` parameter is an array of `PopupProperty` objects.
+   * @param {number | boolean} [columnIndex=false] - The `columnIndex` parameter is a number or a boolean
+   * value that represents the index of the column in the `element` array. It is optional and has a
+   * default value of `false`.
+   * @returns In this code, nothing is being explicitly returned. The return statements are used to exit
+   * the function early in certain conditions, but they do not return any specific value.
+   */
+  public expandRow(i: number, element: Array<PopupProperty>, columnIndex: number | boolean = false): void {
+
+    if (this.isMappable && columnIndex as number < 2) {
+      return;
+    }
+    if (this.selectedRow === i) {
       this.selectedRow = null;
       this.featureIndexToSelect = null;
     } else {
 
-      const propertyId = element.filter((val: PopupProperty) => val.name === this.propertyIdHeader);
-      if (propertyId.length > 0) {
-        this.featureIndexToSelect = propertyId[0].valuesConcatString;
-      }
-
-      if (this.dataConfigurable.isMappable && centerOnMap) {
-        const latlongProp = element.filter((val: PopupProperty) => val.name === this.pointsOnMapHeader);
-
-        const coordinates = this.getCoordinateByProperty(latlongProp[0]);
-
-        if (coordinates[0] !== GeoJSONHelper.NO_DATA[0]) {
-          this.mapInteractionService.clickOnMaps(this.dataConfigurable.id, this.featureIndexToSelect, coordinates as Array<number>, this.imageOverlay);
-        }
-
-      }
+      this.featureIndexToSelect = this.getPropertyIdFromArrayPopupProperty(element);
 
       setTimeout(() => {
         this.checkingPageData();
@@ -330,6 +442,9 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     this.pageNumber = this.matPaginator.pageIndex + 1;
   }
 
+  /**
+   * The function "goToPage" sets the page number of a material paginator and emits a page event.
+   */
   public goToPage(): void {
     if (this.pageNumber > this.maxPageNumber) {
       this.pageNumber = this.maxPageNumber;
@@ -363,6 +478,8 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
       if (this.pageNumber > this.maxPageNumber) {
         this.pageNumber = this.maxPageNumber;
       }
+
+      this.checkSomeOnMapHide();
     }, 100);
   }
 
@@ -387,14 +504,29 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     }, 100);
   }
 
+  /**
+   * The function "openAuthLink" prevents the default behavior of a mouse click event and calls the
+   * "popupClick" function from the GeoJSONHelper class with the provided parameters.
+   * @param {MouseEvent} event - The event parameter is a MouseEvent object that represents the event
+   * that triggered the function. It contains information about the event, such as the type of event,
+   * the target element, and the coordinates of the mouse pointer.
+   * @param {PopupProperty} item - The "item" parameter is of type "PopupProperty" and represents the
+   * data associated with the popup that was clicked.
+   */
   public openAuthLink(event: MouseEvent, item: PopupProperty): void {
     event.preventDefault();
 
     GeoJSONHelper.popupClick(event, this.executionService, this.authentificationClickService, item);
   }
 
+  /**
+   * The `updateTable` function updates the data in a table based on the provided headers and applies
+   * formatting and filtering based on certain conditions.
+   * @param headers - The `headers` parameter is an array of strings that represents the headers of a
+   * table.
+   */
   public updateTable(headers: Array<string>): void {
-    const tableMap = GeoJSONHelper.getTableObjectsFromProperties(this.data.features);
+    const tableMap = GeoJSONHelper.getTableObjectsFromProperties(this.dataConfigurable.id, this.data.features);
 
     // check if mappable table
     this.isMappable = tableMap.has(this.pointsOnMapHeader);
@@ -415,14 +547,27 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
       : [];
 
     /** filter out null values */
-    let tableFormatted: PopupProperty[][] = tableData.map((array: Array<PopupProperty>) =>
+    const tableFormatted: PopupProperty[][] = tableData.map((array: Array<PopupProperty>) =>
       array.filter((val: PopupProperty) => val !== null));
 
     if (this.isMappable) {
-      /** shift action custom header at the end */
-      tableFormatted = tableFormatted.map((row: Array<PopupProperty>) => {
-        // actions
-        return this.shiftColumnToTheStart(row, PopupProperty.ROW_ACTIONS);
+      // add toggleOnMap on table header list (index 1)
+      this.customHeaders.unshift(this.toggleOnMapHeader);
+
+      // add showOnMap on table header list (index 0)
+      this.customHeaders.unshift(this.showOnMapHeader);
+
+      tableFormatted.map((_ap: Array<PopupProperty>) => {
+
+        const featureIndex = this.getPropertyIdFromArrayPopupProperty(_ap);
+
+        // add toggleOnMap on table data (index 1)
+        _ap.unshift(new PopupProperty(this.toggleOnMapHeader, [featureIndex]));
+
+        // add toggleOnMap on table data (index 0)
+        _ap.unshift(new PopupProperty(this.showOnMapHeader, [featureIndex]));
+
+        this.toggleOnMapSelected[featureIndex] = true;
       });
     }
 
@@ -432,22 +577,90 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     this.getActiveColumnCount(this.dataSource.data[0], false);
   }
 
+  /**
+   * The function "handleSelectionChange" takes an event parameter and calls the "getActiveColumnCount"
+   * function with the value of the event and a boolean value of true.
+   * @param {MatSelectChange} event - The event parameter is of type MatSelectChange, which is an event
+   * emitted when the selection in a mat-select component changes.
+   */
   public handleSelectionChange(event: MatSelectChange): void {
     this.getActiveColumnCount(event.value, true);
+    this.refreshHiddenRowOnTable(200);
   }
 
-  /** Trigger Subject sending filtered table data and headers to parent for csv export */
+  /**
+   * The function `exportTableData` exports table data by filtering out unwanted headers and values and
+   * sending the data to be exported.
+   */
   public exportTableData() {
-    // Skips first column depending on if data is mappable or not.
-    const mappableData = this.dataSource.filteredData.map((popupPropAr: Array<PopupProperty>) => popupPropAr.map((popupProp: PopupProperty) => popupProp.valuesConcatString).slice(1, -2));
-    const nonMappableData = this.dataSource.filteredData.map((popupPropAr: Array<PopupProperty>) => popupPropAr.map((popupProp: PopupProperty) => popupProp.valuesConcatString).slice(0, -2));
     const data: TableExportObject = {
-      headers: this.dataConfigurable.isMappable ? this.customHeaders.slice(1, -2) : this.customHeaders.slice(0, -2),
-      data: this.dataConfigurable.isMappable ? mappableData : nonMappableData,
+      headers: this.customHeaders.filter((_h: string) => {
+        return !this.headersToRemove.includes(_h);
+      }),
+      data: this.dataSource.filteredData.map((popupPropAr: Array<PopupProperty>) => popupPropAr.filter((popupProp: PopupProperty) => {
+        return !this.headersToRemove.includes(popupProp.name);
+      }).map((popupProp: PopupProperty) => popupProp.valuesConcatString)
+      ) as Array<Array<string>>,
       fileName: this.dataConfigurable.name,
     };
 
     this.exportData.next(data);
+  }
+
+  /**
+   * The function `refreshHiddenRowOnTable` refreshes hidden rows on a table after a specified time
+   * interval.
+   * @param [time=2000] - The `time` parameter in the `refreshHiddenRowOnTable` function represents the
+   * duration in milliseconds after which the function will execute the code inside the `setTimeout`
+   * function. In this case, the default value for `time` is set to 2000 milliseconds (2 seconds).
+   */
+  private refreshHiddenRowOnTable(time = 2000): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+    setTimeout(() => {
+      dataSearchToggleOnMap.filter(_v => {
+        // if marker of layer
+        if (_v.indexOf(this.dataConfigurable.id) !== -1) {
+
+          this.mapInteractionService.toggleFeature(this.dataConfigurable.id, _v, false, this.imageOverlay);
+          // eslint-disable-next-line no-underscore-dangle
+          this.toggleOnMapSelected[_v] = false;
+        }
+      });
+
+      this.checkSomeOnMapHide();
+    }, 100);
+  }
+
+  /**
+   * The function `refreshIconOnTableFromLocalStorage` retrieves data from local storage and updates a
+   * property based on the retrieved data.
+   */
+  private refreshIconOnTableFromLocalStorage(): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+    setTimeout(() => {
+      Object.keys(this.toggleOnMapSelected).forEach(k => {
+        this.toggleOnMapSelected[k] = !dataSearchToggleOnMap.includes(k);
+      });
+
+    }, 500);
+  }
+
+  /**
+   * The function retrieves the property ID from an array of PopupProperty objects based on a specific
+   * name.
+   * @param ap - An array of objects of type PopupProperty.
+   * @returns a string value.
+   */
+  private getPropertyIdFromArrayPopupProperty(ap: Array<PopupProperty>): string {
+    const propertyId = ap.filter((val: PopupProperty) => val.name === this.propertyIdHeader);
+    if (propertyId.length > 0) {
+      return propertyId[0].valuesConcatString;
+    }
+    return '';
   }
 
   private getActiveColumnCount(data, onChange): void {
@@ -464,17 +677,6 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     }
   }
 
-  private shiftColumnToTheStart(row: PopupProperty[], column: string): PopupProperty[] {
-    // shift header
-    this.customHeaders.unshift(this.customHeaders.splice(this.customHeaders.findIndex(r => {
-      return r === column;
-    }), 1)[0]);
-    // shift data
-    row.unshift(row.splice(row.findIndex(r => { return r.name === column; }), 1)[0]);
-
-    return row;
-  }
-
   private createEmptyTable() {
     this.tableHeaders = [];
     this.dataSource.data = [];
@@ -482,15 +684,18 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     this.notificationService.sendDistributionNotification({
       id: this.dataConfigurable.id,
       title: 'Warning',
-      message: UserNotificationService.MESSAGE_NO_DATA,
-      type: UserNotificationService.TYPE_WARNING as string,
+      message: NotificationService.MESSAGE_NO_DATA,
+      type: NotificationService.TYPE_WARNING as string,
       showAgain: false,
     });
   }
 
   private setTableHeaders(data: GeoJSON.FeatureCollection) {
-    const tableMap = GeoJSONHelper.getTableObjectsFromProperties(data.features);
+    const tableMap = GeoJSONHelper.getTableObjectsFromProperties(this.dataConfigurable.id, data.features);
     this.tableHeaders = Array.from(tableMap.keys());
+
+    this.tableHeaders = this.tableHeaders.filter((el) => el !== this.imagesHeader);
+
     this.customHeaders = this.tableHeaders.slice(0, 8);
 
     if (!this.customHeaders.includes(this.pointsOnMapHeader)) {
@@ -499,10 +704,6 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
 
     if (!this.customHeaders.includes(this.propertyIdHeader)) {
       this.customHeaders.push(this.propertyIdHeader);
-    }
-
-    if (!this.customHeaders.includes(this.rowActionsHeader)) {
-      this.customHeaders.push(this.rowActionsHeader);
     }
 
     this.totalColumnCount = [...this.tableHeaders].filter((el) => !this.headersToRemove.includes(el)).length;
@@ -535,4 +736,64 @@ export class TableDisplayComponent implements OnInit, AfterViewInit {
     return coordinates;
 
   }
+
+  private refreshHiddenMarkerOnLocalStorage(featureIndex: string, checked: boolean): void {
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    let dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+    if (checked === false) {
+      // save hide marker on local storage
+      if (!dataSearchToggleOnMap.includes(featureIndex)) {
+        dataSearchToggleOnMap.push(featureIndex);
+      }
+
+    } else {
+      // remove from LS
+      dataSearchToggleOnMap = dataSearchToggleOnMap.filter(_v => _v !== featureIndex);
+    }
+
+    this.localStoragePersister.set(
+      LocalStorageVariables.LS_CONFIGURABLES,
+      JSON.stringify(dataSearchToggleOnMap),
+      false,
+      LocalStorageVariables.LS_TOGGLE_ON_MAP
+    );
+  }
+
+  private removeLayerIdFromHiddenMarkerOnLocalStorage(layerId: string): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    let dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+    // remove from LS
+    dataSearchToggleOnMap = dataSearchToggleOnMap.filter(_v => _v.indexOf(layerId) === -1);
+
+    if (this.configurables.getAll().length === 0) {
+      dataSearchToggleOnMap = [];
+    }
+
+    this.localStoragePersister.set(
+      LocalStorageVariables.LS_CONFIGURABLES,
+      JSON.stringify(dataSearchToggleOnMap),
+      false,
+      LocalStorageVariables.LS_TOGGLE_ON_MAP
+    );
+  }
+
+  /**
+   * The function checks if all the items in the filtered data are hidden on the map.
+   */
+  private checkSomeOnMapHide(): void {
+    const numFilteredData = this.dataSource.filteredData.length;
+    let numHiddenOnMap = 0;
+    this.dataSource.filteredData.forEach((_ap: Array<PopupProperty>) => {
+
+      const featureIndex = this.getPropertyIdFromArrayPopupProperty(_ap);
+      if (this.toggleOnMapSelected[featureIndex] === false) {
+        numHiddenOnMap++;
+      }
+    });
+    this.someOnMapHide = numHiddenOnMap === numFilteredData;
+  }
 }
+

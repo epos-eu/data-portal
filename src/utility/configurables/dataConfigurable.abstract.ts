@@ -41,6 +41,8 @@ export abstract class DataConfigurable implements DataConfigurableI {
   /** Copied from {@link DistributionDetails#isTabularable} */
   public readonly isTabularable: boolean;
 
+  public readonly context: string;
+
   /** Whether all {@link #newParamValues} are valid or not. */
   public valid = true;
   /** Whether any of the {@link #newParamValues} have changed or not. */
@@ -184,11 +186,17 @@ export abstract class DataConfigurable implements DataConfigurableI {
   }
 
   /**
-   * Sets the style in {@link #styleSource} if it is different from the current value.
-   * @param style Style object.
+   * The function `setStyle` updates the style of an element if it is different from the current style
+   * or if forced to do so.
+   * @param {null | Style} style - The `style` parameter in the `setStyle` method can be either `null`
+   * or an object of type `Style`.
+   * @param [force=false] - The `force` parameter in the `setStyle` method is a boolean parameter with
+   * a default value of `false`. It is used to determine whether the style should be set even if it is
+   * the same as the current style. If `force` is set to `true`, the style will be
+   * @returns The method `setStyle` is returning `this`, which allows for method chaining.
    */
-  public setStyle(style: null | Style): this {
-    if (style !== this.getStyle()) {
+  public setStyle(style: null | Style, force = false): this {
+    if (style !== this.getStyle() || force) {
       this.styleSource.next(style);
     }
     return this;
@@ -208,19 +216,21 @@ export abstract class DataConfigurable implements DataConfigurableI {
     return this.styleSource.asObservable();
   }
 
-
   /**
-   * Sets the {@link #newParamValues} variable. Also:
-   * - re-evaluates the {@link #changed} variable
-   * - re-evaluates the {@link #sameAsDefaults} variable
-   * - calls the {@link #updateActionsEnabledStatus} function to re-evaluate the action statuses
-   * @param newParamValues New values to set.
+   * The function `setNewParams` updates parameter values and related properties, and returns the
+   * instance for chaining.
+   * @param newParamValues - An array of new parameter values that will be used to update the current
+   * parameter values.
+   * @returns The `setNewParams` method is returning `this`, which refers to the current instance of
+   * the class.
    */
-  public setNewParams(newParamValues: Array<ParameterValue>): void {
+  public setNewParams(newParamValues: Array<ParameterValue>): this {
     this.newParamValues = newParamValues.slice();
     this.changed = !this.paramValuesSame(this.currentParamValues, this.newParamValues);
     this.sameAsDefaults = this.paramsSameAsDefaults();
     this.updateActionsEnabledStatus();
+
+    return this;
   }
 
   /** returns the value of the the {@link #spatialLinked} variable. */
@@ -263,13 +273,24 @@ export abstract class DataConfigurable implements DataConfigurableI {
     return this;
   }
 
-  public reload(newConfigurable?: DataConfigurable): void {
+  /**
+   * The `reload` function in TypeScript triggers a reload with optional new configuration after a
+   * delay.
+   * @param {DataConfigurable} [newConfigurable] - The `newConfigurable` parameter in the `reload`
+   * method is an optional parameter of type `DataConfigurable`. It is used to provide a new
+   * configuration for reloading data. If a `newConfigurable` object is provided, it will be used for
+   * reloading data; otherwise, the method will
+   * @returns The `reload` method is returning `this`, which refers to the instance of the class on
+   * which the method is being called.
+   */
+  public reload(newConfigurable?: DataConfigurable): this {
     if (null == this.triggerReloadFunc) {
     } else {
       setTimeout(() => {
         this.triggerReloadFunc((newConfigurable == null) ? this : newConfigurable);
       }, 0);
     }
+    return this;
   }
 
   public setShowSpatialCoverage(show: boolean): this {

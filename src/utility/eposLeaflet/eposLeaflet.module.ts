@@ -40,6 +40,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { FormsModule } from '@angular/forms';
 import { BaseLayerSelectionComponent }
   from './components/layerControlComponent/baseLayerSelectionComponent/baseLayerSelection.component';
+import { LightboxModule } from 'ngx-lightbox';
 
 @NgModule({
   declarations: [
@@ -68,7 +69,8 @@ import { BaseLayerSelectionComponent }
     FormsModule,
     MccColorPickerModule,
     MatButtonModule,
-    MatRadioModule
+    MatRadioModule,
+    LightboxModule,
   ],
   exports: [
     EposLeafletComponent,

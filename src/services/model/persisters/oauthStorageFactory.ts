@@ -15,7 +15,12 @@ import { OAuthStorage } from 'angular-oauth2-oidc';
  License for the specific language governing permissions and limitations under
  the License.
  */
+/**
+ * The function `oauthStorageFactory` returns the `localStorage` object as an instance of
+ * `OAuthStorage`.
+ * @returns the localStorage object.
+ */
 // eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 export function oauthStorageFactory(): OAuthStorage {
-    return localStorage;
+  return localStorage;
 }

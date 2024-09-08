@@ -15,9 +15,15 @@
  */
 import { environmentBase } from './environmentBase';
 
-export const environment = {
+export const environmentProd = {
   ...environmentBase,
   ...{
     production: true,
+    matomoEndpoint: 'EPOS_PROD_MATOMO_ENDPOINT', // populated during pipeline
+    matomoSiteId: 'EPOS_PROD_MATOMO_SITE_ID', // populated during pipeline
+    matomoTrackEvent: true,
+    modules: {
+      data: true, // turns the data section on and off
+    },
   }
 };

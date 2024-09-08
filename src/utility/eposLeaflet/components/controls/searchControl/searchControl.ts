@@ -25,6 +25,7 @@ import * as ELG from 'esri-leaflet-geocoder';
 import { FaMarker } from '../../marker/faMarker/faMarker';
 import { AbstractControl } from '../abstractControl/abstractControl';
 import { MarkerLayer } from '../../layers/markerLayer';
+import { environment } from 'environments/environment';
 
 
 export class SearchControl extends AbstractControl {
@@ -56,9 +57,9 @@ export class SearchControl extends AbstractControl {
       providers: [
         ELG['arcgisOnlineProvider']({
           // ELG['GeocodeServiceProvider']({
-          url: 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/'
+          url: 'https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/',
           // API Key to be passed to the ArcGIS Online Geocoding Service
-          // apikey: this.arcGisApiKey,
+          token: environment.esriApiKey,
         })]
     } as L.esri.Geocoding.GeosearchObject);
 

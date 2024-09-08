@@ -42,6 +42,8 @@ export interface DataConfigurableI extends Stylable {
   isDownloadable: boolean;
   isTabularable: boolean;
 
+  context: string;
+
   /**
    * Retrieves the {@link DistributionDetails} that this object was created with.
    */
@@ -83,7 +85,7 @@ export interface DataConfigurableI extends Stylable {
    * - calls the {@link #updateActionsEnabledStatus} function to re-evaluate the action statuses
    * @param newParamValues New values to set.
    */
-  setNewParams(newParamValues: Array<ParameterValue>): void;
+  setNewParams(newParamValues: Array<ParameterValue>): this;
 
   /** returns the value of the the {@link #spatialLinked} variable. */
   isSpatialLinked(): boolean;
@@ -102,7 +104,7 @@ export interface DataConfigurableI extends Stylable {
 
   setTriggerReloadFunc(func: (configurable: DataConfigurable) => void): this;
 
-  reload(newConfigurable?: DataConfigurable): void;
+  reload(newConfigurable?: DataConfigurable): this;
 
   setShowSpatialCoverage(show: boolean): this;
 

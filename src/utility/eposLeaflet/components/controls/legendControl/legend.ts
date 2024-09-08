@@ -14,6 +14,7 @@
  the License.
  */
 
+import { ImageLegendItem } from './imageLegendItem';
 import { LegendItem } from './legendItem.abstract';
 
 /** The `Legend` class represents a legend for a chart and provides methods for adding legend items,
@@ -95,33 +96,46 @@ export class Legend {
    * depending on whether the displayFunction is defined.
    * @returns The function `createDisplayContent()` returns an HTMLElement.
    */
-  createDisplayContent(): HTMLElement {
-    return (this.displayFunction) ? this.displayFunction(this) : this.defaultDisplayFunction(this);
+  createDisplayContent(legendItemToHide: Array<string> = []): HTMLElement {
+    return (this.displayFunction) ? this.displayFunction(this) : this.defaultDisplayFunction(this, legendItemToHide);
   }
 
+
   /**
-   * The function creates and returns an HTML element that displays a legend with icon and label
-   * elements.
-   * @param {Legend} legend - The `legend` parameter is an object of type `Legend`. It contains
-   * information about the legend, such as the legend items.
-   * @returns an HTMLElement, specifically a div element with class names 'legend-details-grid' and
-   * 'nice-scrollbar'.
+   * This TypeScript function creates a HTML element containing legend items, with the option to hide
+   * specific items.
+   * @param {Legend} legend - The `legend` parameter is an object that contains information about a
+   * legend, such as legend items and their properties.
+   * @param legendItemToHide - The `legendItemToHide` parameter is an optional array of strings that
+   * contains the IDs of legend items that should be hidden in the legend display. If a legend item's
+   * ID matches any of the IDs in the `legendItemToHide` array, that particular legend item will not be
+   * shown in
+   * @returns An HTMLElement containing the legend details grid with legend items that are not in the
+   * legendItemToHide array.
    */
-  protected defaultDisplayFunction(legend: Legend): HTMLElement {
+  protected defaultDisplayFunction(legend: Legend, legendItemToHide: Array<string> = []): HTMLElement {
     const contentDiv = document.createElement('div');
     contentDiv.classList.add('legend-details-grid');
     contentDiv.classList.add('nice-scrollbar');
 
     legend.legendItems.forEach((legendItem: LegendItem) => {
+      let showLegend = true;
+
       if (null != legendItem) {
 
-        const contentRowDiv = document.createElement('div');
-        contentRowDiv.classList.add('legend-details-row');
+        if (legendItem instanceof ImageLegendItem && legendItemToHide.includes(legendItem.id)) {
+          showLegend = false;
+        }
 
-        contentRowDiv.appendChild(legendItem.getIconElement());
-        contentRowDiv.appendChild(legendItem.getLabelElement());
+        if (showLegend) {
+          const contentRowDiv = document.createElement('div');
+          contentRowDiv.classList.add('legend-details-row');
 
-        contentDiv.appendChild(contentRowDiv);
+          contentRowDiv.appendChild(legendItem.getIconElement());
+          contentRowDiv.appendChild(legendItem.getLabelElement());
+
+          contentDiv.appendChild(contentRowDiv);
+        }
       }
     });
 

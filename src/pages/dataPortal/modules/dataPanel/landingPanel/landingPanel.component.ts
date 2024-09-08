@@ -13,17 +13,10 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { AfterContentInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { DomainInfo, domainLinks } from '../links';
+import { AfterContentInit, AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { Model } from 'services/model/model.service';
-import { DiscoverResponse } from 'api/webApi/classes/discoverApi.interface';
-import {
-  BasicItem,
-  ResultsPanelComponent,
-} from '../resultsPanel/resultsPanel.component';
-import { DataSearchConfigurablesService } from 'pages/dataPortal/services/dataSearchConfigurables.service';
-import { LandingService } from 'pages/dataPortal/services/landing.service';
+import { ResultsPanelComponent } from '../resultsPanel/resultsPanel.component';
+import { LandingService } from '../services/landing.service';
 import { TourService } from 'services/tour.service';
 import * as Driver from 'driver.js';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
@@ -31,6 +24,11 @@ import { LocalStoragePersister } from 'services/model/persisters/localStoragePer
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
 import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.service';
+import { Domain } from 'api/webApi/data/domain.interface';
+import { DistributionItem } from 'api/webApi/data/distributionItem.interface';
+import { DataSearchConfigurablesServiceResource } from '../services/dataSearchConfigurables.service';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 @Unsubscriber('subscriptions')
 @Component({
@@ -38,34 +36,39 @@ import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.serv
   templateUrl: './landingPanel.component.html',
   styleUrls: ['./landingPanel.component.scss'],
 })
-export class LandingPanelComponent implements OnInit, AfterContentInit {
+export class LandingPanelComponent implements OnInit, AfterContentInit, AfterViewInit {
   @ViewChild('blockResults') blockResults: ElementRef;
   @ViewChild(ResultsPanelComponent)
   private resultPanelComponent: ResultsPanelComponent;
 
-  public readonly domainLinks = domainLinks;
   public showLanding = true;
   public activeDomainCode: string | boolean = false;
   public domainResultsCounter: Array<number> = [];
-  public data: Array<BasicItem>;
+  public data: Array<DistributionItem>;
 
-  private readonly subscriptions: Array<Subscription> =
-    new Array<Subscription>();
+  public domains: Array<Domain>;
+
+  private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
     private landingService: LandingService,
     private tourService: TourService,
-    private readonly configurables: DataSearchConfigurablesService,
-    private readonly model: Model,
+    private readonly configurables: DataSearchConfigurablesServiceResource,
     private readonly localStoragePersister: LocalStoragePersister,
     private readonly panelsEventEmitter: PanelsEmitterService,
-    private readonly resultPanelService: ResultsPanelService
+    private readonly resultPanelService: ResultsPanelService,
+    private readonly tracker: Tracker,
   ) {
   }
 
   ngOnInit(): void {
-    this.addTCSWrapperStep();
     this.subscriptions.push(
+
+      this.landingService.domainObs.subscribe(domains => {
+        if (domains !== null) {
+          this.domains = domains;
+        }
+      }),
 
       this.configurables.watchAll().subscribe(() => {
         // eslint-disable-next-line @typescript-eslint/dot-notation
@@ -83,31 +86,8 @@ export class LandingPanelComponent implements OnInit, AfterContentInit {
           this.resultPanelService.setLandingPanelTopSrc((this.blockResults.nativeElement as HTMLElement).offsetTop.toString());
         }
       }),
-    );
 
-    setTimeout(() => {
-      this.subscriptions.push(
-        this.model.dataDiscoverResponse.valueObs.subscribe(
-          (discoverResponse: DiscoverResponse) => {
-            // domainResultsCounter
-            this.domainLinks.forEach((element) => {
-              if (element.code === 'ALL') {
-                this.domainResultsCounter[element.code] = this.data?.filter(
-                  (o) => o.hideToResult === false
-                ).length;
-              } else if (element.code === 'FAV') {
-                this.domainResultsCounter[element.code] =
-                  this.configurables.getAllPinned().length;
-              } else {
-                this.domainResultsCounter[element.code] = this.data?.filter(
-                  (o) => o.code === element.code && o.hideToResult === false
-                ).length;
-              }
-            });
-          }
-        )
-      );
-    });
+    );
 
     const activeDomainCode = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_DOMAIN_OPEN) as string | null ?? false;
     if (activeDomainCode !== false && activeDomainCode !== '') {
@@ -127,8 +107,57 @@ export class LandingPanelComponent implements OnInit, AfterContentInit {
     });
   }
 
-  public addTCSWrapperStep(): void {
-    const tCSWrapperStepElement = document.getElementById('TCS-wrapper') as HTMLElement;
+  /**
+   * The ngAfterViewInit function calls the addTCSWrapperStep function.
+   */
+  ngAfterViewInit(): void {
+    this.addTCSWrapperStep();
+  }
+
+  /** Set Domain selection
+   * @param value Domain code.
+   */
+  public toggleDomain(value: string, checkForClose = true): void {
+    if (this.domainResultsCounter[value] > 0) {
+
+      // unselect last item
+      this.configurables.setSelected(null, true);
+
+      // reset pagination
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.resultPanelComponent.resetPagination();
+
+      if (checkForClose === false) {
+        this.landingService.setDomain((value === undefined) ? false : value);
+      } else {
+        this.landingService.setDomain((value === undefined || value === this.activeDomainCode) ? false : value);
+        this.tracker.trackEvent(TrackerCategory.PANEL, TrackerAction.SELECT_DOMAIN, value);
+      }
+    }
+  }
+
+  /**
+   * The function "getDistributionItemList" assigns the value of the "event" parameter to the "data" property.
+   * @param {DistributionItem[]} event - The parameter "event" is an array of objects of type "DistributionItem".
+   */
+  public getDistributionItemList(event: DistributionItem[]): void {
+    this.data = event;
+  }
+
+  /**
+   * The function assigns the value of the event array to the domainResultsCounter property.
+   * @param event - The parameter "event" is an array of numbers.
+   */
+  public getDomainResultsCounter(event: Array<number>): void {
+    this.domainResultsCounter = event;
+  }
+
+  /**
+   * The function `addTCSWrapperStep()` adds a step to a tour with a specific title, description,
+   * position, and element, and sets a domain during the tour.
+   */
+  private addTCSWrapperStep(): void {
+    const tCSWrapperStepElement = this.blockResults.nativeElement as HTMLElement;
     const tourName = 'EPOS Overview';
     const options: Driver.PopoverOptions = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Thematic Core Service (TCS)`,
@@ -143,39 +172,5 @@ export class LandingPanelComponent implements OnInit, AfterContentInit {
         }
       })
     );
-  }
-
-  /** retrieves list of Domain {@link DomainInfo} */
-  public filterDomainLink(): DomainInfo[] {
-    return this.domainLinks;
-  }
-
-  /** Set Domain selection
-   * @param value Domain code.
-   */
-  public toggleDomain(value: string, checkForClose = true): void {
-    if (this.domainResultsCounter[value] > 0) {
-
-      // unselect last item
-      this.configurables.setSelected(null, true);
-
-      // reset pagination
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      void this.resultPanelComponent.resetPagination();
-
-      if (checkForClose === false) {
-        this.landingService.setDomain((value === undefined) ? false : value);
-      } else {
-        this.landingService.setDomain((value === undefined || value === this.activeDomainCode) ? false : value);
-      }
-    }
-  }
-
-  public getBasicItemList(event: BasicItem[]): void {
-    this.data = event;
-  }
-
-  public favouritesEmpty(): boolean {
-    return this.configurables.getAllPinned().length === 0;
   }
 }

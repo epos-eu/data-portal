@@ -21,6 +21,8 @@ export class SimpleDataProvider implements DataProvider {
     public readonly dataProviderLegalName: string,
     public readonly dataProviderUrl: string,
     public readonly relatedDataProvider: Array<DataProvider>,
+    public readonly dataProviderId: string,
+    public readonly country: string,
   ) {
 
   }
@@ -29,12 +31,17 @@ export class SimpleDataProvider implements DataProvider {
     dataProviderLegalName: string,
     dataProviderUrl: string,
     relatedDataProvider: Array<DataProvider>,
+    dataProviderId: string,
+    country: string,
   ): SimpleDataProvider {
     // create param
     return new SimpleDataProvider(
-      dataProviderLegalName,
+      // Append the country code after the name of the provider
+      dataProviderLegalName + (country ? (' - ' + country) : ''),
       dataProviderUrl,
       relatedDataProvider,
+      dataProviderId,
+      country,
     );
   }
 

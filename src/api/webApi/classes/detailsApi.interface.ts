@@ -23,7 +23,7 @@ export interface DetailsApi {
   /**
    * Get details.
    */
-  getDetails(summary: DistributionSummary): Promise<null | DistributionDetails>;
+  getDetails(summary: DistributionSummary, context: string): Promise<null | DistributionDetails>;
 
-  getDetailsById(id: string): Promise<null | DistributionDetails>;
+  getDetailsById(id: string, context: string): Promise<null | DistributionDetails>;
 }

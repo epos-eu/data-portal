@@ -22,57 +22,38 @@ import { SearchService } from 'services/search.service';
 import { DistributionDetails } from 'api/webApi/data/distributionDetails.interface';
 import { BoundingBox } from 'api/webApi/data/boundingBox.interface';
 import { TemporalRange } from 'api/webApi/data/temporalRange.interface';
-import { DiscoverResponse } from 'api/webApi/classes/discoverApi.interface';
 import { ParameterDefinitions } from 'api/webApi/data/parameterDefinitions.interface';
 import { DistributionLevel } from 'api/webApi/data/distributionLevel.interface';
 import { DataConfigurableDataSearchI } from 'utility/configurablesDataSearch/dataConfigurableDataSearchI.interface';
 import { DataSearchConfigurablesMI } from 'services/model/modelItems/dataSearchConfigurablesMI';
 import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
 import { DataConfigurableDataSearchLoading } from 'utility/configurablesDataSearch/dataConfigurableDataSearchLoading';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { DistributionSummary } from 'api/webApi/data/distributionSummary.interface';
+import { DistributionItem } from 'api/webApi/data/distributionItem.interface';
+import { Domain } from 'api/webApi/data/domain.interface';
+import { ViewType } from 'api/webApi/data/viewType.enum';
+import { SimpleDistributionItem } from 'api/webApi/data/impl/simpleDistributionItem';
+import { FacetModel } from 'api/webApi/data/facetModel.interface';
+import { Facet } from 'api/webApi/data/facet.interface';
 
 @Injectable()
 export class DataSearchConfigurablesService {
 
   // cache of configurables we last set
-  private previouslySetConfigurables: Array<DataConfigurableDataSearchI>;
-  private readonly configurables: DataSearchConfigurablesMI;
+  protected previouslySetConfigurables: Array<DataConfigurableDataSearchI>;
+
+  private readonly CONTEXT = CONTEXT_RESOURCE;
+
+  private readonly VIEW_TYPE_ENUM = ViewType;
+  private data: Array<DistributionItem>;
 
   constructor(
-    private readonly model: Model,
-    private readonly searchService: SearchService,
-    private readonly injector: Injector,
+    protected readonly model: Model,
+    protected readonly searchService: SearchService,
+    protected readonly injector: Injector,
+    protected configurables: DataSearchConfigurablesMI,
   ) {
-    this.configurables = this.model.dataSearchConfigurables;
-
-    this.configurables.valueObs.subscribe((configurables: Array<DataConfigurableDataSearchI>) => {
-      // if something else set the configurables, refresh them to make sure consistent
-      if (configurables !== this.previouslySetConfigurables && configurables.length > 0) {
-        this.refresh();
-      }
-    });
-    this.model.dataSearchBounds.valueObs.subscribe((bbox: BoundingBox) => {
-      this.updateSpatialBounds(bbox);
-    });
-    this.model.dataSearchTemporalRange.valueObs.subscribe((tempRange: TemporalRange) => {
-      this.updateTemporalRange(tempRange);
-    });
-    this.model.dataDiscoverResponse.valueObs.subscribe((discoverResponse: DiscoverResponse) => {
-      const selectedItem = this.getSelected();
-      if ((selectedItem != null) && (discoverResponse != null)) {
-        if (!selectedItem.isPinned()) {
-          const results = discoverResponse.results();
-          const selectedItemId = selectedItem.id;
-
-          const foundItem = results.getFlatData().find((item) => {
-            return (item.getIdentifier() === selectedItemId);
-          });
-
-          if (foundItem == null) {
-            this.setSelected(null, true);
-          }
-        }
-      }
-    });
   }
 
   /**
@@ -197,10 +178,8 @@ export class DataSearchConfigurablesService {
    * @param [doRefresh=true] - The `doRefresh` parameter is a boolean value that determines whether or
    * not to refresh the data after selecting a new item. If `doRefresh` is `true`, the data will be
    * refreshed; if `doRefresh` is `false`, the data will not be refreshed. By default, `
-   * @param [serviceName] - The `serviceName` parameter is a string that represents the name of a
-   * service. It is an optional parameter and its default value is an empty string.
    */
-  public setSelected(id: null | string, doRefresh = true, serviceName = ''): void {
+  public setSelected(id: null | string, doRefresh = true): void {
     const selected = this.getSelected();
     if ((selected == null) || (id !== selected.id)) {
 
@@ -322,7 +301,7 @@ export class DataSearchConfigurablesService {
   public createConfigurable(
     distId: string,
   ): Promise<DataConfigurableDataSearch> {
-    return this.searchService.getDetailsById(distId)
+    return this.searchService.getDetailsById(distId, this.CONTEXT)
       .then((distributionDetails: DistributionDetails) => {
         const paramDefs = distributionDetails.getParameters();
 
@@ -336,9 +315,266 @@ export class DataSearchConfigurablesService {
       });
   }
 
-  private refresh(): void {
+  /**
+   * This TypeScript function retrieves domain information based on a specified level0 value and field.
+   * @param domains - The `domains` parameter is an array of `Domain` objects.
+   * @param {string} level0 - The `level0` parameter in the `getDomainInfoBy` function is used to
+   * specify the value to search for in the `field` property of the `Domain` objects within the
+   * `domains` array. The function will return the first `Domain` object that matches the `level0`
+   * @param [field=title] - The `field` parameter in the `getDomainInfoBy` function is a string
+   * parameter that specifies the field to be used for comparison when searching for a domain in the
+   * `domains` array. By default, the value of `field` is set to `'title'`, but it can be overridden
+   * @returns The function `getDomainInfoBy` returns a `Domain` object that matches the specified
+   * `level0` value in the `domains` array based on the specified `field` (defaulted to 'title'). If a
+   * matching domain is found, it is returned; otherwise, an empty `Domain` object with a `code`
+   * property is returned.
+   */
+  public getDomainInfoBy(domains: Array<Domain>, level0: string, field = 'title'): Domain {
+    if (domains !== null && domains !== undefined) {
+      const domain = domains.find(icon => icon[field] === level0);
+      return domain != null ? domain : { code: '' };
+    }
+    return { code: '' };
+  }
+
+  /**
+   * The function creates and displays distribution items based on provided facet model, domains, and
+   * type filters, including handling favorites and sorting the results.
+   * @param {FacetModel<DistributionSummary> | null} distFacetModelSource - The `distFacetModelSource`
+   * parameter is a FacetModel that contains DistributionSummary objects or it can be null.
+   * @param domains - The `domains` parameter in the `createItemsToDisplay` function is an array of
+   * `Domain` objects. It is used as one of the inputs to filter and create the `DistributionItem`
+   * objects based on the provided domains.
+   * @param filterByType - The `filterByType` parameter in the `createItemsToDisplay` function is an
+   * array of strings that is used to filter the items based on their type. It is passed as an argument
+   * to the function and is used to determine which items should be included in the final array of
+   * `DistributionItem
+   * @returns The function `createItemsToDisplay` returns an array of `DistributionItem` objects.
+   */
+  public createItemsToDisplay(distFacetModelSource: FacetModel<DistributionSummary> | null, domains: Array<Domain>, filterByType: Array<string>): Array<DistributionItem> {
+    this.data = new Array<DistributionItem>();
+    if (distFacetModelSource != null && domains !== undefined) {
+
+      distFacetModelSource.roots().forEach((root: Facet<DistributionSummary>) => {
+        this.recursiveCreateItemsDisplay(root, [], filterByType, domains);
+      });
+
+      // add favourites data
+      const favourites = this.getAllPinned();
+
+      favourites.forEach((fav: DataConfigurableDataSearch) => {
+        const found = this.data.findIndex((d) => { return d.id === fav.id; });
+
+        // not found on results data => add to array
+        if (found === -1) {
+
+          // get info levels
+          const levels = fav.getLevels();
+
+          // add to result array with info levels
+          this.setDistributionItem(
+            fav.getDistributionDetails(),
+            levels,
+            domains
+          );
+
+          // exclude item from original section
+          const item = this.data.find((i: DistributionItem) => { return i.id === fav.id; });
+          if (item !== undefined) {
+            item.hideToResult = true;
+          }
+        }
+      });
+
+      // sort data results
+      this.data.sort((a, b) => {
+        return this.sortData(a, b);
+      });
+    }
+    return this.data;
+  }
+
+
+  /**
+   * The function `sortData` compares two `DistributionItem` objects based on their `name` property for
+   * sorting.
+   * @param {DistributionItem} a - DistributionItem object with a property "name" to compare.
+   * @param {DistributionItem} b - b is a DistributionItem object that is being compared to another
+   * DistributionItem object (a) based on their name property. The sortData function is sorting these
+   * objects alphabetically by their name property.
+   * @returns In the provided code snippet, the `sortData` function is a comparison function used for
+   * sorting `DistributionItem` objects based on their `name` property.
+   */
+  public sortData(a: DistributionItem, b: DistributionItem) {
+    if (a.name < b.name) {
+      return -1;
+    }
+    if (a.name > b.name) {
+      return 1;
+    }
+    return 0;
+  }
+
+  protected bBoxOrDefaults(
+    paramDefs: ParameterDefinitions,
+    boundingBox: BoundingBox,
+  ): BoundingBox {
+    if ((null != paramDefs) && (!boundingBox.isBounded())) {
+      boundingBox = paramDefs.getSpatialBounds(paramDefs.getDefaultParameterValues());
+    }
+    return boundingBox;
+  }
+
+  protected refresh(): void {
     this.setAll(this.getPinnedOrSelected());
   }
+
+  protected tempRangeOrDefaults(
+    paramDefs: ParameterDefinitions,
+    tempRange: TemporalRange,
+  ): TemporalRange {
+    if ((null != paramDefs) && (tempRange.isUnbounded())) {
+      tempRange = paramDefs.getTemporalRange(paramDefs.getDefaultParameterValues());
+    }
+    return tempRange;
+  }
+
+  /**
+ * This TypeScript function creates a DistributionItem object based on the provided
+ * DistributionSummary, DistributionLevels, and Domains.
+ * @param {DistributionSummary} dist - The `dist` parameter in the `createDistribution` function
+ * represents a `DistributionSummary` object, which contains information about a distribution.
+ * @param levels - The `levels` parameter in the `createDistribution` function is an array of
+ * `DistributionLevel` objects. Each `DistributionLevel` object likely contains information about a
+ * specific level or category within the distribution. The function uses the value of the first level
+ * in the array (`levels[0].value`)
+ * @param domains - The `domains` parameter in the `createDistribution` function is an array of
+ * Domain objects. These Domain objects likely contain information related to the distribution, such
+ * as codes, image URLs, and colors. The function uses this information to create a DistributionItem
+ * object that represents the distribution with the specified levels and
+ * @returns The function `createDistribution` returns a `DistributionItem` object after processing
+ * the input parameters `dist`, `levels`, and `domains`. The function constructs a `basicItem` using
+ * the provided data and returns it as the output.
+ */
+  private createDistribution(dist: DistributionSummary, levels: Array<DistributionLevel>, domains: Array<Domain>): DistributionItem {
+
+    const info = this.getDomainInfoBy(domains, levels[0].value);
+    const map = dist.isMappable === true ? this.VIEW_TYPE_ENUM.MAP : '';
+    const graph = dist.isGraphable === true ? this.VIEW_TYPE_ENUM.GRAPH : '';
+    const tab = dist.isTabularable === true ? this.VIEW_TYPE_ENUM.TABLE : '';
+    const notViewable = (dist.isMappable === false && dist.isGraphable === false && dist.isTabularable === false) ? 'Not viewable' : '';
+
+    const basicItem = SimpleDistributionItem.make(
+      dist.getIdentifier(),
+      dist.getIdentifier(),
+      dist.getName(),
+      info != null ? info.code : '',
+      info != null && info.imgUrl !== undefined ? info.imgUrl : '',
+      info != null && info.color !== undefined ? info.color : '',
+      '',
+      [notViewable, map, tab, graph],
+      dist.isDownloadable,
+      dist,
+      this.isPinned(dist.getIdentifier()),
+      false,
+      [levels],
+      dist.getStatus() as number,
+      dist.getStatusTimestamp() as string,);
+
+    return basicItem;
+  }
+
+  private recursiveCreateItemsDisplay(
+    item: Facet<DistributionSummary>,
+    levels: Array<DistributionLevel> = [],
+    typeFilters: Array<string> | null = [],
+    domains: Array<Domain>,
+  ): void {
+
+    item.getChildren().forEach((child: Facet<DistributionSummary>) => {
+
+      const level: DistributionLevel = {
+        id: levels.length,
+        value: child.getName(),
+        level: levels.length,
+        count: child.getFlatData().length,
+        children: [],
+        distId: child.getIdentifier(),
+      };
+
+      // add level to array (push function cannot be used)
+      levels = levels.concat(level);
+
+      this.getData(child, levels, typeFilters, domains);
+
+      if (child.getChildren().length > 0) {
+        this.recursiveCreateItemsDisplay(child, levels, typeFilters, domains);
+      }
+
+      // remove last elem to array (slice function cannot be used)
+      levels = levels.filter((e, i) => i < levels.length - 1);
+
+    });
+
+  }
+
+  private getData(element: Facet<DistributionSummary>, levels: Array<DistributionLevel>, typeFilters: Array<string> | null, domains: Array<Domain>): void {
+    element.getData().forEach((dist: DistributionSummary) => {
+
+      let take = true;
+
+      // if only one filter was chosen => OR
+      if (null !== typeFilters && typeFilters.length === 1) {
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        take = (dist.isMappable && typeFilters.some(i => i === ViewType.MAP as string))
+          || (dist.isGraphable && typeFilters.some(i => i === ViewType.GRAPH as string))
+          || (dist.isTabularable && typeFilters.some(i => i === ViewType.TABLE as string));
+
+      } else if (null !== typeFilters && typeFilters.length > 1) {
+
+        if (typeFilters.some(i => i === ViewType.MAP as string)) {
+          take = dist.isMappable && take;
+        }
+
+        if (typeFilters.some(i => i === ViewType.TABLE as string)) {
+          take = dist.isTabularable && take;
+        }
+
+        if (typeFilters.some(i => i === ViewType.GRAPH as string)) {
+          take = dist.isGraphable && take;
+        }
+      }
+
+      if (take) {
+        this.setDistributionItem(dist, levels, domains);
+      }
+    });
+  }
+
+  private setDistributionItem(dist: DistributionSummary, levels: Array<DistributionLevel>, domains: Array<Domain>): void {
+    if (dist != null) {
+      try {
+
+        // check if it's already present on this.data
+        const updateItem = this.data.find((i: DistributionItem) => { return i.id === dist.getIdentifier(); });
+
+        if (updateItem !== undefined) {
+
+          // add new facets
+          updateItem.levels.push(levels);
+        } else {
+          const basicItem = this.createDistribution(dist, levels, domains);
+          this.data.push(basicItem);
+        }
+
+      } catch (e) {
+        console.warn('error in createItemsDisplay method ', e);
+      }
+    }
+  }
+
+
 
   private setAll(configurables: Array<DataConfigurableDataSearchI>): void {
     this.previouslySetConfigurables = configurables;
@@ -437,23 +673,4 @@ export class DataSearchConfigurablesService {
     });
   }
 
-  private bBoxOrDefaults(
-    paramDefs: ParameterDefinitions,
-    boundingBox: BoundingBox,
-  ): BoundingBox {
-    if ((null != paramDefs) && (!boundingBox.isBounded())) {
-      boundingBox = paramDefs.getSpatialBounds(paramDefs.getDefaultParameterValues());
-    }
-    return boundingBox;
-  }
-
-  private tempRangeOrDefaults(
-    paramDefs: ParameterDefinitions,
-    tempRange: TemporalRange,
-  ): TemporalRange {
-    if ((null != paramDefs) && (tempRange.isUnbounded())) {
-      tempRange = paramDefs.getTemporalRange(paramDefs.getDefaultParameterValues());
-    }
-    return tempRange;
-  }
 }

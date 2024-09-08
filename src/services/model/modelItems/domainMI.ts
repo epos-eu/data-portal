@@ -4,7 +4,7 @@ import { ModelItem } from './modelItem';
 export class DomainMI extends ModelItem<Domain> {
   constructor(
   ) {
-    const defaultValue: Domain = { code: 'ALL', isSelected: true };
+    const defaultValue: Domain = { id: '0', code: 'ALL', isSelected: true };
     super(defaultValue);
   }
 }

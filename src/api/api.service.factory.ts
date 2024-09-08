@@ -41,10 +41,14 @@ import { SuccessHandler } from './webApi/classes/successHandler.interface';
 import { SuccessHandlerImpl } from './webApi/impl/successHandler';
 import { NotificationService } from 'services/notification.service';
 import { MatDialog } from '@angular/material/dialog';
+import { ShareApi } from './webApi/classes/shareApi.interface';
+import { DevShareApi } from './webApi/impl/dev/devShare';
 
 const AUTHENTICATING_API_URL = '/api/v1';
 
 const AUTHENTICATING_API = 'Authenticating';
+
+export const CONTEXT_RESOURCE = 'resources';
 
 /**
  * Wrap API in service.
@@ -110,8 +114,10 @@ export const devApiFactory = (
   const executionApi: ExecutionApi = new DevExecutionApi(baseUrl, rest);
   const discoverApi: DiscoverApi = new DevDiscoverApi(baseUrl, rest);
 
+  const shareApi: ShareApi = new DevShareApi(baseUrl, rest);
+
   return new DevCompositeApi(discoverApi, aaaiApi, dictionaryApi, searchApi,
-    detailsApi, executionApi);
+    detailsApi, executionApi, shareApi);
 };
 
 /**

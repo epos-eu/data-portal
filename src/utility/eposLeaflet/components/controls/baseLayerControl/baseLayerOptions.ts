@@ -23,72 +23,17 @@ export const baseLayerOptions = [
   new BaseLayerOption('None', () => [
   ], () => ''),
 
-  new BaseLayerOption('Imagery', () => [
-    new EsriBaseLayer('Imagery', 'Imagery')
-      .setEsriType('Imagery')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/imagery.png'),
+  new BaseLayerOption('Open Street Map', () => [
+    new EsriBaseLayer('EPOS', 'EPOS')
+      .setUrl('https://tile.openstreetmap.org/{z}/{x}/{y}.png')
+      .toggleable.set(false)
+      .setAttr('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'),
+  ], () => './assets/img/baseLayer/osm.png'),
 
-  new BaseLayerOption('Imagery Labels', () => [
-    new EsriBaseLayer('Imagery', 'Imagery')
-      .setEsriType('Imagery')
+  new BaseLayerOption('Open Street Map - Topographic', () => [
+    new EsriBaseLayer('EPOS topo', 'EPOS')
+      .setUrl('https://tile.opentopomap.org/{z}/{x}/{y}.png')
+      .setAttr('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
       .toggleable.set(false),
-    new EsriBaseLayer('Imagery Labels', 'Imagery Labels')
-      .setEsriType('ImageryLabels')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/imageryLabels.png'),
-
-  new BaseLayerOption('Gray', () => [
-    new EsriBaseLayer('gray', 'Gray')
-      .setEsriType('Gray')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/gray.png'),
-
-  new BaseLayerOption('Dark Gray', () => [
-    new EsriBaseLayer('darkgray', 'DarkGray')
-      .setEsriType('DarkGray')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/darkGray.png'),
-
-  new BaseLayerOption('Streets', () => [
-    new EsriBaseLayer('streets', 'Streets')
-      .setEsriType('Streets')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/streets.png'),
-
-  new BaseLayerOption('Shaded Relief', () => [
-    new EsriBaseLayer('shadedrelief', 'ShadedRelief')
-      .setEsriType('ShadedRelief')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/shadedRelief.png'),
-
-  new BaseLayerOption('Shaded Relief Labels', () => [
-    new EsriBaseLayer('shadedrelief', 'ShadedRelief')
-      .setEsriType('ShadedRelief')
-      .toggleable.set(false),
-    new EsriBaseLayer('ShadedReliefLabels', 'ShadedReliefLabels')
-      .setEsriType('ShadedReliefLabels')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/shadedReliefLabels.png'),
-
-  new BaseLayerOption('Topographic', () => [
-    new EsriBaseLayer('topographic', 'Topographic')
-      .setEsriType('Topographic')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/topographic.png'),
-
-  new BaseLayerOption('Oceans', () => [
-    new EsriBaseLayer('Oceans', 'Oceans')
-      .setEsriType('Oceans')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/oceans.png'),
-
-  new BaseLayerOption('Oceans Labels', () => [
-    new EsriBaseLayer('Oceans', 'Oceans')
-      .setEsriType('Oceans')
-      .toggleable.set(false),
-    new EsriBaseLayer('Oceans Labels', 'Oceans Labels')
-      .setEsriType('OceansLabels')
-      .toggleable.set(false),
-  ], () => './assets/img/baseLayer/oceansLabels.png'),
+  ], () => './assets/img/baseLayer/osm-topo.png'),
 ];

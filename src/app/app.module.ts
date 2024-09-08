@@ -29,7 +29,6 @@ import { DirectivesModule } from 'directives/directives.module';
 import { MAT_DATE_FORMATS } from '@angular/material/core';
 import { MatMomentDateModule, MAT_MOMENT_DATE_ADAPTER_OPTIONS } from '@angular/material-moment-adapter';
 import { DialogModule } from 'components/dialog/dialog.module';
-import { DialogService } from 'components/dialog/dialog.service';
 import { LastPageRedirectService } from 'services/lastPageRedirect.service';
 import { AppRoutingModule } from './app.routing.module';
 import { PipesModule } from 'pipes/pipes.module';
@@ -39,6 +38,9 @@ import { EPOS_MAT_DATE_FORMATS, EPOS_MAT_DATE_TIME_FORMATS } from './app.materia
 import { MatBottomSheet, MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA, MAT_BOTTOM_SHEET_DEFAULT_OPTIONS } from '@angular/material/bottom-sheet';
 import { oauthStorageFactory } from 'services/model/persisters/oauthStorageFactory';
 import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar';
+import { MAT_TOOLTIP_DEFAULT_OPTIONS } from '@angular/material/tooltip';
+import { myCustomTooltipDefaults } from './app.materialTooltipOptions';
+import { TrackerModule } from 'utility/tracker/tracker.module';
 
 /**
  * This is the root module, included by the main.ts file, which is core to the Angular app.
@@ -68,6 +70,7 @@ import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar'
     MatMomentDateModule,
     NgxMatMomentModule,
     DialogModule.forRoot(),
+    TrackerModule.forRoot(),
   ],
   providers: [
     { provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
@@ -79,11 +82,10 @@ import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar'
     { provide: MAT_BOTTOM_SHEET_DATA, useValue: {} },
     { provide: MAT_BOTTOM_SHEET_DEFAULT_OPTIONS, useValue: { hasBackdrop: true, disableClose: true } },
     { provide: OAuthStorage, useFactory: oauthStorageFactory },
-    //   LoggingService,
-    DialogService,
     LastPageRedirectService,
     { provide: MatSnackBarRef, useValue: {} },
     { provide: MAT_SNACK_BAR_DATA, useValue: {} },
+    { provide: MAT_TOOLTIP_DEFAULT_OPTIONS, useValue: myCustomTooltipDefaults }
   ],
   bootstrap: [AppComponent]
 })

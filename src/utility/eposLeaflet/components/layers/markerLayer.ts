@@ -166,7 +166,7 @@ export class MarkerLayer extends MapLayer implements LayerWithMarkers {
     markerClick = (event) => { },
   ): this {
     const locObj = L.latLng(lat, lon);
-    const marker = L.marker(locObj, { icon: this.getIcon(icon) } as L.MarkerOptions);
+    const marker = L.marker(locObj, { icon: this.getIcon(icon), bubblingMouseEvents: true } as L.MarkerOptions);
 
     return this.addLeafletMarker(id, marker, tooltip, popup, popupClick, markerClick);
   }
@@ -438,7 +438,7 @@ export class MarkerLayer extends MapLayer implements LayerWithMarkers {
    * The function `updateLeafletLayerMarker` updates the markers of a Leaflet layer based on various
    * options and configurations.
    */
-  protected updateLeafletLayerMarker(): void {
+  protected updateLeafletLayerMarker(): this {
     if (this.markers) {
       this.markers.forEach((marker: L.Marker | L.CircleMarker) => {
 
@@ -519,6 +519,7 @@ export class MarkerLayer extends MapLayer implements LayerWithMarkers {
 
       });
     }
+    return this;
   }
 
   /**

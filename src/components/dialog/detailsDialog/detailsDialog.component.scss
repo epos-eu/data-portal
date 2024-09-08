@@ -35,7 +35,7 @@
   .header {
     justify-content: space-between !important;
 
-    div.actions  {
+    div.actions {
       display: flex;
       flex-direction: row;
       margin-right: 20px;
@@ -43,6 +43,16 @@
       .mat-icon {
         font-size: 20px;
         color: $color-primary;
+      }
+
+      .disabled {
+        color: grey;
+      }
+
+      mat-icon.disabled:hover,
+      a.disabled:hover {
+        cursor: unset;
+        text-decoration: none !important;
       }
 
       .mat-icon:hover {
@@ -63,6 +73,11 @@
         padding-left: 0;
       }
     }
+  }
+
+  .citation {
+    width: 100%;
+    margin-left: 20px;
   }
 
   tr {
@@ -143,7 +158,7 @@
   .categories-tree-invisible {
     display: none;
   }
-  
+
   .categories-tree ul,
   .categories-tree li {
     margin-top: 0;
@@ -154,7 +169,7 @@
   .categories-tree .mat-tree-node {
     min-height: 25px;
   }
-  
+
   /*
    * This padding sets alignment of the nested nodes.
    */
@@ -162,7 +177,7 @@
     padding-left: 20px;
     min-height: 25px;
   }
-  
+
   /*
    * Padding for leaf nodes.
    * Leaf nodes need to have padding so as to align with other non-leaf nodes

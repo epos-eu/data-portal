@@ -159,7 +159,7 @@ export class JsonMapLayer extends GeoJsonLayer {
         pointStyle = found;
       }
     }
-    return this.createLeafletMarker(this.stylable, pointStyle.getMarker(), latlng);
+    return this.createLeafletMarker(this.stylable, pointStyle.getMarker(), latlng, true);
   }
 
   /**
@@ -317,6 +317,44 @@ export class JsonMapLayer extends GeoJsonLayer {
 
   }
 
+  /**
+ * It creates a Leaflet marker from a payload marker
+ * @param {Stylable} stylable - The object that contains the styling information.
+ * @param {null | Marker} marker - null | Marker
+ * @param latlng - L.LatLng
+ * @returns A layer
+ */
+  protected createLeafletMarker(stylable: Stylable, marker: null | Marker, latlng: L.LatLng, bubblingMouseEvents: boolean): L.Layer {
+    latlng = (null == latlng) ? L.latLng(0, 0) : latlng;
+
+    // create custom marker from payload
+    const mapMarker = this.createCustomMarker(stylable, marker);
+
+    let layer: L.Layer;
+
+    // if marker created
+    if ((null != marker) && (mapMarker != null)) {
+      const anchorLocation = this.convertAnchor(marker.getAnchor());
+      mapMarker.setIconAnchor(anchorLocation);
+      mapMarker.setTooltipAnchor(anchorLocation);
+
+      // create marker layer
+      layer = mapMarker.getMarker(latlng, bubblingMouseEvents);
+
+    } else {
+
+      layer = L.circleMarker(latlng, {
+        radius: this.CIRCLE_MARKER_RADIUS_PX,
+        weight: 1,
+      });
+    }
+
+    // set custom pane to layer
+    (layer as L.Marker).options.pane = this.id;
+
+    return layer;
+  }
+
   private getRandomicStyle(): Style {
     return defaultStyles[Math.floor(Math.random() * defaultStyles.length)];
   }
@@ -351,44 +389,6 @@ export class JsonMapLayer extends GeoJsonLayer {
     }
 
     return markerValue;
-  }
-
-  /**
-   * It creates a Leaflet marker from a payload marker
-   * @param {Stylable} stylable - The object that contains the styling information.
-   * @param {null | Marker} marker - null | Marker
-   * @param latlng - L.LatLng
-   * @returns A layer
-   */
-  private createLeafletMarker(stylable: Stylable, marker: null | Marker, latlng: L.LatLng): L.Layer {
-    latlng = (null == latlng) ? L.latLng(0, 0) : latlng;
-
-    // create custom marker from payload
-    const mapMarker = this.createCustomMarker(stylable, marker);
-
-    let layer: L.Layer;
-
-    // if marker created
-    if ((null != marker) && (mapMarker != null)) {
-      const anchorLocation = this.convertAnchor(marker.getAnchor());
-      mapMarker.setIconAnchor(anchorLocation);
-      mapMarker.setTooltipAnchor(anchorLocation);
-
-      // create marker layer
-      layer = mapMarker.getMarker(latlng);
-
-    } else {
-
-      layer = L.circleMarker(latlng, {
-        radius: this.CIRCLE_MARKER_RADIUS_PX,
-        weight: 1,
-      });
-    }
-
-    // set custom pane to layer
-    (layer as L.Marker).options.pane = this.id;
-
-    return layer;
   }
 
   /**
@@ -624,7 +624,7 @@ enum Anchor {
 
 /** The `Marker` class represents a marker used for clustering and pinning on a map, with various
 properties such as marker type, value, and anchor. */
-class Marker {
+export class Marker {
 
   /** The above code is defining a public static constant variable called DEFAULT_MARKER_PIN. It is of
   type Marker and is assigned a new instance of the Marker class. The Marker class constructor is

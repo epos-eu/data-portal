@@ -1,9 +1,6 @@
 {
   "/testpath/api": {
     "target": "https://ics-c.epos-ip.org/development/k8s-epos-deploy/latest",
-    "target-dp": "https://ics-c.epos-ip.org/testing/k8s-epos-deploy/data-provider-url/",
-    "target-tsu": "https://ics-c.epos-ip.org/testing/epos-metadata-cache-tcs-tsu/emtc-by-year/",
-    "target-sie": "https://ics-c.epos-ip.org/testing/k8s-epos-deploy/data-providers-seismo/",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",

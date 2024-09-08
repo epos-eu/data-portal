@@ -14,6 +14,7 @@
  the License.
  */
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { BoundingBox } from 'api/webApi/data/boundingBox.interface';
 import { SimpleBoundingBox } from 'api/webApi/data/impl/simpleBoundingBox';
 
@@ -23,6 +24,7 @@ import { SimpleBoundingBox } from 'api/webApi/data/impl/simpleBoundingBox';
   styleUrls: ['./simpleSpatialControl.component.scss']
 })
 export class SimpleSpatialControlComponent {
+  @Input() context = CONTEXT_RESOURCE;
   @Input() inputsDisabled = false;
   @Input() showClearButton = false;
   @Output() changeBBox = new EventEmitter<BoundingBox>();
@@ -38,6 +40,7 @@ export class SimpleSpatialControlComponent {
   @Input()
   set bbox(value: BoundingBox) {
     if (null != value) {
+      value.setId(this.context);
       this.setBbox(value);
     }
   }

@@ -103,7 +103,7 @@
       <div class="label">Marker Icon</div>
       <div class="content">
         <mat-select-trigger>
-          <i [classList]="getSelectedValue()"></i>
+          <i [classList]="selectedMarkerIcon"></i>
         </mat-select-trigger>
         <mat-select #selectIcon [(ngModel)]="markerIconFa" (selectionChange)="changeMarkerIconFa($event)">
           <mat-option *ngFor="let icon of markerIcons" [value]="icon.id">

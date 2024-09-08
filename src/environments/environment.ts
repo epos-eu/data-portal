@@ -22,10 +22,41 @@
  * See notes in environment.example.ts
  */
 
+import { environmentDevel } from './environment.devel';
+import { environmentLatest } from './environment.latest';
+import { environmentProd } from './environment.prod';
+import { environmentStage } from './environment.stage';
 import { environmentBase } from './environmentBase';
 
-export const environment = {
-  ...environmentBase,
-  ...{
+// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
+function getEnvironment() {
+  switch (window.location.host) {
+
+    case 'EPOS_ENV_PROD_URL':
+      return { ...environmentProd };
+      break;
+
+    case 'EPOS_ENV_STAGE_URL':
+      return { ...environmentStage };
+      break;
+
+    case 'EPOS_ENV_LATEST_URL':
+      return { ...environmentLatest };
+      break;
+
+    case 'localhost:4200':
+      return { ...environmentDevel };
+      break;
+
+    default:
+      return {
+        ...environmentBase,
+        ...{
+        }
+      };
+      break;
   }
-};
+
+}
+
+export const environment = getEnvironment();

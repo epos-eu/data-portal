@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input, ChangeDetectorRef } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { DataConfigurable } from 'utility/configurables/dataConfigurable.abstract';
 import { ExecutionService } from 'services/execution.service';
@@ -23,15 +23,15 @@ import { CovJsonData } from './objects/data/covJsonData';
 import { YAxisDisplayType } from './objects/yAxisDisplayType.enum';
 import { MatButtonToggleChange } from '@angular/material/button-toggle';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
-import { DataConfigurableI } from 'utility/configurables/dataConfigurableI.interface';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
 import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.service';
 import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
-import { DataSearchConfigurablesService } from 'pages/dataPortal/services/dataSearchConfigurables.service';
-import { UserNotificationService } from 'pages/dataPortal/services/userNotification.service';
-import { NotificationService } from 'services/notification.service';
+import { DataSearchConfigurablesServiceResource } from '../dataPanel/services/dataSearchConfigurables.service';
 import { ApiService } from 'api/api.service';
 import { TraceSelectorService } from './traceSelector/traceSelector.service';
+import { NotificationService } from 'components/notification/notification.service';
+import { DataConfigurableDataSearchI } from 'utility/configurablesDataSearch/dataConfigurableDataSearchI.interface';
+import { DataConfigurableI } from 'utility/configurables/dataConfigurableI.interface';
 
 /**
  * Wrapper for the visualization graphing functionality.
@@ -47,11 +47,13 @@ import { TraceSelectorService } from './traceSelector/traceSelector.service';
 @Component({
   selector: 'app-graph-panel',
   templateUrl: './graphPanel.component.html',
-  styleUrls: ['./graphPanel.component.scss']
+  styleUrls: ['./graphPanel.component.scss'],
 })
 export class GraphPanelComponent implements OnInit {
+
+  @Input() plotlyVHeight: number | boolean = false;
+
   /** The full Array of {@link DataConfigurables} from the pinned and selected items. */
-  @Input() dataConfigurablesArraySource: BehaviorSubject<Array<DataConfigurableI>>;
   /** Output observable to close the sidenav from the graph visulisation component */
   @Output() closeSideNav = new EventEmitter<void>();
 
@@ -71,6 +73,7 @@ export class GraphPanelComponent implements OnInit {
 
   /** Variable for keeping track of subscriptions, which are cleaned up by Unsubscriber */
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
+  private dataConfigurablesArraySource = new BehaviorSubject<Array<DataConfigurableDataSearchI>>([]);
 
   /** Constructor. */
   constructor(
@@ -78,9 +81,10 @@ export class GraphPanelComponent implements OnInit {
     private readonly panelsEvent: PanelsEmitterService,
     private readonly resultPanelService: ResultsPanelService,
     private readonly notificationService: NotificationService,
-    private readonly configurables: DataSearchConfigurablesService,
+    private readonly configurables: DataSearchConfigurablesServiceResource,
     private readonly apiService: ApiService,
     private readonly traceSelector: TraceSelectorService,
+    private readonly cd: ChangeDetectorRef,
   ) {
   }
 
@@ -97,6 +101,11 @@ export class GraphPanelComponent implements OnInit {
    */
   public setSelectedTraces(traces: Array<Trace>): void {
     this.selectedTraces = traces;
+  }
+
+  public setLoading(loading: boolean): void {
+    this.loading = loading;
+    this.cd.detectChanges();
   }
 
   /**
@@ -121,7 +130,12 @@ export class GraphPanelComponent implements OnInit {
    */
   private initSubscriptions(): void {
     this.subscriptions.push(
-      this.dataConfigurablesArraySource.subscribe((dataConfigurables: Array<DataConfigurable>) => {
+
+      this.configurables.watchAll().subscribe(() => {
+        this.updateConfigs();
+      }),
+
+      this.dataConfigurablesArraySource.subscribe((dataConfigurables: Array<DataConfigurableI>) => {
 
         if (dataConfigurables != null) {
           const graphableConfigurables = dataConfigurables.filter((thisConfig: DataConfigurable) => {
@@ -149,6 +163,7 @@ export class GraphPanelComponent implements OnInit {
           this.triggerChangedTraces();
 
           this.resultPanelService.setCounterGraph(graphableConfigurables.length);
+          this.loading = false;
 
         }
       }),
@@ -178,7 +193,7 @@ export class GraphPanelComponent implements OnInit {
 
               this.panelsEvent.graphPanelOpen(id, false);
 
-              setTimeout(() => { this.traceSelector.setTraceSelector(id, traces[0].id); }, 100);
+              setTimeout(() => { this.traceSelector.setTraceSelector(id, traces[0].id, true); }, 100);
 
             });
           });
@@ -191,12 +206,32 @@ export class GraphPanelComponent implements OnInit {
   }
 
   /**
+* Updates the visulisation configurables array source with the selected item, or an empty array if nothing is
+* selected
+*/
+  private updateConfigs(): void {
+    const allConfigurables = this.configurables.getAll().slice();
+    this.ensureReloadFuncSet(allConfigurables);
+    this.dataConfigurablesArraySource.next(allConfigurables);
+  }
+
+  private ensureReloadFuncSet(configurables: Array<DataConfigurableDataSearchI>): void {
+    // ensure reset func set
+    configurables.forEach((configurable: DataConfigurableDataSearchI) => {
+      if (configurable instanceof DataConfigurableDataSearch) {
+        configurable.setTriggerReloadFunc((configurableToUpdate: DataConfigurableDataSearch) => {
+          this.configurables.replaceOrAdd(configurableToUpdate, true);
+        });
+      }
+    });
+  }
+
+  /**
    * Called when the {@link currentTraces} are updated to trigger updating of the
    * {@link TraceSelector} and {@link GraphDisplay} components;
    */
   private triggerChangedTraces(): void {
     const newMap = new Map<DataConfigurableDataSearch, Array<Trace>>();
-    this.loading = false;
     Array.from(this.currentTraces.keys()).forEach((configurable: DataConfigurableDataSearch) => {
       this.loading = (this.loading || (null == this.currentTraces.get(configurable)));
       newMap.set(configurable, this.currentTraces.get(configurable)!);
@@ -249,8 +284,8 @@ export class GraphPanelComponent implements OnInit {
     this.notificationService.sendDistributionNotification({
       id: id,
       title: 'Warning',
-      message: UserNotificationService.MESSAGE_NO_DATA,
-      type: UserNotificationService.TYPE_WARNING as string,
+      message: NotificationService.MESSAGE_NO_DATA,
+      type: NotificationService.TYPE_WARNING as string,
       showAgain: false,
     });
   }

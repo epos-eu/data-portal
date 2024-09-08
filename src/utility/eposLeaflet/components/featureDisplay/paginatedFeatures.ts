@@ -19,6 +19,8 @@ import { FeatureDisplayItem } from './featureDisplayItem';
 import 'jquery';
 import { UrlToLinkPipe } from 'pipes/urlToLink.pipe';
 import { JsonHelper } from 'utility/maplayers/jsonHelper';
+import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
+import { PopupProperty } from 'utility/maplayers/popupProperty';
 
 export class PaginatedFeatures {
 
@@ -82,6 +84,10 @@ export class PaginatedFeatures {
   injection mechanism. */
   protected urlToLinkPipe: UrlToLinkPipe;
 
+  /** The above code is declaring a protected variable called "mapInteractionService" of type
+  "MapInteractionService". */
+  protected mapInteractionService: MapInteractionService;
+
   /**
    * The constructor initializes the leafletMap, featureItemsPromise, and injector properties, and
    * assigns the UrlToLinkPipe instance obtained from the injector to the urlToLinkPipe property.
@@ -100,6 +106,7 @@ export class PaginatedFeatures {
     protected injector: Injector,
   ) {
     this.urlToLinkPipe = this.injector.get<UrlToLinkPipe>(UrlToLinkPipe);
+    this.mapInteractionService = this.injector.get<MapInteractionService>(MapInteractionService);
   }
 
   /**
@@ -134,8 +141,8 @@ export class PaginatedFeatures {
   }
 
   /**
-   * The function creates slides based on a list of feature items, adding event listeners and modifying
-   * properties as needed.
+   * The function `createSlides` loops through a list of feature items, filters out hidden features,
+   * and creates slides with clickable content for each visible feature.
    * @returns The function `createSlides()` returns a Promise that resolves to `void`.
    */
   protected createSlides(): Promise<void> {
@@ -150,10 +157,12 @@ export class PaginatedFeatures {
             if (null != featureItem) {
 
               const featureObject = featureItem.featureObject as FeaturePropertiesDisplayItem;
+
               if (featureObject !== null) {
+
                 Object.entries(featureObject.properties).map((property) => {
 
-                  if (property[1] !== null && property[1] !== undefined && typeof property[1] !== 'string') {
+                  if (property[1] !== null && property[1] !== undefined && typeof property[1] !== 'string' && typeof property[1] !== 'number') {
                     if (Object.keys(property[1])[0] === '@href') {
                       const href = property[1]['@href'] as string;
                       const title = property[1]['@title'] as string;
@@ -169,10 +178,17 @@ export class PaginatedFeatures {
                     }
                   }
                 });
+
+              }
+
+              let markerIsInMap = true;
+              // if the popup needs to be hidden due to the "propertyHiddenOnMap" feature
+              if (featureObject !== null && this.mapInteractionService.propertyHiddenOnMap.includes(featureObject.properties[PopupProperty.PROPERTY_ID] as string)) {
+                markerIsInMap = false;
               }
 
               const featureDisplayContent = featureItem.getContent();
-              if (null != featureDisplayContent) {
+              if (null != featureDisplayContent && markerIsInMap) {
                 slide = jQuery('<div class="slide"></div>')[0];
                 if (null != featureItem.click) {
                   slide.addEventListener('click', (event) => {
@@ -188,6 +204,7 @@ export class PaginatedFeatures {
                 }
               }
             }
+
             return slide;
           })
           .filter((slide) => slide != null) as Array<HTMLElement>;

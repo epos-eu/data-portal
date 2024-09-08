@@ -16,7 +16,7 @@
 import { Injectable } from '@angular/core';
 
 import { BehaviorSubject } from 'rxjs';
-import { FacetDisplayItem } from '../data/impl/facetDisplayItem';
+import { FacetDisplayItem } from 'api/webApi/data/impl/facetDisplayItem';
 
 @Injectable()
 export class DisplayItemService {
@@ -25,10 +25,6 @@ export class DisplayItemService {
 
   // eslint-disable-next-line @typescript-eslint/member-ordering
   allDisplayItemsObs = this.allDisplayItems.asObservable();
-
-  constructor(
-  ) {
-  }
 
   public updateDisplayItems(currentProgressArray: Array<FacetDisplayItem> | null): void {
     this.allDisplayItems.next(currentProgressArray);

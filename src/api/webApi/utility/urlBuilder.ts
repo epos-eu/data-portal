@@ -103,11 +103,6 @@ export class SimpleUrlBuilder implements UrlBuilder {
 
   addPathElements(...elements: Array<string>): UrlBuilder {
 
-    // contextual path
-    if (elements[0] !== 'getoriginalurl') {
-      this.pathElements.push(this.getContextualStartPath());
-    }
-
     for (const e of elements) {
       Confirm.isValidString(e, true);
 
@@ -128,18 +123,4 @@ export class SimpleUrlBuilder implements UrlBuilder {
     this.parameters.set(key, value);
     return this;
   }
-
-  private getContextualStartPath(): string {
-    const lastUrlPath = window.location.pathname.split('/').pop();
-    let startPathElements = '';
-
-    switch (lastUrlPath) {
-      case '': {
-        startPathElements = 'resources';
-        break;
-      }
-    }
-    return startPathElements;
-  }
-
 }

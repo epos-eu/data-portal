@@ -20,6 +20,7 @@ export class ImageLegendItem extends LegendItem {
   constructor(
     label: string,
     public imgSrc: string,
+    public id: string,
   ) {
     super(label);
   }

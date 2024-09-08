@@ -16,8 +16,6 @@
 
 import { Component, Inject } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { DataSearchConfigurablesService } from 'pages/dataPortal/services/dataSearchConfigurables.service';
-import { LoadingService } from 'services/loading.service';
 import { TourService } from 'services/tour.service';
 import { DialogData } from '../baseDialogService.abstract';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
@@ -32,8 +30,6 @@ export class TourDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: DialogData,
     public dialogRef: MatDialogRef<TourDialogComponent>,
     private readonly tourService: TourService,
-    private readonly configurables: DataSearchConfigurablesService,
-    private readonly loadingService: LoadingService,
     private readonly panelsEvent: PanelsEmitterService,
   ) { }
 

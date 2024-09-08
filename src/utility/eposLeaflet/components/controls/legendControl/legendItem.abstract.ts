@@ -18,7 +18,7 @@
 exporting it for use in other modules. */
 export abstract class LegendItem {
 
-  /* The line `protected cssClasses = ''; // can be space separated list` is declaring a protected
+  /** The line `protected cssClasses = ''; // can be space separated list` is declaring a protected
   property named `cssClasses` and initializing it with an empty string. This property can be used to
   store CSS classes that will be applied to an HTML element. The comment indicates that the
   `cssClasses` property can contain multiple class names separated by spaces. */

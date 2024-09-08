@@ -31,7 +31,7 @@
             <mat-label>Your message is related to</mat-label>
             <mat-select formControlName="type">
               <mat-option *ngFor="let cp of availablesContactPoints" [value]="cp.href">
-                {{ getTypeOptionLabel(cp.type) }}
+                {{ typeOptionLabel.get(cp.type) }}
               </mat-option>
             </mat-select>
             <mat-error *ngIf="!type.valid && type.touched" class="give-me-space">

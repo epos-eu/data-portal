@@ -15,7 +15,7 @@
  */
 import { NgModule, ModuleWithProviders } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HeaderComponent } from './header/header.component';
 import { PageLoadingComponent } from './pageLoading/pageLoading.component';
 import { RouterModule } from '@angular/router';
@@ -33,10 +33,26 @@ import { InfoToolTipComponent } from './infoToolTip/infoToolTip.component';
 import { LoginComponent } from './login/login.component';
 import { LoadingComponent } from './loading/loading.component';
 import { ObjectDisplayerComponent } from './objectDisplayer/objectDisplayer.component';
-import { TourService } from 'services/tour.service';
-import { NotificationComponent } from './notification/notification.component';
+import { NotificationSnackComponent } from './notificationSnack/notificationSnack.component';
 import { PipesModule } from 'pipes/pipes.module';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { VocabularyTooltipComponent } from './vocabularyTooltip/vocabularyTooltip.component';
+import { CountrySelectComponent } from './contrySelect/countrySelect.component';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { BreadcrumbComponent } from './breadcrumb/breadcrumb.component';
+import { DataProviderFilterComponent } from './dataProviderFilter/dataProviderFilter.component';
+import { FacetDropdownComponent } from './facetDropdown/facetDropdown.component';
+import { MatTreeModule } from '@angular/material/tree';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { NotificationComponent } from './notification/notification.component';
+import { NotificationService } from './notification/notification.service';
+import { MultiSelectComponent } from './multiSelect/multiSelect.component';
+import { VisibleOnComponent } from './visibleOn/visibleOn.component';
+import { BaseResultsPanelComponent } from './baseResultsPanel/baseResultsPanel.component';
+import { BaseLandingService } from 'pages/dataPortal/services/baseLanding.service';
+import { MenuComponent } from './menu/menu.component';
+import { MenuService } from './menu/menu.service';
 
 /**
  * Module for registering new components that may be used anywhere in the app.
@@ -49,7 +65,17 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     LoginComponent,
     LoadingComponent,
     ObjectDisplayerComponent,
+    NotificationSnackComponent,
+    VocabularyTooltipComponent,
+    CountrySelectComponent,
+    BreadcrumbComponent,
+    DataProviderFilterComponent,
+    FacetDropdownComponent,
     NotificationComponent,
+    MultiSelectComponent,
+    VisibleOnComponent,
+    BaseResultsPanelComponent,
+    MenuComponent,
   ],
   imports: [
     RouterModule,
@@ -61,13 +87,17 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    // MatDatepickerModule,
+    MatAutocompleteModule,
     MatMenuModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
     MatSnackBarModule,
-    PipesModule
+    MatTreeModule,
+    MatExpansionModule,
+    MatCheckboxModule,
+    PipesModule,
+    ReactiveFormsModule,
   ],
   exports: [
     HeaderComponent,
@@ -75,7 +105,16 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
     LoadingComponent,
     InfoToolTipComponent,
     ObjectDisplayerComponent,
+    NotificationSnackComponent,
+    VocabularyTooltipComponent,
+    CountrySelectComponent,
+    BreadcrumbComponent,
+    DataProviderFilterComponent,
+    FacetDropdownComponent,
     NotificationComponent,
+    MultiSelectComponent,
+    VisibleOnComponent,
+    BaseResultsPanelComponent,
   ],
 })
 
@@ -85,7 +124,9 @@ export class ComponentsModule {
       ngModule: ComponentsModule,
       providers: [
         userNotificationProvider,
-        TourService,
+        NotificationService,
+        BaseLandingService,
+        MenuService
       ]
     };
   }

@@ -16,16 +16,18 @@
 import { AfterViewInit, Component, ElementRef, HostListener, Renderer2, ViewChild } from '@angular/core';
 import { MatSidenav } from '@angular/material/sidenav';
 import { OnAttachDetach } from 'decorators/onAttachDetach.decorator';
-import { DataSearchConfigurablesService } from './services/dataSearchConfigurables.service';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { DataSearchConfigurablesServiceResource } from './modules/dataPanel/services/dataSearchConfigurables.service';
+import { Subscription } from 'rxjs';
 import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.service';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
-import { DataConfigurableDataSearchI } from 'utility/configurablesDataSearch/dataConfigurableDataSearchI.interface';
-import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { environment } from 'environments/environment';
+import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
+import { MatButtonToggle } from '@angular/material/button-toggle';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { DialogService } from 'components/dialog/dialog.service';
 
 @OnAttachDetach()
 @Unsubscriber('subscriptions')
@@ -36,54 +38,47 @@ import { environment } from 'environments/environment';
 })
 export class DataPortalComponent implements AfterViewInit {
 
-  @ViewChild('element') element: ElementRef;
-  @ViewChild('filterPanel') filterPanel: MatSidenav;
-  @ViewChild('tablePanel') tablePanel: MatSidenav;
-  @ViewChild('graphPanel') graphPanel: MatSidenav;
-  @ViewChild('environmentPanel') environmentPanel: ElementRef;
-  @ViewChild('environmentPanelButton') environmentPanelButton: ElementRef;
+  @ViewChild('dataPanel') dataPanel: ElementRef;
+  @ViewChild('dataPanelButton') dataPanelButton: MatButtonToggle;
+  @ViewChild('dataPanelSidenav') dataPanelSidenav: MatSidenav;
+  @ViewChild('tablePanelSidenav') tablePanelSidenav: MatSidenav;
+  @ViewChild('graphPanelSidenav') graphPanelSidenav: MatSidenav;
   public tableInResults = true;
   public graphInResults = true;
   public checkIsNewSelected = true;
-  public visPanelConfigurablesArraySource = new BehaviorSubject<Array<DataConfigurableDataSearchI>>([]);
+
   public currentScreenWidth;
   public leftNavWidth;
   public counterData = 0;
-  public counterEnvironment = 0;
   public counterTable = 0;
   public counterGraph = 0;
 
   public hasModuleData = false;
 
+  public hasHiddenMarker = false;
+
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   private updateTimeout: NodeJS.Timeout;
 
-
   constructor(
-    private readonly configurables: DataSearchConfigurablesService,
+    private readonly configurables: DataSearchConfigurablesServiceResource,
     private readonly panelsEvent: PanelsEmitterService,
     private readonly resultPanelService: ResultsPanelService,
     private readonly localStoragePersister: LocalStoragePersister,
+    private readonly mapInteractionService: MapInteractionService,
+    private readonly dialogService: DialogService,
     private renderer: Renderer2,
   ) {
 
     this.hasModuleData = environment.modules.data;
 
+    this.leftNavWidth = this.getWidthLeftPanels();
+
     this.subscriptions.push(
-      this.configurables.watchAll().subscribe(() => {
-        this.updateConfigs();
-      }),
 
       this.resultPanelService.counterDataObs.subscribe((counter: number) => {
         this.counterData = counter;
-      }),
-
-      this.resultPanelService.counterEnvironmentObs.subscribe((counter: number) => {
-        clearTimeout(this.updateTimeout);
-        this.updateTimeout = setTimeout(() => {
-          this.counterEnvironment = counter;
-        }, 50);
       }),
 
       this.resultPanelService.counterTableObs.subscribe((counter: number) => {
@@ -99,7 +94,7 @@ export class DataPortalComponent implements AfterViewInit {
       }),
 
       this.panelsEvent.invokeDataPanelOpen.subscribe(() => {
-        void this.filterPanel.open();
+        this.setDataPanel(true);
       }),
 
       this.panelsEvent.invokeTablePanelToggle.subscribe((itemId: string) => {
@@ -107,14 +102,14 @@ export class DataPortalComponent implements AfterViewInit {
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
           // if the right sidenav is closed
-          if (!this.tablePanel.opened || !this.checkIsNewSelected) {
+          if (!this.tablePanelSidenav.opened || !this.checkIsNewSelected) {
             this.tablePanelToggle();
           }
         }, 50);
       }),
 
       this.panelsEvent.invokeTablePanelClose.subscribe(() => {
-        void this.tablePanel.close();
+        void this.tablePanelSidenav.close();
         this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(false), false, LocalStorageVariables.LS_RIGHT_TOP_SIDENAV);
       }),
 
@@ -123,21 +118,25 @@ export class DataPortalComponent implements AfterViewInit {
         clearTimeout(this.updateTimeout);
         this.updateTimeout = setTimeout(() => {
           // if the bottom sidenav is closed
-          if (!this.graphPanel.opened || !this.checkIsNewSelected) {
+          if (!this.graphPanelSidenav.opened || !this.checkIsNewSelected) {
             this.graphPanelToggle();
           }
         }, 50);
       }),
 
       this.panelsEvent.invokeGraphPanelOpen.subscribe((itemId: string) => {
-        void this.graphPanel.open();
+        void this.graphPanelSidenav.open();
         this.panelsEvent.invokeGraphPanel.emit(true);
         this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(true), false, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV);
       }),
 
       this.panelsEvent.invokeGraphPanelClose.subscribe(() => {
-        void this.graphPanel.close();
+        void this.graphPanelSidenav.close();
         this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(false), false, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV);
+      }),
+
+      this.mapInteractionService.featureOnlayerToggle.subscribe((featureOnLayer: Map<string, Array<number> | string | boolean>) => {
+        this.checkHiddenMarkerOnMap();
       }),
 
     );
@@ -151,15 +150,21 @@ export class DataPortalComponent implements AfterViewInit {
     setTimeout(() => {
 
       if (this.hasModuleData) {
+
         // leftSidenav opened at first time
-        this.filterPanel.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_LEFT_TOP_SIDENAV) === 'false' ? false : true;
-
+        this.dataPanelSidenav.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_LEFT_TOP_SIDENAV) === 'false' ? false : true;
+        this.setDataPanel(this.dataPanelSidenav.opened);
         // rightSidenav and bottomSidenav closed at first time
-        this.tablePanel.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_RIGHT_TOP_SIDENAV) === 'true' ? true : false;
+        this.tablePanelSidenav.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_RIGHT_TOP_SIDENAV) === 'true' ? true : false;
 
-        this.graphPanel.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV) === 'true' ? true : false;
+        this.graphPanelSidenav.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV) === 'true' ? true : false;
       }
 
+      this.checkHiddenMarkerOnMap();
+
+      // When initializing the page, reset the state of the table and graph dialogs
+      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, false, false, LocalStorageVariables.LS_TABLE_DIALOG_OPENED);
+      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, false, false, LocalStorageVariables.LS_GRAPH_DIALOG_OPENED);
     }, 100);
   }
 
@@ -167,58 +172,113 @@ export class DataPortalComponent implements AfterViewInit {
   @HostListener('window:resize', ['$event'])
   public onWindowResize(): void {
     this.currentScreenWidth = window.innerWidth;
-    this.leftNavWidth = (this.element.nativeElement as HTMLElement).offsetWidth;
+    this.leftNavWidth = this.getWidthLeftPanels();
   }
 
-  public filterPanelStatusChange(closing: boolean): void {
-    if (closing) {
-      this.leftNavWidth = 0;
-    } else {
-      this.leftNavWidth = (this.element.nativeElement as HTMLElement).offsetWidth;
-    }
+  public dataPanelStatusChange(closing: boolean): void {
+    this.leftNavWidth = this.getWidthLeftPanels();
   }
 
   public filterPanelToggle(): void {
-    void this.filterPanel.toggle().then(() => {
-      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.filterPanel.opened), false, LocalStorageVariables.LS_LEFT_TOP_SIDENAV);
+    void this.dataPanelSidenav.toggle().then(() => {
+      this.setDataPanel(this.dataPanelSidenav.opened);
     });
   }
 
   /**
-   * It toggles the right sidenav and emits an event
+   * It toggles the right sidenav and emits an event.
+   *
+   * If the table panel dialog is open, it will close it and skip the rest of the function.
    */
   public tablePanelToggle(): void {
-    void this.tablePanel.toggle().then(() => {
+    // If the table dialog is open
+    if (this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TABLE_DIALOG_OPENED)) {
+      this.panelsEvent.invokeTableDialogClose.emit();
+      // Don't open the table panel if closing the dialog
+      return;
+    }
+
+    void this.tablePanelSidenav.toggle().then(() => {
       this.panelsEvent.invokeTablePanel.emit();
-      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.tablePanel.opened), false, LocalStorageVariables.LS_RIGHT_TOP_SIDENAV);
+      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.tablePanelSidenav.opened), false, LocalStorageVariables.LS_RIGHT_TOP_SIDENAV);
     });
+    this.checkHiddenMarkerOnMap();
   }
 
   public graphPanelToggle(): void {
-    void this.graphPanel.toggle().then(() => {
-      this.panelsEvent.invokeGraphPanel.emit(this.graphPanel.opened);
-      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.graphPanel.opened), false, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV);
+    // If the graph dialog is open
+    if (this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_GRAPH_DIALOG_OPENED)) {
+      this.panelsEvent.invokeGraphDialogClose.emit();
+      // Don't open the graph panel if closing the dialog
+      return;
+    }
+
+    void this.graphPanelSidenav.toggle().then(() => {
+      this.panelsEvent.invokeGraphPanel.emit(this.graphPanelSidenav.opened);
+      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.graphPanelSidenav.opened), false, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV);
     });
+  }
+
+  public detachPanel(type: string): void {
+
+    switch (type) {
+      case 'table':
+        this.tablePanelToggle();
+        void this.dialogService.openTablePanel();
+        break;
+
+      case 'graph':
+        this.graphPanelToggle();
+        void this.dialogService.openGraphPanel();
+        break;
+
+      default:
+        break;
+    }
   }
 
   /**
-   * Updates the visulisation configurables array source with the selected item, or an empty array if nothing is
-   * selected
+   * The function returns the width of the left panels based on whether the data panel is opened.
+   * @returns a number.
    */
-  private updateConfigs(): void {
-    const allConfigurables = this.configurables.getAll().slice();
-    this.ensureReloadFuncSet(allConfigurables);
-    this.visPanelConfigurablesArraySource.next(allConfigurables);
+  private getWidthLeftPanels(): number {
+    if (this.dataPanelSidenav !== undefined && this.dataPanelSidenav.opened) {
+      return (this.dataPanel.nativeElement as HTMLElement).offsetWidth;
+    }
+
+    return 0;
   }
 
-  private ensureReloadFuncSet(configurables: Array<DataConfigurableDataSearchI>): void {
-    // ensure reset func set
-    configurables.forEach((configurable: DataConfigurableDataSearchI) => {
-      if (configurable instanceof DataConfigurableDataSearch) {
-        configurable.setTriggerReloadFunc((configurableToUpdate: DataConfigurableDataSearch) => {
-          this.configurables.replaceOrAdd(configurableToUpdate, true);
-        });
+  private checkHiddenMarkerOnMap(): void {
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    let dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+    // if no layer selected => remove all dataSearchToggleOnMap records
+    setTimeout(() => {
+      if (this.configurables.getAll().length === 0) {
+        dataSearchToggleOnMap = [];
+        this.localStoragePersister.set(
+          LocalStorageVariables.LS_CONFIGURABLES,
+          JSON.stringify(dataSearchToggleOnMap),
+          false,
+          LocalStorageVariables.LS_TOGGLE_ON_MAP
+        );
       }
-    });
+
+      this.hasHiddenMarker = dataSearchToggleOnMap.length !== 0 ? true : false;
+    }, 1000);
+
+  }
+
+  private setDataPanel(open = true): void {
+    if (open) {
+      void this.dataPanelSidenav.open();
+      // change map context to data
+      this.mapInteractionService.bboxContext.set(CONTEXT_RESOURCE);
+    } else {
+      void this.dataPanelSidenav.close();
+    }
+    this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.dataPanelSidenav.opened), false, LocalStorageVariables.LS_LEFT_TOP_SIDENAV);
   }
 }

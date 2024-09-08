@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-@import "src/sassFramework/variables.scss";
+@import 'src/sassFramework/variables.scss';
 
 :host {
   position: relative;
@@ -37,6 +37,10 @@
 
   & .data-trace-selector-wrapper {
     width: 200px;
+  }
+
+  mat-icon {
+    cursor: pointer;
   }
 }
 

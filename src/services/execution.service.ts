@@ -286,7 +286,9 @@ export class ExecutionService {
     if ((error instanceof HttpResponse) && (error.status as HttpStatus.StatusCodes === HttpStatus.StatusCodes.UNAUTHORIZED)) {
       const message = `The "${serviceName}" service requires the user to be authenticated, please login.`;
       this.notificationService.sendNotification(message, 'x', NotificationService.TYPE_WARNING, 10000);
-    } if (error instanceof HttpErrorResponse) {
+    }
+
+    if (error instanceof HttpErrorResponse) {
       // eslint-disable-next-line max-len
       const message = `Problems on request for "${serviceName}" service.<br /><strong>Error message from web server:</strong> "${error.message}"`;
       this.notificationService.sendDistributionNotification({

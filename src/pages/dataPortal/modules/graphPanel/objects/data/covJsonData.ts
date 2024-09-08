@@ -46,7 +46,7 @@ export class CovJsonData {
       if (null != type) {
         this._traces.push(new Trace(
           this.dataConfigurableId,
-          key,
+          key + this.dataConfigurableId,
           type,
           name,
           description,

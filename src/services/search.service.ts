@@ -19,9 +19,9 @@ import { DictionaryType } from 'api/webApi/classes/dictionaryType.enum';
 import { SearchCriteria } from 'api/webApi/classes/searchCriteria.enum';
 import { Dictionary } from 'api/webApi/data/dictionary.interface';
 import { ItemSummary } from 'api/webApi/data/itemSummary.interface';
-import { DistributionSummary } from 'api/webApi/data/distributionSummary.interface';
 import { DistributionDetails } from 'api/webApi/data/distributionDetails.interface';
 import { LoggingService } from './logging.service';
+import { Organization } from 'api/webApi/data/organization.interface';
 
 /**
  * A service that exposes methods for accessing the webAPI search functionality
@@ -55,24 +55,15 @@ export class SearchService {
   }
 
   /**
-   * Retrives the details of a search result item.  Uses {@link getDetailsById}.
-   * @param summaryItem A search result item summarising a result.
-   */
-  public getDetails(summaryItem: DistributionSummary): Promise<DistributionDetails> {
-    return this.loggingService.logForPromise(this.getDetailsById(summaryItem.getIdentifier()), //
-      this.getDetailsLogMessage(summaryItem.getIdentifier()));
-  }
-
-  /**
    * Retrives the details of a search result item either from cache or by calling {@link goGetDetails}.
    * Also logs the call using the {@link LoggingService}.
    * @param id The id of a search result item.
    */
-  public getDetailsById(id: string): Promise<DistributionDetails> {
+  public getDetailsById(id: string, context: string): Promise<DistributionDetails> {
     const cachedValue = this.cachedDistDetails.get(id);
 
     return this.loggingService.logForPromise((cachedValue != null) //
-      ? Promise.resolve(cachedValue) : this.goGetDetails(id), //
+      ? Promise.resolve(cachedValue) : this.goGetDetails(id, context), //
       this.getDetailsLogMessage(id));
   }
 
@@ -92,13 +83,26 @@ export class SearchService {
   public removeCachedDistyId(id: string): void {
     this.cachedDistDetails.delete(id);
   }
+
+  /**
+   * The function `getOrganizations` returns a promise that resolves to an array of `Organization`
+   * objects or `null`, and logs the API call with a specific message.
+   * @returns a Promise that resolves to an array of Organization objects or null.
+   */
+  public getOrganizations(type: string): Promise<Array<Organization> | null> {
+    return this.loggingService.logForPromise(this.apiService.getOrganizations(type), 'Get organization list');
+  }
+
+  public getOrganizationById(organizationId: string): Promise<Organization | null> {
+    return this.loggingService.logForPromise(this.apiService.getOrganizationById(organizationId), 'Get organization by id');
+  }
   /**
    * Uses the {@link ApiService} to retrieve details of a search result item.
    * Successful results are internally cached.
    * @param id The id of a search result item.
    */
-  private goGetDetails(id: string): Promise<DistributionDetails> {
-    return this.apiService.getDetailsById(id)
+  private goGetDetails(id: string, context: string): Promise<DistributionDetails> {
+    return this.apiService.getDetailsById(id, context)
       .then((distDetails: DistributionDetails) => {
         this.cachedDistDetails.set(id, distDetails);
         return distDetails;

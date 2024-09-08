@@ -26,10 +26,6 @@ export class ResultsPanelService {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public counterDataObs = this.counterData.asObservable();
 
-  private counterEnvironment = new BehaviorSubject<number>(0);
-  // eslint-disable-next-line @typescript-eslint/member-ordering
-  public counterEnvironmentObs = this.counterEnvironment.asObservable();
-
   private counterTable = new BehaviorSubject<number>(0);
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public counterTableObs = this.counterTable.asObservable();
@@ -42,6 +38,10 @@ export class ResultsPanelService {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public clearFacetSelectionObs = this.clearFacetSelectionSrc.asObservable();
 
+  private openFacetSelectionSrc = new Subject<boolean>();
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  public openFacetSelectionObs = this.openFacetSelectionSrc.asObservable();
+
   private triggerFacetSelectionSrc = new Subject<string>();
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public triggerFacetSelectionObs = this.triggerFacetSelectionSrc.asObservable();
@@ -50,15 +50,8 @@ export class ResultsPanelService {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public landingPanelTopSrcObs = this.landingPanelTopSrc.asObservable();
 
-  constructor() {
-  }
-
   public setCounterData(value: number): void {
     this.counterData.next(value);
-  }
-
-  public setCounterEnvironment(value: number): void {
-    this.counterEnvironment.next(value);
   }
 
   public setCounterTable(value: number): void {
@@ -80,4 +73,9 @@ export class ResultsPanelService {
   public setLandingPanelTopSrc(position: string): void {
     this.landingPanelTopSrc.next(position);
   }
+
+  public openFacetSelection(facet: boolean): void {
+    this.openFacetSelectionSrc.next(facet);
+  }
+
 }

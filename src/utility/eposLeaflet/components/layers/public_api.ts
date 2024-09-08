@@ -22,5 +22,7 @@ export * from './mapLayer.abstract';
 export * from './markerLayer';
 export * from './tileLayer';
 export * from './wmsTileLayer';
+export * from './wmtsTileLayer';
 export * from './wmsFeatureDisplayItemGenerator';
+export * from './wmtsFeatureDisplayItemGenerator';
 

@@ -158,8 +158,8 @@ export abstract class Marker extends L.DivIcon {
    * longitude coordinates of a location.
    * @returns a Leaflet marker object.
    */
-  public getMarker(latlng: L.LatLng): L.Marker {
-    return L.marker(latlng, { icon: this } as L.MarkerOptions);
+  public getMarker(latlng: L.LatLng, setBubblingMouseEvents = true): L.Marker {
+    return L.marker(latlng, { icon: this, bubblingMouseEvents: setBubblingMouseEvents } as L.MarkerOptions);
   }
 
 

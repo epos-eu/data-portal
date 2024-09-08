@@ -30,8 +30,6 @@ export class ParametersDialogService {
   public extraParameterDefinition: BehaviorSubject<null | Array<ParameterDefinition>>;
   public extraParameterValues: BehaviorSubject<null | Array<ParameterValue>>;
 
-  constructor() { }
-
   public setParametersToShow(params: Array<ParameterDefinition>): void {
     this.parametersToShow = params;
   }

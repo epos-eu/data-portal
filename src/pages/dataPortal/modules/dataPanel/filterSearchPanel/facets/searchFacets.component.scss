@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-@import "src/sassFramework/variables.scss";
+@import 'src/sassFramework/variables.scss';
 
 .wrapper {
   display: flex;
@@ -58,7 +58,6 @@
       flex-grow: 1;
       grid-gap: 3px;
       gap: 3px;
-      height: 35px;
 
       .small-button {
         margin-top: 15px;
@@ -66,7 +65,9 @@
     }
   }
 
-  mat-form-field {
+  ::ng-deep mat-form-field,
+  .countrySelect,
+  .dataProviderSelect {
     width: 100%;
   }
 

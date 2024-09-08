@@ -21,6 +21,8 @@ import { environment } from 'environments/environment';
 import { LiveDeploymentService } from 'services/liveDeployment.service';
 import { DialogData } from '../baseDialogService.abstract';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 /**
  * This is the component used to display the feedback form.
@@ -50,17 +52,10 @@ export class FeedbackDialogComponent implements OnInit {
   public formInitialState = {
     feedbackType: FeedbackType.FEATURE_REQUEST,
   };
-  // Setting this to true will overide environment url and token (which aren't valid in local dev)
-  private readonly LOCAL_TESTING = true;
 
   // Live credentials obtained during build, from gitlab variables.
-  private readonly FEEDBACK_API_URL = (this.LOCAL_TESTING)
-    ? 'https://epos-ci.brgm.fr/api/v4/projects/85'
-    : environment.gitlabApiFeedbackProjectUrl;
-
-  private readonly FEEDBACK_TOKEN = (this.LOCAL_TESTING)
-    ? 'pPz7VpNGyjSQkHUbj7Mj'
-    : environment.gitlabApiFeedbackToken;
+  private readonly FEEDBACK_API_URL = environment.gitlabApiFeedbackProjectUrl;
+  private readonly FEEDBACK_TOKEN = environment.gitlabApiFeedbackToken;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: DialogData,
@@ -68,6 +63,7 @@ export class FeedbackDialogComponent implements OnInit {
     private readonly http: HttpClient,
     private readonly notificationService: NotificationService,
     liveDeploymentService: LiveDeploymentService,
+    private readonly tracker: Tracker,
   ) {
     this.isLive = liveDeploymentService.getIsLiveDeployment();
   }
@@ -188,6 +184,7 @@ export class FeedbackDialogComponent implements OnInit {
         }
       })
       .then((res: Record<string, unknown>) => {
+        this.tracker.trackEvent(TrackerCategory.GENERAL, TrackerAction.FEEDBACK, 'Submit');
         this.feedback = res;
       });
   }

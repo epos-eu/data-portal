@@ -37,6 +37,8 @@ export class PanelsEmitterService {
   invokeDataPanelOpen = new EventEmitter();
   invokeDataPanelToggle = new EventEmitter();
   invokeLayerControlPanel = new EventEmitter();
+  invokeTableDialogClose = new EventEmitter();
+  invokeGraphDialogClose = new EventEmitter();
 
   subscription: Subscription;
   togglePanel: MatExpansionPanel;

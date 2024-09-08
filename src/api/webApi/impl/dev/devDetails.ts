@@ -32,13 +32,13 @@ export class DevDetailsApi implements DetailsApi {
   constructor(private readonly baseUrl: BaseUrl, private readonly rest: Rest) { }
 
 
-  public getDetails(summary: DistributionSummary): Promise<null | DistributionDetails> {
-    return this.getDetailsById(summary.getIdentifier());
+  public getDetails(summary: DistributionSummary, context: string): Promise<null | DistributionDetails> {
+    return this.getDetailsById(summary.getIdentifier(), context);
   }
 
-  public getDetailsById(idIn: string): Promise<null | DistributionDetails> {
+  public getDetailsById(idIn: string, context: string): Promise<null | DistributionDetails> {
 
-    const url = this.buildDetailsURL(idIn);
+    const url = this.buildDetailsURL(idIn, context);
 
     return this.rest
       .get(url)
@@ -53,8 +53,8 @@ export class DevDetailsApi implements DetailsApi {
       });
   }
 
-  private buildDetailsURL(id: string): string {
+  private buildDetailsURL(id: string, context: string): string {
 
-    return this.baseUrl.urlBuilder().addPathElements('details', id).build();
+    return this.baseUrl.urlBuilder().addPathElements(context, 'details', id).build();
   }
 }

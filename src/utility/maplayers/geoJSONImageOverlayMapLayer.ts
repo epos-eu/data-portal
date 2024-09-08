@@ -158,76 +158,72 @@ export class GeoJSONImageOverlayMapLayer extends MapLayer {
     geo: GeoJSON.GeoJsonObject,
   ): void {
 
-    // check imageoverlay is present
-    if (this.layerHasImageOverlay(geo)) {
+    //   transform data
+    const data: Array<ImageOverlayData> = [];
 
-      //   transform data
-      const data: Array<ImageOverlayData> = [];
+    const features = JP.query(geo, '$..*[?(@.type=="Feature")]') as Array<Record<string, unknown>>;
 
-      const features = JP.query(geo, '$..*[?(@.type=="Feature")]') as Array<Record<string, unknown>>;
+    features.forEach((feature, index) => {
 
-      features.forEach((feature, index) => {
+      // Overlay
+      const overlay = ObjectHelper.getObjectValue<Record<string, unknown>>(feature, GeoJSONHelper.IMAGE_OVERLAY_ATTR, false);
+      if (overlay !== null) {
 
-        // Overlay
-        const overlay = ObjectHelper.getObjectValue<Record<string, unknown>>(feature, GeoJSONHelper.IMAGE_OVERLAY_ATTR, false);
-        if (overlay !== null) {
+        // Image
+        const href = ObjectHelper.getObjectValue(overlay, 'href', true);
+        const hrefImage = (ObjectHelper.isValidString(href, true)) ? (href as string).trim() : null;
 
-          // Image
-          const href = ObjectHelper.getObjectValue(overlay, 'href', true);
-          const hrefImage = (ObjectHelper.isValidString(href, true)) ? (href as string).trim() : null;
+        // Bbox
+        const bbox = ObjectHelper.getObjectArray(overlay, 'bbox', true);
+        const bboxArray: Array<number> = (ObjectHelper.isValidArray(bbox)) ? ObjectHelper.toNumberArray(bbox) : [];
 
-          // Bbox
-          const bbox = ObjectHelper.getObjectArray(overlay, 'bbox', true);
-          const bboxArray: Array<number> = (ObjectHelper.isValidArray(bbox)) ? ObjectHelper.toNumberArray(bbox) : [];
-
-          // Legend
-          let hrefLegend: null | string = null;
-          const legend = ObjectHelper.getObjectValue<Record<string, unknown>>(overlay, 'legend', false);
-          if (legend != null) {
-            const href2 = ObjectHelper.getObjectValue(legend, 'href', false);
-            if (ObjectHelper.isValidString(href2, true)) {
-              hrefLegend = (href2 as string).trim();
-            }
+        // Legend
+        let hrefLegend: null | string = null;
+        const legend = ObjectHelper.getObjectValue<Record<string, unknown>>(overlay, 'legend', false);
+        if (legend != null) {
+          const href2 = ObjectHelper.getObjectValue(legend, 'href', false);
+          if (ObjectHelper.isValidString(href2, true)) {
+            hrefLegend = (href2 as string).trim();
           }
-
-          // Properties
-          let properties = ObjectHelper.getObjectValue<Record<string, unknown>>(feature, 'properties', false);
-          properties = (properties == null) ? {} as Record<string, unknown> : properties;
-
-          properties[PopupProperty.PROPERTY_ID] = '#' + index.toString() + '#';
-
-          // Valid image and bbox - minimum for an overlay
-          if (ObjectHelper.isValidString(hrefImage, true) && bboxArray.length === 4) {
-            const overlayData = new ImageOverlayData(hrefImage!, bboxArray, hrefLegend, properties);
-
-            data.push(overlayData);
-          }
-
-          // add specific layer pane
-          void Promise.resolve().then(() => this.getEposLeaflet().ensurePaneExists(this.id));
-
         }
 
-      });
+        // Properties
+        let properties = ObjectHelper.getObjectValue<Record<string, unknown>>(feature, 'properties', false);
+        properties = (properties == null) ? {} as Record<string, unknown> : properties;
 
-      // important for click manager
-      this.options.customLayerOptionPaneType.set(MapLayer.IMAGE_OVERLAY_LAYER_TYPE);
+        properties[PopupProperty.PROPERTY_ID] = this.getRealId() + '#' + index.toString() + '#';
 
-      // set popup click for layer
-      this.setLayerClickFeatureItemGenerator(
-        new GeoJsonLayerFeatureItemGenerator(
-          this,
-          this.imageProcessForFeatureIdentification(geo),
-          (feature: Feature<GeometryObject, Record<string, unknown>>) => {
-            return GeoJSONHelper.getPopupContentFromProperties(feature.properties, this.name);
-          },
-          (ev: MouseEvent, feature: Feature<GeometryObject, Record<string, unknown>>) => {
-            JsonHelper.popupClick(ev, this.executionService, this.authentificationClickService);
-          })
-      );
+        // Valid image and bbox - minimum for an overlay
+        if (ObjectHelper.isValidString(hrefImage, true) && bboxArray.length === 4) {
+          const overlayData = new ImageOverlayData(hrefImage!, bboxArray, hrefLegend, properties);
 
-      this.setImageOverlayData(data);
-    }
+          data.push(overlayData);
+        }
+
+        // add specific layer pane
+        void Promise.resolve().then(() => this.getEposLeaflet().ensurePaneExists(this.id));
+
+      }
+
+    });
+
+    // important for click manager
+    this.options.customLayerOptionPaneType.set(MapLayer.IMAGE_OVERLAY_LAYER_TYPE);
+
+    // set popup click for layer
+    this.setLayerClickFeatureItemGenerator(
+      new GeoJsonLayerFeatureItemGenerator(
+        this,
+        this.imageProcessForFeatureIdentification(geo),
+        (feature: Feature<GeometryObject, Record<string, unknown>>) => {
+          return GeoJSONHelper.getPopupContentFromProperties(feature.properties, this.name);
+        },
+        (ev: MouseEvent, feature: Feature<GeometryObject, Record<string, unknown>>) => {
+          JsonHelper.popupClick(ev, this.executionService, this.authentificationClickService);
+        })
+    );
+
+    this.setImageOverlayData(data);
   }
 
   private createLayer(imageOverlayData: Array<ImageOverlayData>): Promise<L.Layer> {
@@ -262,10 +258,12 @@ export class GeoJSONImageOverlayMapLayer extends MapLayer {
 
           // Legend for overlay image
           if (ObjectHelper.isValidString(overlay.hrefLegend, true)) {
-            legendItems.push(new ImageLegendItem(overlay.getLabel(), overlay.hrefLegend!));
+            legendItems.push(new ImageLegendItem(overlay.getLabel(), overlay.hrefLegend!, overlay.properties[PopupProperty.PROPERTY_ID] as string));
           }
 
           imageOverlay.options.pane = this.id;
+
+          imageOverlay.options[PopupProperty.PROPERTY_ID] = overlay.properties[PopupProperty.PROPERTY_ID];
 
           layers.push(imageOverlay);
         });
@@ -303,10 +301,6 @@ export class GeoJSONImageOverlayMapLayer extends MapLayer {
 
   private imageProcessForFeatureIdentification(data: GeoJsonObject): GeoJsonObject {
     return this.processForFeatureIdentification(data);
-  }
-
-  private layerHasImageOverlay(data: GeoJsonObject): boolean {
-    return this.hasImageOverlay(data);
   }
 
   private setImageOverlayData(data: Array<ImageOverlayData>): this {

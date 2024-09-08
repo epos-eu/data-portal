@@ -24,6 +24,7 @@ import { Stylable } from 'utility/styler/stylable.interface';
 import { defaultMarkerIcons, FaMarkerOption } from 'utility/styler/styler';
 import { MapLayer } from '../../layers/mapLayer.abstract';
 import { GeoJsonLayer } from '../../layers/public_api';
+import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 
 @Component({
   selector: 'app-layer-customize',
@@ -108,6 +109,8 @@ export class LayerCustomizeComponent implements OnInit {
   property is of type `string` or `undefined`. */
   public markerIconFa: string | undefined;
 
+  public selectedMarkerIcon: string | undefined;
+
   /** The above code is declaring a public property called "clustering" with a type of boolean or null. */
   public clustering: boolean | null;
 
@@ -132,7 +135,10 @@ export class LayerCustomizeComponent implements OnInit {
    * @param {LayersService} layersService - The `layersService` parameter is of type `LayersService`.
    * It is a service that provides functionality related to layers in the application.
    */
-  constructor(private layersService: LayersService) {
+  constructor(
+    private layersService: LayersService,
+    private mapInteractionService: MapInteractionService,
+  ) {
     this.markerIcons = defaultMarkerIcons;
   }
 
@@ -160,9 +166,17 @@ export class LayerCustomizeComponent implements OnInit {
       e.value.join(' ') === this.markerValue
     )?.id;
 
+    this.selectedMarkerIcon = this.markerIcons.find(e => e.id === this.markerIconFa)?.value.join(' ');
+
     const style = this.stylable?.getStyle();
     if (style !== null && style !== undefined) {
       this.clustering = style.getClustering();
+
+      if (this.clustering !== null) {
+        // enable/disable toggle on map in table panel
+        this.mapInteractionService.toggleOnMapDisabled.next(this.clustering);
+      }
+
     }
 
     setTimeout(() => {
@@ -301,28 +315,24 @@ export class LayerCustomizeComponent implements OnInit {
    */
   updateClustering(event: MatSlideToggleChange): void {
     this.clustering = event.checked;
+
+    // remove all hidden marker from local storage
+    if (event.checked === true) {
+      this.mapInteractionService.removeHiddenMarkerByLayerId(this.layer.id, false);
+    }
+
     this.setClustering(this.clustering);
   }
 
-  /**
-   * The function `getSelectedValue` returns the value of the selected marker icon, or `null` or
-   * `undefined` if no icon is selected.
-   * @returns a string value if a matching id is found in the `markerIcons` array and the `selectIcon`
-   * value is not null or undefined. If no matching id is found or the `selectIcon` value is null or
-   * undefined, the function will return null or undefined.
-   */
-  getSelectedValue(): string | null | undefined {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return this.markerIcons.find(e => e.id === this.selectIcon?.value)?.value.join(' ');
-  }
 
   /**
-   * The function "changeMarkerIconFa" updates the custom layer option marker value based on the
-   * selected event value and triggers a layer change event.
+   * The function "changeMarkerIconFa" updates the selectedMarkerIcon, customLayerOptionMarkerValue,
+   * and triggers a layer change event based on the selected marker icon value.
    * @param {MatSelectChange} event - MatSelectChange - an event object that is triggered when the
    * value of a mat-select component changes. It contains information about the selected value.
    */
   changeMarkerIconFa(event: MatSelectChange): void {
+    this.selectedMarkerIcon = this.markerIcons.find(e => e.id === event.value)?.value.join(' ');
     this.layer.options.customLayerOptionMarkerValue.set(this.markerIcons.find(e => e.id === event.value)?.value.join(' '));
     this.layersService.layerChange(this.layer);
   }
@@ -343,6 +353,11 @@ export class LayerCustomizeComponent implements OnInit {
   private setClustering(clustering: boolean) {
     this.layer.options.customLayerOptionClustering.set(clustering);
     this.layersService.layerChange(this.layer);
+
+    const style = this.stylable?.getStyle();
+    if (style !== undefined) {
+      this.stylable?.setStyle(style, true);
+    }
 
     this.redrawLayer();
   }

@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { AfterContentInit, AfterViewInit, Component, Inject, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, Inject, Injector, OnInit, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { DialogData } from '../baseDialogService.abstract';
 import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
@@ -36,11 +36,15 @@ import { GeoJSONHelper } from 'utility/maplayers/geoJSONHelper';
 import { AuthenticatedClickService } from 'services/authenticatedClick.service';
 import { NotificationService } from 'services/notification.service';
 import { JsonHelper } from 'utility/maplayers/jsonHelper';
+import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { Subscription } from 'rxjs';
+import { DialogService } from '../dialog.service';
+import { CitationsService } from '../../../services/citations.service';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 export interface ConfigurableDataIn {
   dataConfigurable: DataConfigurableDataSearch;
-  environmentOps: boolean;
 }
 
 interface FormatElement {
@@ -56,6 +60,7 @@ interface FormatElement {
 /**
  * General purpose downloads dialog
  */
+@Unsubscriber('subscriptions')
 @Component({
   selector: 'app-downloads-dialog',
   templateUrl: './downloadsDialog.component.html',
@@ -79,7 +84,9 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
   public onlyDownload = false;
   public subTitle = 'Files available for download';
 
-  private distributionDetails: DistributionDetails;
+  public citation: string;
+
+  protected distributionDetails: DistributionDetails;
   private distributionFormat: Array<DistributionFormat>;
   private parameterValues: Array<ParameterValue>;
 
@@ -91,6 +98,9 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
     private readonly http: HttpClient,
     private readonly authentificationClickService: AuthenticatedClickService,
     private readonly notifier: NotificationService,
+    private readonly injector: Injector,
+    private readonly citationService: CitationsService,
+    private readonly tracker: Tracker,
   ) {
   }
 
@@ -106,17 +116,13 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
 
     this.serviceName = this.dataConfigurable.name;
 
-    this.hasFeatureTable = this.distributionDetails.isTabularable || this.distributionDetails.isTabularable;
+    this.hasFeatureTable = this.distributionDetails.isTabularable;
 
     this.getServiceTableData();
 
     if (this.hasFeatureTable) {
-      let distributionFormat = this.dataConfigurable.getDistributionDetails().getTabularableFormats()[0];
-      if (this.distributionDetails.isMappable && distributionFormat === undefined) {
-        distributionFormat = this.dataConfigurable.getDistributionDetails().getMappableFormats()[0];
-      } else if (this.distributionDetails.isGraphable && distributionFormat === undefined) {
-        distributionFormat = this.dataConfigurable.getDistributionDetails().getGraphableFormats()[0];
-      }
+
+      const distributionFormat = this.getDistributionFormat();
 
       void this.executionService.executeDistributionFormat(
         this.dataConfigurable.getDistributionDetails(),
@@ -133,7 +139,7 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
           // check there are external_link on featureCollection
           (data as FeatureCollection).features.forEach(feature => {
             const externalLinks = ObjectHelper.getObjectArray(feature.properties ?? [], GeoJSONHelper.EXTERNAL_LINK_ATTR);
-            const links = JsonHelper.createExternalLinksAsHTMLProperties(externalLinks as Array<Record<string, unknown>>, true);
+            const links = JsonHelper.createExternalLinksAsHTMLProperties(externalLinks as Array<Record<string, unknown>>, true, true);
             if (links.length > 0) {
 
               links.forEach((link: PopupProperty) => {
@@ -162,6 +168,9 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
     } else {
       this.spinner = false;
     }
+
+    // Get the citation for this dataset
+    this.citation = this.citationService.getDatasetCitation(this.distributionDetails).citation;
   }
 
   public ngAfterViewInit(): void {
@@ -210,6 +219,7 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
       this.downloadFeature(event, elem.origin);
     } else {
       this.downloadService(elem.format);
+      this.tracker.trackEvent(TrackerCategory.DISTRIBUTION, TrackerAction.DOWNLOAD, this.formatTrackerDistributionName(this.distributionDetails) + Tracker.TARCKER_DATA_SEPARATION + elem.name + Tracker.TARCKER_DATA_SEPARATION + elem.format);
     }
   }
 
@@ -223,6 +233,8 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
       this.copyUrlFeature(elem.url);
     } else {
       this.copyUrlService(elem.originalFormat);
+      this.tracker.trackEvent(TrackerCategory.DISTRIBUTION, TrackerAction.COPY_URL, this.formatTrackerDistributionName(this.distributionDetails) + Tracker.TARCKER_DATA_SEPARATION + elem.name + Tracker.TARCKER_DATA_SEPARATION + elem.originalFormat);
+
     }
   }
 
@@ -287,10 +299,50 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
     }, 100);
   }
 
+  public openCitationDialog(): void {
+    // We have to inject here instead of the constructor to avoid circular dependencies
+    const dialogService = this.injector.get(DialogService);
+
+    // Open the dialog
+    void dialogService.openDownloadCitationDialog(
+      this.distributionDetails,
+      [0],  // Show only the first citation
+      '50vw',
+    );
+  }
+
   /**
- * It copies the URL of the current page to the clipboard
- * @param {string} format - The format of the output.
- */
+   * The function `copyCitationToClipboard` copies a citation to the clipboard using the
+   * `citationService` and `distributionDetails`.
+   * @param {string} citation - The `citation` parameter in the `copyCitationToClipboard` function is a
+   * string that represents the citation text that you want to copy to the clipboard.
+   */
+  public copyCitationToClipboard(citation: string): void {
+    this.citationService.copyCitationToClipboard(citation, this.distributionDetails);
+  }
+
+  /**
+   * This function retrieves a distribution format based on certain conditions and returns the format.
+   * @returns The `getDistributionFormat` method returns a `DistributionFormat` object based on certain
+   * conditions. If the `distributionFormat` is undefined and the `distributionDetails` is mappable, it
+   * returns the first format from the mappable formats. If the `distributionFormat` is undefined and
+   * the `distributionDetails` is graphable, it returns the first format from the graphable formats.
+   * Otherwise, it
+   */
+  private getDistributionFormat(): DistributionFormat {
+    const distributionFormat = this.dataConfigurable.getDistributionDetails().getTabularableFormats()[0];
+    if (this.distributionDetails.isMappable && distributionFormat === undefined) {
+      return this.dataConfigurable.getDistributionDetails().getMappableFormats()[0];
+    } else if (this.distributionDetails.isGraphable && distributionFormat === undefined) {
+      return this.dataConfigurable.getDistributionDetails().getGraphableFormats()[0];
+    }
+    return distributionFormat;
+  }
+
+  /**
+   * It copies the URL of the current page to the clipboard
+   * @param {string} format - The format of the output.
+   */
   private copyUrlService(format: string): void | string {
     const paramOutput = this.getOutputFormatParam();
 
@@ -357,7 +409,7 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       void this.dataConfigurable.getOriginatorUrl().then(url => {
         if (url !== null) {
-          void this.http.get(url, { responseType: 'blob' }).subscribe((blob) => {
+          this.http.get(url, { responseType: 'blob' }).subscribe((blob) => {
             this.executionService.openDownload(blob, 'raw_service_response_' + this.serviceName);
           });
         }
@@ -535,6 +587,10 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
       str += line + '\r\n';
     });
     return str;
+  }
+
+  private formatTrackerDistributionName(distDetail: DistributionDetails): string {
+    return distDetail.getDomainCode() + Tracker.TARCKER_DATA_SEPARATION + distDetail.getName();
   }
 
 }

@@ -43,6 +43,14 @@ When we have completely the platform you will be able to login from a variety of
 
 ##### There is a ‘Feedback’ button on the top bar of the website – please click on there and let us know what you think!
 
+# Design Principles
+
+[Module Design](docs/module_design.md)
+
+We're building the GUI from the ground up, aiming to build as much code clientside (html, javascript, css) so it can be served by any webserver (inside or outside of docker). We're designing the code to be as clean, modular and to some extent isomorphic. So if we need to move some aspects to a server we can do at a later date.
+
+After extensive analysis we have decided to use the Single Page Application (SPA) web framework [Angular](https://angular.io/) and the associated, application scale, javascript superset language [Typescript](https://www.typescriptlang.org/). These will help structure the project and enforce the original design principles above.
+
 ##### Code:
 
 Languages: Typescript, Javascript, CSS, HTML
@@ -56,6 +64,8 @@ Dependencies: epos-gui/src/assets/
 NPM Dependencies: epos-gui/package.json & epos-gui/node_modules/
 
 <br/>
+
+![epos_arch](docs/images/epos_arch.png)
 
 # Setting up the project for development
 
@@ -139,6 +149,37 @@ ng build --prod --extract-css=false
 ```
 
 Then deploy the epos-gui/dist/ folder on a webserver of your choice.
+
+Note: the application makes use of the HTML5 browser url rewrites as part of Angulars routing so the web server config needs to be able to route all subpaths to the root index.html file.
+
+E.g. http://website.com/myapp/mysuburl --> /myapp/index.html
+
+An example nginx config can be found at: epos-gui/nginx-config/nginx-docker-sites-enabled-default
+
+### Creating Docker images
+
+```
+cd /opt/epos-gui/
+./gitlab/build-docker-image.sh
+```
+
+Grab a Cuppa while dependencies are downloaded/compiled/installed! :coffee:
+
+To explore inside the running docker image:
+
+```
+docker exec -it epos-gui bash
+```
+
+Test on web browser on host machine: http://localhost:8080
+
+### Publishing on Docker Hub
+
+```
+docker tag epos-gui wshelley/epos-gui:latest
+docker login
+docker push wshelley/epos-gui
+```
 
 ### Documentation
 

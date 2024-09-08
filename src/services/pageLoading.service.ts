@@ -26,8 +26,6 @@ export class PageLoadingService {
   loadingCount = 0;
   loadingCountSource = new Subject<boolean>();
 
-  constructor() { }
-
   /**
    * Called to indicate the start of an operation that requires the display to be temporarily
    * hidden.

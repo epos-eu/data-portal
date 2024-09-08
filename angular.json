@@ -59,7 +59,8 @@
               "node_modules/leaflet-draw/dist/leaflet.draw.css",
               "node_modules/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css",
               "node_modules/jquery-ui-dist/jquery-ui.min.css",
-              "node_modules/daterangepicker/daterangepicker.css"
+              "node_modules/daterangepicker/daterangepicker.css",
+              "node_modules/ngx-lightbox/lightbox.css"
             ],
             "scripts": [
               "node_modules/jquery/dist/jquery.min.js",
@@ -89,13 +90,7 @@
               "namedChunks": false,
               "extractLicenses": true,
               "vendorChunk": false,
-              "buildOptimizer": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ]
+              "buildOptimizer": true
             },
             "example": {
               "budgets": [
@@ -110,6 +105,15 @@
                   "with": "src/environments/environment.example.ts"
                 }
               ]
+            },
+            "cypress-ci-testing": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "baseHref": "/testpath/"
             }
           },
           "defaultConfiguration": ""
@@ -127,6 +131,10 @@
             },
             "example": {
               "browserTarget": "epos:build:example"
+            },
+            "cypress-ci-testing": {
+              "browserTarget": "epos:build:cypress-ci-testing",
+              "servePath": "/testpath"
             }
           }
         },
@@ -158,7 +166,8 @@
               "node_modules/leaflet-draw/dist/leaflet.draw.css",
               "node_modules/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css",
               "node_modules/jquery-ui-dist/jquery-ui.min.css",
-              "node_modules/daterangepicker/daterangepicker.css"
+              "node_modules/daterangepicker/daterangepicker.css",
+              "node_modules/ngx-lightbox/lightbox.css"
             ],
             "assets": [
               "src/assets",
@@ -188,6 +197,9 @@
           "configurations": {
             "production": {
               "devServerTarget": "epos:serve:production"
+            },
+            "cypress-ci-testing": {
+              "devServerTarget": "epos:serve:cypress-ci-testing"
             }
           }
         },

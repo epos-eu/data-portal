@@ -18,8 +18,10 @@ import { BoundingBox } from 'api/webApi/data/boundingBox.interface';
 import { SimpleBoundingBox } from 'api/webApi/data/impl/simpleBoundingBox';
 import { Subject } from 'rxjs';
 import { LoadingService } from 'services/loading.service';
-import { Model } from 'services/model/model.service';
 import { Accessor } from 'utility/accessor';
+import { MapLayer } from '../eposLeaflet';
+import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
+import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 
 
 /** The MapInteractionService class provides methods for interacting with a map, such as setting the
@@ -37,20 +39,33 @@ export class MapInteractionService {
   public readonly spatialRange = new Accessor<BoundingBox>(SimpleBoundingBox.makeUnbounded());
   public readonly mapBBox = new Accessor<BoundingBox>(SimpleBoundingBox.makeUnbounded());
   public readonly pointOnlayerTriggered = new Subject<null | Map<string, Array<number> | string>>();
+  public readonly featureOnlayerToggle = new Subject<null | Map<string, Array<number> | string | boolean>>();
+  public readonly updateStatusHiddenMarker = new Subject<boolean>();
+
+  // set functionality "toggleOnMap" disabled on table panel
+  public readonly toggleOnMapDisabled = new Subject<boolean>();
+
   public readonly overlayPane = new Subject<boolean>();
 
+  public readonly propertyHiddenOnMap: Array<string | null> = [];
+
+  public readonly bboxContext = new Accessor<string | null>(null);
+
+
   /**
-   * The constructor function takes in a model and a loading service as parameters and assigns them to
-   * private and public properties respectively.
-   * @param {Model} model - The "model" parameter is of type "Model". It is a private readonly
-   * property, which means it can only be accessed within the class and its value cannot be changed
-   * once it is assigned.
-   * @param {LoadingService} loadingService - The `loadingService` parameter is of type
-   * `LoadingService`. It is a public property that can be accessed from outside the class.
+   * The constructor function takes in a LoadingService and a LocalStoragePersister as parameters.
+   * @param {LoadingService} loadingService - The `loadingService` parameter is an instance of the
+   * `LoadingService` class, which is used to manage loading indicators or progress bars in the
+   * application. It is likely used to show loading states when data is being fetched or processed
+   * asynchronously.
+   * @param {LocalStoragePersister} localStoragePersister - The `localStoragePersister` parameter in
+   * the constructor is likely a service or class responsible for persisting data to the local storage
+   * of the browser. It is marked as `private readonly`, indicating that it is a private member of the
+   * class and cannot be accessed from outside the class. This parameter is used
    */
   constructor(
-    private readonly model: Model,
     public loadingService: LoadingService,
+    private readonly localStoragePersister: LocalStoragePersister,
   ) {
   }
 
@@ -67,7 +82,6 @@ export class MapInteractionService {
   public setBoundingBoxSpatialRangeFromControl(bbox: BoundingBox, force = false): void {
     if (bbox.isBounded() || force) {
       this.spatialRange.set(bbox);
-      this.model.dataSearchBounds.set(bbox);
     }
   }
 
@@ -128,6 +142,57 @@ export class MapInteractionService {
   }
 
   /**
+   * The function `toggleFeature` toggles the visibility of a feature on a map by adding or removing
+   * its property ID from an array.
+   * @param {string} layerId - The `layerId` parameter is a string that represents the ID of the layer
+   * on which the feature is located.
+   * @param {string | null} propertyId - The `propertyId` parameter is a string that represents the ID
+   * of a property. It can be either a valid string value or `null`.
+   * @param {boolean} show - The `show` parameter is a boolean value that determines whether to show or
+   * hide a feature on the map. If `show` is `true`, the feature will be shown on the map. If `show` is
+   * `false`, the feature will be hidden on the map.
+   * @param {boolean} imageOverlay - The `imageOverlay` parameter is a boolean value that indicates
+   * whether the feature is an image overlay or not. If `imageOverlay` is `true`, it means the feature
+   * is an image overlay. If `imageOverlay` is `false`, it means the feature is not an image overlay.
+   */
+  public toggleFeature(layerId: string, propertyId: string | null, show: boolean, imageOverlay: boolean): void {
+    const pointsOnMap = new Map();
+    pointsOnMap.set('layerId', layerId);
+    pointsOnMap.set('propertyId', propertyId);
+    pointsOnMap.set('show', show);
+    pointsOnMap.set('imageOverlay', imageOverlay);
+
+    // if show false add propertyId on propertyHiddenOnMap
+    if (show === false) {
+      this.propertyHiddenOnMap.push(propertyId);
+    } else {
+      this.propertyHiddenOnMap.forEach((_p, index) => {
+        if (_p === propertyId) { this.propertyHiddenOnMap.splice(index, 1); }
+      });
+    }
+
+    this.featureOnlayerToggle.next(pointsOnMap as null | Map<string, Array<number> | string>);
+  }
+
+  /**
+   * The function `hideMarkerOnMap` hides markers on a map for specific property IDs within a given map
+   * layer.
+   * @param {MapLayer} layer - The `layer` parameter represents the map layer on which the markers are
+   * displayed.
+   * @param propertyIdToHide - The `propertyIdToHide` parameter is an array of strings that contains
+   * the IDs of the properties on the map that need to be hidden.
+   * @param [imageOverlay=false] - The `imageOverlay` parameter is a boolean flag that indicates
+   * whether the marker to be hidden is an image overlay on the map. If `imageOverlay` is set to
+   * `true`, it means that the marker to be hidden is an image overlay; otherwise, it is set to
+   * `false`.
+   */
+  public hideMarkerOnMap(layer: MapLayer, propertyIdToHide: Array<string>, imageOverlay = false): void {
+    propertyIdToHide.forEach(p => {
+      this.toggleFeature(layer.id, p, false, imageOverlay);
+    });
+  }
+
+  /**
    * The function `centerMapOnCoordinates` takes an array of coordinates and sets the map's bounding
    * box to center on those coordinates.
    * @param coordinates - The `coordinates` parameter is an array of numbers representing the latitude
@@ -152,6 +217,29 @@ export class MapInteractionService {
    */
   public setOverlayPane(val: boolean): void {
     this.overlayPane.next(val);
+  }
+
+  public removeHiddenMarkerByLayerId(layerId: string, imageOverlay: boolean): void {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    let dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
+
+    dataSearchToggleOnMap.forEach(_v => {
+      if (_v.indexOf(layerId) !== -1) {
+        this.toggleFeature(layerId, _v, false, imageOverlay);
+      }
+    });
+
+    // remove from LS
+    dataSearchToggleOnMap = dataSearchToggleOnMap.filter(_v => _v.indexOf(layerId) === -1);
+
+    this.localStoragePersister.set(
+      LocalStorageVariables.LS_CONFIGURABLES,
+      JSON.stringify(dataSearchToggleOnMap),
+      false,
+      LocalStorageVariables.LS_TOGGLE_ON_MAP
+    );
+
+    this.updateStatusHiddenMarker.next(true);
   }
 
 }

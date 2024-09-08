@@ -27,9 +27,12 @@ import { AaaiService } from 'api/aaai.service';
 import { AAAIUser } from 'api/aaai/aaaiUser.interface';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 export interface DetailsDataIn {
   distId: string;
+  context: string;
 }
 
 @Component({
@@ -51,7 +54,7 @@ export class ContactFormDialogComponent implements OnInit {
   public formGroup: FormGroup;
   public feedback: null | Record<string, unknown> = null;
 
-  private readonly typeOptionLabel = new Map(Object.entries(
+  public readonly typeOptionLabel = new Map(Object.entries(
     {
       SERVICEPROVIDERS: 'Service',
       DATAPROVIDERS: 'Data',
@@ -67,6 +70,7 @@ export class ContactFormDialogComponent implements OnInit {
     private readonly searchService: SearchService,
     private readonly aaai: AaaiService,
     private readonly localStoragePersister: LocalStoragePersister,
+    private readonly tracker: Tracker,
   ) {
     this.isLive = liveDeploymentService.getIsLiveDeployment();
   }
@@ -96,7 +100,7 @@ export class ContactFormDialogComponent implements OnInit {
 
   public ngOnInit(): void {
 
-    void this.searchService.getDetailsById(this.data.dataIn.distId)
+    void this.searchService.getDetailsById(this.data.dataIn.distId, this.data.dataIn.context)
       .then((distributionDetails: DistributionDetails) => {
         this.detailsData = distributionDetails;
         if (this.detailsData !== undefined) {
@@ -108,10 +112,6 @@ export class ContactFormDialogComponent implements OnInit {
 
     this.createForm();
     this.show = 'form';
-  }
-
-  public getTypeOptionLabel(opt: string): string | undefined {
-    return this.typeOptionLabel.get(opt);
   }
 
   /**
@@ -156,6 +156,11 @@ export class ContactFormDialogComponent implements OnInit {
       })
       .then((res: Record<string, unknown>) => {
         this.feedback = res;
+
+        if (this.detailsData !== undefined) {
+          this.tracker.trackEvent(TrackerCategory.DISTRIBUTION, TrackerAction.CONTACT_US, this.detailsData.getDomainCode() + Tracker.TARCKER_DATA_SEPARATION + this.detailsData.getName());
+        }
+
       });
   }
 

@@ -27,7 +27,6 @@ import { Component, Input } from '@angular/core';
 })
 export class InfoToolTipComponent {
   @Input() toolTipString: string;
-  constructor() { }
 
   public setToolTipString(toolTipComment: string): void {
     this.toolTipString = toolTipComment;

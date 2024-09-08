@@ -17,7 +17,7 @@
 @import 'src/sassFramework/variables';
 
 .wrapper {
-  height: 40vh;
+  max-height: 40vh;
   overflow: auto;
 }
 
@@ -35,12 +35,13 @@ mat-radio-group {
   align-items: center;
   width: 500px;
   img {
-    width: 45%;
+    width: 60%;
   }
   .title {
-    width: 22.5em;
+    width: 50%;
   }
   .img-wrapper {
+    width: 50%;
     display: flex;
     justify-content: flex-end;
   }

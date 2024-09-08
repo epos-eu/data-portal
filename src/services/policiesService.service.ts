@@ -50,6 +50,8 @@ export class PoliciesService {
   It is initialized in the constructor based on the value stored in the local storage. */
   private consentsGivenTimestamp: moment.Moment;
 
+  private consentGivenString: string | null;
+
   /**
    * The constructor initializes the cookiesConsent property based on the value stored in localStorage
    * and parses the consentsGivenTimestamp from a string.
@@ -57,10 +59,10 @@ export class PoliciesService {
   constructor(
   ) {
     this.cookiesConsent = localStorage.getItem(PoliciesService.COOKIES_CONSENT) === 'true';
-    const consentGivenString = localStorage.getItem(PoliciesService.T_AND_C_GDPR_COOKIES_CONSENTS_GIVEN);
-    if (null != consentGivenString) {
+    this.consentGivenString = localStorage.getItem(PoliciesService.T_AND_C_GDPR_COOKIES_CONSENTS_GIVEN);
+    if (null != this.consentGivenString) {
       // format 'X' is unix timestamp
-      this.consentsGivenTimestamp = moment(consentGivenString, 'X');
+      this.consentsGivenTimestamp = this.toTimestamp(this.consentGivenString);
     }
   }
 
@@ -118,6 +120,18 @@ export class PoliciesService {
     this.consentsGivenTimestamp = timestamp;
   }
 
+  public getConsentGivenString(): string | null {
+    return this.consentGivenString;
+  }
+
+  public setConsentGivenString(consentGivenString: string | null): void {
+    if (null != consentGivenString) {
+      this.consentGivenString = consentGivenString;
+      this.consentsGivenTimestamp = this.toTimestamp(this.consentGivenString);
+      this.setConsentsTimestamp(this.consentsGivenTimestamp);
+    }
+  }
+
   /**
    * The function sets the cookie consent status and stores it in the PoliciesService.
    * @param {boolean} allow - The "allow" parameter is a boolean value that indicates whether the user
@@ -127,6 +141,16 @@ export class PoliciesService {
   public setCookieConsent(allow: boolean): void {
     PoliciesService.storeCookieConsent(allow);
     this.cookiesConsent = allow;
+  }
+
+  /**
+   * The function `toTimestamp` converts a time string to a Moment object using the 'X' format.
+   * @param {string} timeString - A string representing a time value.
+   * @returns A Moment object representing the timestamp parsed from the input timeString.
+   */
+  private toTimestamp(timeString: string): moment.Moment {
+    // format 'X' is unix timestamp
+    return moment(timeString, 'X');
   }
 
 }

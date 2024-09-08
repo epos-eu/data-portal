@@ -61,6 +61,7 @@ export class GeoJSONHelper extends JsonHelper {
    * `PopupProperty` values.
    */
   public static getTableObjectsFromProperties(
+    layerId: string,
     propertyObjArray: Array<Feature>,
   ): Map<string, Array<null | PopupProperty>> {
     const tableData = new Map<string, Array<null | PopupProperty>>();
@@ -98,10 +99,7 @@ export class GeoJSONHelper extends JsonHelper {
       }
 
       // add property id
-      propertiesToUse.push(new PopupProperty(PopupProperty.PROPERTY_ID, ['#' + rowIndex.toString() + '#']));
-
-      // add actions on row
-      propertiesToUse.push(new PopupProperty(PopupProperty.ROW_ACTIONS, ['#' + rowIndex.toString() + '#'], PopupPropertyType.ACTIONS));
+      propertiesToUse.push(new PopupProperty(PopupProperty.PROPERTY_ID, [layerId + '#' + rowIndex.toString() + '#']));
 
       // Map used to assess and handle label re-use issues.
       // This is required as the geoJson format was not designed for use in a table!

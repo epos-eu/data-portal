@@ -46,9 +46,6 @@ export class LoadingComponent implements AfterViewInit {
   private parentParent: HTMLElement;
   private originalPosition: string;
 
-  constructor(
-  ) { }
-
   ngAfterViewInit(): void {
     this.parentParent = (this.wrapper.nativeElement as HTMLElement).parentElement!.parentElement!;
     this.originalPosition = this.parentParent.style.position;

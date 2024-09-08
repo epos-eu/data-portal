@@ -80,8 +80,8 @@ export class GeoJSONMapLayer extends JsonMapLayer {
         });
     })
       .setTooltipFunction((feature: Feature<GeometryObject, Record<string, unknown>>): string => {
-        if (this.id === MapLayer.BBOX_LAYER_ID || this.id === MapLayer.BBOX_EDITABLE_LAYER_ID) {
-          return '';
+        if (this.id.includes(MapLayer.BBOX_LAYER_ID) || this.id.includes(MapLayer.BBOX_EDITABLE_LAYER_ID)) {
+          return this.name;
         } else {
           return JsonHelper.getLabelFromProperties(feature.properties, this.layerName);
         }
@@ -229,7 +229,7 @@ export class GeoJSONMapLayer extends JsonMapLayer {
 
       // add feature identifier
       if (feature.properties !== null) {
-        feature.properties[PopupProperty.PROPERTY_ID] = '#' + index.toString() + '#';
+        feature.properties[PopupProperty.PROPERTY_ID] = this.id + '#' + index.toString() + '#';
       }
     });
 

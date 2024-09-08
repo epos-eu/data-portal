@@ -22,13 +22,17 @@ import { LocalStorageVariables } from 'services/model/persisters/localStorageVar
 @Component({
   selector: 'app-base-dialog',
   templateUrl: './baseDialog.component.html',
-  styleUrls: ['./baseDialog.component.scss']
+  styleUrls: ['./baseDialog.component.scss'],
 })
 export class BaseDialogComponent {
   @Input() data: DialogData;
   @Input() title = '';
-  // Dialog that acts as a wrapper for other dialogs.
+  /**
+   * Function to be called when the dialog is closed using the close button.
+   */
+  @Input() closingFunction: () => void;
 
+  // Dialog that acts as a wrapper for other dialogs.
   constructor(
     public readonly dialog: MatDialog,
     private readonly localStoragePersister: LocalStoragePersister,
@@ -38,6 +42,11 @@ export class BaseDialogComponent {
   public closing(): void {
     if (this.dialog.getDialogById('detailsDialog') !== undefined) {
       this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, '', false, LocalStorageVariables.LS_LAST_DETAIL_DIALOG_ID);
+    }
+
+    // If a closing function has been set, call it.
+    if (this.closingFunction) {
+      this.closingFunction();
     }
   }
 }

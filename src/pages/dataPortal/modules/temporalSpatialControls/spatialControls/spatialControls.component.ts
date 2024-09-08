@@ -23,7 +23,7 @@ import { OnAttachDetach } from 'decorators/onAttachDetach.decorator';
 import { BoundingBox } from 'api/webApi/data/boundingBox.interface';
 import { SimpleBoundingBox } from 'api/webApi/data/impl/simpleBoundingBox';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
-import { Model } from 'services/model/model.service';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 @OnAttachDetach('onAttachComponents')
 @Component({
@@ -37,6 +37,7 @@ export class SpatialControlsComponent {
   @Output() clearCountriesSelect = new EventEmitter<void>();
   @Output() resetGeolocation = new EventEmitter<void>();
 
+  @Input() context: string = CONTEXT_RESOURCE;
   @Input() showApplyButton = true;
   @Input() showDrawButton = true;
   @Input() disabled = false;
@@ -55,13 +56,13 @@ export class SpatialControlsComponent {
 
   constructor(
     private mapInteractionService: MapInteractionService,
-    private readonly model: Model
   ) {
   }
 
   @Input()
   set bbox(bbox: BoundingBox) {
     if (null != bbox) {
+      bbox.setId(this.context);
       this.currentBBox = bbox;
       this.editedBBox = bbox;
       this.evaluateState();
@@ -85,14 +86,13 @@ export class SpatialControlsComponent {
    * @param [center=true] - boolean - if true, the map will be centered on the bounding box
    */
   public applyEdited(center = true): void {
+    this.editedBBox.setId(this.context);
     this.setBBox.emit(this.editedBBox);
     this.clearCountriesSelect.emit();
 
     if (center) {
       this.mapInteractionService.centerMapOnBoundingBox(this.editedBBox);
     }
-
-    this.model.dataSearchGeolocation.set(null);
 
     this.evaluateState();
   }
@@ -112,6 +112,7 @@ export class SpatialControlsComponent {
       ? this.editedBBox
       : SimpleBoundingBox.makeUnbounded();
 
+    editableBBox.setId(this.context);
     this.setEditableBBox.emit(editableBBox);
   }
 

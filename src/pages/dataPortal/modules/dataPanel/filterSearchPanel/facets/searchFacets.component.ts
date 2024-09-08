@@ -13,8 +13,8 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ElementRef } from '@angular/core';
-import { Subscription, BehaviorSubject, Subject, Observable } from 'rxjs';
+import { Component, OnInit, Input, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Subscription, BehaviorSubject, Subject } from 'rxjs';
 import { Model } from 'services/model/model.service';
 import { Facet } from 'api/webApi/data/facet.interface';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
@@ -25,12 +25,11 @@ import { TemporalRange } from 'api/webApi/data/temporalRange.interface';
 import { SimpleTemporalRange } from 'api/webApi/data/impl/simpleTemporalRange';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 import { Countries, Country } from 'assets/data/countries';
-import { FacetDisplayItem } from '../data/impl/facetDisplayItem';
-import { FacetLeafItem } from '../data/impl/facetLeafItem';
-import { FacetParentItem } from '../data/impl/facetParentItem';
+import { FacetDisplayItem } from 'api/webApi//data/impl/facetDisplayItem';
+import { FacetLeafItem } from 'api/webApi//data/impl/facetLeafItem';
+import { FacetParentItem } from 'api/webApi//data/impl/facetParentItem';
 import { DisplayItemService } from '../services/displayItem.service';
 import { BoundingBox as BBEpos } from 'utility/eposLeaflet/eposLeaflet';
-import { map, startWith } from 'rxjs/operators';
 import { MatOption } from '@angular/material/core';
 import { MatSelect } from '@angular/material/select';
 import { TemporalControlsComponent } from 'pages/dataPortal/modules/temporalSpatialControls/temporalControls/temporalControls.component';
@@ -38,7 +37,12 @@ import { TourService } from 'services/tour.service';
 import * as Driver from 'driver.js';
 import { ViewType } from 'api/webApi/data/viewType.enum';
 import { SearchService } from '../services/search.service';
-import { MapService } from 'pages/dataPortal/modules/map/map.service';
+import { DataSearchService } from 'services/dataSearch.service';
+import { Organization } from 'api/webApi/data/organization.interface';
+import { FacetLeafItemMI } from 'services/model/modelItems/facetLeafItemMI';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 /**
  * This component displays the facet panel and when a user changes their selection,
@@ -58,28 +62,16 @@ export class SearchFacetsComponent implements OnInit {
   public static readonly SELECT_TYPE_GEOLOCATION = 'geolocation';
   public static readonly SELECT_TYPE_COORDINATES = 'coordinates';
 
-  /** rxjs/BehaviorSubject for passing facet selections to the parent component. */
-  @Input() facetsSource: BehaviorSubject<Map<string, Array<string>>>;
-  /**
-* Whether the advanced search panel has changed since the last search. Used for button disabling.
-*/
-  @Input() public advSearchChanged: boolean;
   /**
    * Whether the "Clear" button should be disabled.
    */
   @Input() public clearEnabled: boolean;
 
   @Output() public applyEmit = new EventEmitter<void>();
-  @Output() public undoEmit = new EventEmitter<void>();
   @Output() public clearEmit = new EventEmitter<void>();
 
-  @ViewChild('allOrganisationsSelected') private allOrganisationsSelected: MatOption;
-  @ViewChild('organisationsSelect') private organisationsSelect: MatSelect;
   @ViewChild(TemporalControlsComponent) private temporalControls: TemporalControlsComponent;
-  @ViewChild('allTypesSelected') private allTypesSelected: MatOption;
   @ViewChild('typesSelect') private typesSelect: MatSelect;
-
-  public autoCompleteCountryFormControl = new UntypedFormControl();
 
   /** The display objects relating to all of the available facets. */
   public allDisplayItems: null | Array<FacetDisplayItem> = null;
@@ -87,14 +79,11 @@ export class SearchFacetsComponent implements OnInit {
   /** The filtered display objects only including ones that aren't hidden. */
   public shownDisplayItems: null | Array<FacetDisplayItem> = null;
 
-  public spatialRangeSource = new BehaviorSubject<BoundingBox>(SimpleBoundingBox.makeUnbounded());
   public temporalRangeSource = new BehaviorSubject<TemporalRange>(SimpleTemporalRange.makeUnbounded());
 
   public countrySource = new BehaviorSubject<Country | null>(null);
   public countries = Countries;
   public demoCountry: Country = this.countries.find((country: Country) => country.name === 'Italy') as Country;
-  public filteredCountries: Observable<Array<Country> | null>;
-
 
   /**
    * A variable for recording all of the parent facets that have been collapsed.
@@ -104,7 +93,7 @@ export class SearchFacetsComponent implements OnInit {
 
   // TODO: add comments for below variables.
   public locationRadio = new UntypedFormControl();
-  public organisations: Array<FacetLeafItem>;
+  public dataProviders: Array<Organization>;
   public types: Array<string> = [ViewType.MAP, ViewType.TABLE, ViewType.GRAPH];
   public selectedOrganisations: Array<FacetLeafItem> = [];
   public selectedTypes: Array<string> = [];
@@ -113,16 +102,15 @@ export class SearchFacetsComponent implements OnInit {
   public bBoxFromModel: BoundingBox;
   public startBBoxSource = new Subject<void>();
 
-  public numberOrganisationSelected = 0;
-  public numberTypeSelected = 0;
+  public organisationsSelected: Array<string> = [];
+  public organisationsModel: FacetLeafItemMI;
 
   public locationRadioSelectTypeCoordinates = SearchFacetsComponent.SELECT_TYPE_COORDINATES;
   public locationRadioSelectTypeGeolocation = SearchFacetsComponent.SELECT_TYPE_GEOLOCATION;
 
   public searchFacetTypeLabel = SearchService.FILTER_TYPE;
 
-  /** Constant reference for the "organisations" element of the returned facets data. */
-  private readonly FACET_ORGANISATIONS = 'organisations';
+  public numberTypeSelected = 0;
 
   /** Variable for keeping track of subscriptions, which are cleaned up by Unsubscriber */
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
@@ -133,9 +121,11 @@ export class SearchFacetsComponent implements OnInit {
     private readonly displayItemService: DisplayItemService,
     private readonly model: Model,
     private mapInteractionService: MapInteractionService,
-    private mapService: MapService,
+    private readonly dataSearchService: DataSearchService,
+    private readonly tracker: Tracker,
   ) {
     this.countrySelected = null;
+    this.organisationsModel = this.model.dataSearchFacetLeafItems;
   }
 
   /**
@@ -149,20 +139,10 @@ export class SearchFacetsComponent implements OnInit {
         this.updateDisplay();
         this.displayItemService.updateDisplayItems(this.allDisplayItems);
       }),
-      this.facetsSource.subscribe(() => {
-        this.updateDisplay();
-      }),
       this.model.dataSearchBounds.valueObs.subscribe((bbox: BoundingBox) => {
-        this.spatialRangeSource.next(bbox);
         this.bBoxFromModel = bbox;
-      }),
-      this.spatialRangeSource.subscribe((bbox: BoundingBox) => {
-
-        this.clearEnabled = bbox.isBounded();
-
-        if (bbox !== this.model.dataSearchBounds.get()) {
-          this.model.dataSearchBounds.set(bbox);
-        }
+        bbox.setId(CONTEXT_RESOURCE);
+        this.mapInteractionService.spatialRange.set(bbox);
       }),
       this.countrySource.subscribe((country: Country) => {
 
@@ -185,15 +165,26 @@ export class SearchFacetsComponent implements OnInit {
         }
       }),
       this.mapInteractionService.mapBBox.observable.subscribe((bbox: BoundingBox) => {
-        this.setBBoxFromControl(bbox);
+        if (this.mapInteractionService.bboxContext.get() === CONTEXT_RESOURCE) {
+          this.setBBoxFromControl(bbox);
+        }
       }),
       this.tourService.triggerClearFiltersObservable.subscribe(() => this.clearAll()),
 
-    );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      this.model.dataSearchTypeData.valueObs.subscribe((arrayType: Array<string> | null) => {
+        if (arrayType !== null) {
+          this.selectedTypes = arrayType;
+          this.numberTypeSelected = arrayType.length;
+        }
+      }),
 
-    this.filteredCountries = this.autoCompleteCountryFormControl.valueChanges.pipe(
-      startWith(''),
-      map(value => this._filter(value as string | Country)),
+      this.model.dataSearchFacetLeafItems.valueObs.subscribe((arrayDataProviders: Array<string>) => {
+        if (arrayDataProviders !== null) {
+          this.organisationsSelected = arrayDataProviders;
+        }
+      })
+
     );
 
     if (this.model.dataSearchGeolocation.get() !== null) {
@@ -201,89 +192,24 @@ export class SearchFacetsComponent implements OnInit {
       this.countrySelected = this.model.dataSearchGeolocation.get();
     }
 
-    setTimeout(() => {
-      if (this.model.dataSearchFacetLeafItems.get() !== null) {
-        this.restoreFacetItems();
-      }
-    }, 1500);
-
-    this.subscriptions.push(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      this.model.dataSearchTypeData.valueObs.subscribe((arrayType: Array<string> | null) => {
-        if (arrayType !== null) {
-          this.selectedTypes = arrayType;
-          this.numberTypeSelected = arrayType.length;
-        }
-      })
-    );
-
+    void this.dataSearchService.getOrganizations('dataproviders%2Cserviceproviders').then(r => {
+      this.dataProviders = r;
+    });
   }
 
-  /**
-   * Changes the selection status of a {@link FacetLeafItem} and adds/removes the facet id
-   * from the current selected list.
-   * @param eventOpen {@link boolean}.
-   */
-  public organisationsToggleSelected(eventOpen: boolean, selectedOrganisations: Array<FacetLeafItem> = []): void {
-
-    // only when close select options
-    if (!eventOpen) {
-
-      let items = selectedOrganisations.length === 0 ? this.selectedOrganisations : selectedOrganisations;
-      items = items.filter(i => i !== null);
-
-      this.numberOrganisationSelected = items.length;
-
-      const thisParentsSelectedIds = this.getSelectedFacetsForParent(this.FACET_ORGANISATIONS);
-      // remove all selected items
-      thisParentsSelectedIds.length = 0;
-
-      // add selected items to facetSource
-      items.forEach(item => {
-        if (!thisParentsSelectedIds.some(x => x === item.id)) {
-          thisParentsSelectedIds.push(item.id);
-        }
-      });
-
-      // trigger update
-      this.facetsSource.next(this.facetsSource.getValue());
-
-      this.model.dataSearchFacetLeafItems.set(thisParentsSelectedIds);
-
-      this.applyEmit.next();
-
-    }
-
+  public dataProviderSelected(listDataProvider: Array<string>): void {
+    this.model.dataSearchFacetLeafItems.set(listDataProvider);
+    this.triggerAdvancedSearch();
   }
 
 
   /**
-   * Toggle all the organisations selection.
-   * @param [deselectAllOrganisations=false] - boolean - If true, all organisations option will be deselected.
-   * @returns None
+   * The function "organisationsClear" clears the dataSearchFacetLeafItems array and triggers an
+   * advanced search.
    */
-  public organisationsToggleAllSelection(deselectAllOrganisations = false): void {
-
-    if (deselectAllOrganisations) {
-      this.allOrganisationsSelected.deselect();
-    } else {
-      if (this.allOrganisationsSelected.selected) {
-        this.organisationsSelect.options.forEach((item: MatOption) => item.select());
-      } else {
-        this.organisationsSelect.options.forEach((item: MatOption) => item.deselect());
-      }
-    }
-  }
-
-  /**
-   * When the user clicks the "Clear" button, the facet is cleared.
-   * @param {Event} event - Event - The event that triggered the function.
-   * @returns None
-   */
-  public organisationsClear(event: Event): void {
-    this.organisationsSelect.options.forEach((item: MatOption) => item.deselect());
-    this.facetsSource.next(new Map<string, Array<string>>());
-    this.organisationsToggleSelected(false);
+  public organisationsClear(): void {
+    this.model.dataSearchFacetLeafItems.set([]);
+    this.triggerAdvancedSearch();
   }
 
 
@@ -298,6 +224,10 @@ export class SearchFacetsComponent implements OnInit {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       this.model.dataSearchTypeData.set(items);
+
+      if (items.length > 0) {
+        this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.DATA_VISUALIZATION, items.join(','));
+      }
 
       this.applyEmit.next();
 
@@ -326,7 +256,7 @@ export class SearchFacetsComponent implements OnInit {
     if (country.bboxCoordinates !== undefined) {
       // eslint-disable-next-line max-len
       const bbox = new BBEpos(country.bboxCoordinates[3], country.bboxCoordinates[2], country.bboxCoordinates[1], country.bboxCoordinates[0]);
-      this.setBBoxFromControl(bbox);
+      this.setBBoxFromControl(bbox, true, false);
 
       // center map on bounding box
       this.mapInteractionService.centerMapOnBoundingBox(bbox);
@@ -335,13 +265,39 @@ export class SearchFacetsComponent implements OnInit {
 
       this.countrySource.next(country);
 
+      if (this.tourService.isActive() === false) {
+        this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.SELECT_COUNTRY, country.name);
+      }
+
     }
 
   }
 
-  public setBBoxFromControl(bbox: BoundingBox, force = false): void {
-    this.mapInteractionService.setBoundingBoxSpatialRangeFromControl(bbox, force);
+  /**
+   * The function `setBBoxFromControl` sets the bounding box based on user input, with an option to
+   * track the action.
+   * @param {BoundingBox} bbox - The `bbox` parameter is of type BoundingBox and represents the
+   * bounding box that will be used to set the spatial range for a control.
+   * @param [force=false] - The `force` parameter in the `setBBoxFromControl` method is a boolean
+   * parameter that determines whether to force the update of the bounding box even if it is not
+   * bounded. If `force` is set to `true`, the bounding box will be updated regardless of whether it is
+   * bounded or
+   * @param [track=true] - The `track` parameter in the `setBBoxFromControl` method is a boolean flag
+   * that determines whether to track an event using a tracker service. If `track` is set to `true`, an
+   * event related to the search category and drawing a bounding box action will be tracked. If `
+   */
+  public setBBoxFromControl(bbox: BoundingBox, force = false, track = true): void {
+    if (this.mapInteractionService.bboxContext.get() === CONTEXT_RESOURCE) {
+      this.mapInteractionService.setBoundingBoxSpatialRangeFromControl(bbox, force);
+      if (bbox.isBounded() || force) {
+        this.model.dataSearchBounds.set(bbox);
+        if (track) {
+          this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.DRAW_BBOX, bbox.asArrayFormat('nswe').join(Tracker.TARCKER_DATA_SEPARATION));
+        }
+      }
+    }
   }
+
   public setEditableBBoxFromControl(bbox: BoundingBox): void {
     this.mapInteractionService.editableSpatialRange.set(bbox);
   }
@@ -354,10 +310,9 @@ export class SearchFacetsComponent implements OnInit {
     this.model.dataSearchKeywords.set([]);
     this.locationRadioSelect = SearchFacetsComponent.SELECT_TYPE_COORDINATES;
     this.countrySelected = null;
-    this.autoCompleteCountryFormControl.setValue('');
-    this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true);
+    this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true, false);
     this.model.dataSearchGeolocation.set(null);
-    this.model.dataSearchFacetLeafItems.set(null);
+    this.model.dataSearchFacetLeafItems.set([]);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     this.model.dataSearchTypeData.set([]);
     this.selectedTypes = [];
@@ -366,25 +321,18 @@ export class SearchFacetsComponent implements OnInit {
 
   public resetGeolocation(): void {
     this.clearCountriesSelect();
-    this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true);
+    this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true, false);
     this.model.dataSearchGeolocation.set(null);
     this.triggerAdvancedSearch();
   }
 
   public clearCountriesSelect(): void {
     this.countrySelected = null;
-    this.autoCompleteCountryFormControl.setValue('');
+    this.model.dataSearchGeolocation.set(null);
   }
 
   public clearTemporal(): void {
     this.temporalControls.datePickerClearClick(new Event(''));
-  }
-
-  /**
-   * Called by attribute directive displayWith (mat-autocomplete)
-   */
-  public displayCountry(item: Country): string {
-    return item && item.name ? item.name : '';
   }
 
   public triggerAdvancedSearch(): void {
@@ -411,48 +359,6 @@ export class SearchFacetsComponent implements OnInit {
       // holding step - replaced by step over bounding box.
       this.tourService.addStep(tourName, holdingdiv, options, 3);
     }
-
-    this.subscriptions.push(
-      this.tourService.tourStepEnterObservable.subscribe((element: ElementRef<HTMLElement>) => {
-        if (element.nativeElement.tagName === 'path') {
-          if (null != this.mapService.getMapRef()) {
-            this.mapService.getMapRef().classList.remove('driver-fix-stacking');
-          }
-        }
-      })
-    );
-  }
-
-  /**
-   * Restores facet items after page load or tour exit/completion
-   */
-  private restoreFacetItems(): void {
-    const tempOrganisation: Array<FacetLeafItem> = [];
-    this.model.dataSearchFacetLeafItems.get()?.forEach((id: string) => {
-      const option = this.organisationsSelect.options.find(item => (item.value as FacetLeafItem)?.id === id);
-      if (option !== undefined) {
-        tempOrganisation.push(option.value as FacetLeafItem);
-      }
-    });
-    if (tempOrganisation.length > 0) {
-      this.organisationsToggleSelected(false, tempOrganisation);
-    }
-  }
-
-  /**
-   * Called to filter value on mat-autocomplete input
-   */
-  private _filter(value: string | Country): null | Array<Country> {
-
-    if (value === '') {
-      return this.countries;
-    }
-
-    const filterValue: string = value instanceof Object ? value.name : value;
-
-    return this.countries !== null ? this.countries.filter(
-      option => option.name.toLowerCase().includes(filterValue.toLowerCase())
-    ) : [];
   }
 
   /**
@@ -484,21 +390,7 @@ export class SearchFacetsComponent implements OnInit {
       });
     }
     this.allDisplayItems = currentProgressArray;
-    this.filterHiddenItems();
 
-  }
-
-  /**
-   * Retrieves the selected values for a given facet grouping (e.g. "keywords").  If the group
-   * isn't known of, it is registered with an empty array of selected values.
-   * @param id Id of the facet grouping (e.g. "keywords").
-   */
-  private getSelectedFacetsForParent(id: string): Array<string> {
-    const selectedFacetIds = this.facetsSource.getValue();
-    if (!selectedFacetIds.has(id)) {
-      selectedFacetIds.set(id, new Array<string>());
-    }
-    return selectedFacetIds.get(id)!;
   }
 
   /**
@@ -520,8 +412,6 @@ export class SearchFacetsComponent implements OnInit {
     );
     currentProgressArray.push(parentItem);
 
-    const thisParentsSelectedIds = this.getSelectedFacetsForParent(facet.getIdentifier());
-
     facet.getChildren().forEach((child: Facet<void>) => {
       let childItem: FacetDisplayItem;
       if (child.hasChildren()) {
@@ -531,7 +421,7 @@ export class SearchFacetsComponent implements OnInit {
           currentDepth + 1,
           child.getIdentifier(),
           child.getName(),
-          (thisParentsSelectedIds.find((id: string) => (id === child.getIdentifier())) != null),
+          false,
         );
         currentProgressArray.push(childItem);
       }
@@ -540,31 +430,4 @@ export class SearchFacetsComponent implements OnInit {
     return parentItem;
   }
 
-  /**
-   * Sets {@link #shownDisplayItems} by re-filtering the {@link #allDisplayItems} variable based
-   * on its collapsed/hidden status.
-   */
-  private filterHiddenItems(): void {
-
-    this.shownDisplayItems = (this.allDisplayItems == null)
-      ? null
-      : this.allDisplayItems.filter((item: FacetDisplayItem) => (!item.isHidden));
-
-    if (this.shownDisplayItems != null) {
-      this.shownDisplayItems.forEach((item: FacetDisplayItem) => {
-        if (null != item && item.id === 'organisations') {
-          const parentItem = item as FacetParentItem;
-
-          // retrive all organisations
-          if (parentItem.children.length > 0) {
-            setTimeout(() => { // Timeout needed for animation to display on list;
-              this.selectedOrganisations = (parentItem.children as Array<FacetLeafItem>).filter((org: FacetLeafItem) => org.isSelected);
-
-              this.organisations = parentItem.children as Array<FacetLeafItem>;
-            }, 0);
-          }
-        }
-      });
-    }
-  }
 }

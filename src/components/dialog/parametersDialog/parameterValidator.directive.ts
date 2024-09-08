@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Directive, ElementRef, Input } from '@angular/core';
+import { Directive, Input } from '@angular/core';
 import { AbstractControl, NG_VALIDATORS, Validator } from '@angular/forms';
 import { ParameterDefinition } from 'api/webApi/data/parameterDefinition.interface';
 import { ParameterType } from 'api/webApi/data/parameterType.enum';
@@ -26,8 +26,6 @@ import { VALIDATION_ERRORS } from './firstErrorMessage.pipe';
 })
 export class ParameterValidatorDirective implements Validator {
   @Input('appParameterValidator') param: ParameterDefinition;
-
-  constructor(el: ElementRef) { }
 
   validate(control: AbstractControl): Record<string, unknown> | null {
     const validation: Record<string, unknown> = {};

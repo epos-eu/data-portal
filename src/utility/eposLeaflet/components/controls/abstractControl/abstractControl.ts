@@ -57,15 +57,9 @@ export abstract class AbstractControl extends L.Control implements SetMapCompone
    */
   public addTo(leafletMapObj: L.Map): this {
     this.leafletMapObj = leafletMapObj;
-    this.init();
     super.addTo(leafletMapObj);
     return this;
   }
-
-  /**
-   * The "init" function is protected and does not return a value.
-   */
-  protected init(): void { }
 
   /**
    * The function creates a control container element with a specified ID, icon classes, title, and

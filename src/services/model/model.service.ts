@@ -30,6 +30,7 @@ import { CountryMI } from './modelItems/countryMI';
 import { FacetLeafItemMI } from './modelItems/facetLeafItemMI';
 import { TypeDataMI } from './modelItems/typeDataMI';
 import { LocalStorageVariables } from './persisters/localStorageVariables.enum';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 /**
  * The model service is a globally accessible single point of truth.  It is a wrapper for
@@ -51,15 +52,11 @@ import { LocalStorageVariables } from './persisters/localStorageVariables.enum';
 @Injectable()
 export class Model extends ModelBase {
 
-  // START GENERAL ITEMS
   /**
    * A {@link UserMI} for accessing the current authenticated {@link AAAIUser}.
    */
   public user = new UserMI();
 
-  // END GENERAL ITEMS
-
-  // START DATA SEARCH ITEMS
   /**
    * A {@link ModelItem} for accessing the current {@link BoundingBox} selected on
    * the data search page.
@@ -77,10 +74,22 @@ export class Model extends ModelBase {
       })
     .setPersistableOnConfigurables(true);
 
+  /** The line `public dataSearchGeolocation = new CountryMI();` is creating a public property named
+  `dataSearchGeolocation` in the `Model` class and initializing it with a new instance of the
+  `CountryMI` class. This property is used for accessing the current geolocation selected on the
+  data search page. */
   public dataSearchGeolocation = new CountryMI();
 
+  /** The line `public dataSearchFacetLeafItems = new FacetLeafItemMI();` is creating a public property
+  named `dataSearchFacetLeafItems` in the `Model` class and initializing it with a new instance of
+  the `FacetLeafItemMI` class. This property is used for accessing the current facet leaf items
+  selected on the data search page. */
   public dataSearchFacetLeafItems = new FacetLeafItemMI();
 
+  /** The line `public dataSearchTypeData = new TypeDataMI();` is creating a public property named
+  `dataSearchTypeData` in the `Model` class and initializing it with a new instance of the
+  `TypeDataMI` class. This property is used for accessing the current type data selected on the data
+  search page. */
   public dataSearchTypeData = new TypeDataMI();
 
   /**
@@ -96,6 +105,11 @@ export class Model extends ModelBase {
   public dataSearchKeywords = new KeywordsMI();
 
   /**
+  * A {@link KeywordsMI} for accessing the current {@link Array<string>} selected on
+  * the data search page.
+  */
+
+  /**
    * A {@link ModelItem} for accessing the current {@link DiscoverResponse} on
    * the data search page.
    */
@@ -107,13 +121,10 @@ export class Model extends ModelBase {
    */
   public dataSearchConfigurables = new DataSearchConfigurablesMI();
 
+  /** The line `public domainMI = new DomainMI();` is creating a public property named `domainMI` in the
+  `Model` class and initializing it with a new instance of the `DomainMI` class. This property is
+  used for accessing the current domain selected on the data search page. */
   public domainMI = new DomainMI();
-
-  // END DATA SEARCH ITEMS
-
-  // START INFRASTRUCTURE SEARCH ITEMS
-  // The infrastructure page is currently not available, so although referenced, these
-  // variables are not really used.
 
   /**
    * An array of four numbers representing the (n,e,s,w) bounds of the bounding box used
@@ -126,7 +137,6 @@ export class Model extends ModelBase {
    * infrastructure search page search.
    */
   public infrastructureSearchSelectedItem = ModelItem.makeNullable<ItemSummary>();
-  // END INFRASTRUCTURE SEARCH ITEMS
 
   /**
    * Initialises the object and sets the persistance to use a {@link LocalStoragePersister} as the
@@ -141,8 +151,18 @@ export class Model extends ModelBase {
   }
 }
 
+/** The `modelContextInterface` interface defines the structure of an object that represents a variable
+and its corresponding context in the `Model` class. It has two properties: */
 export interface modelContextInterface {
+  /** The line `variable: string;` is defining a property named `variable` in the
+  `modelContextInterface` interface. This property is of type `string`, which means it can hold a
+  string value. */
   variable: string;
+
+  /** The `context: string;` property in the `modelContextInterface` interface is defining a property
+  named `context` that holds a string value. This property is used to provide additional context or
+  information about the variable defined in the `variable` property. It can be used to describe the
+  purpose or usage of the variable in the `Model` class. */
   context: string;
 }
 
@@ -152,35 +172,35 @@ class and their corresponding context. Each object in the array has two properti
 export const modelContext: modelContextInterface[] = [
   {
     variable: LocalStorageVariables.LS_DATA_SEARCH_BOUNDS,
-    context: ''
+    context: CONTEXT_RESOURCE
   },
   {
-    variable: 'dataSearchGeolocation',
-    context: ''
+    variable: LocalStorageVariables.LS_DATA_SEARCH_GEOLOCATION,
+    context: CONTEXT_RESOURCE
   },
   {
     variable: LocalStorageVariables.LS_DATA_SEARCH_CONFIGURABLES,
-    context: ''
+    context: CONTEXT_RESOURCE
   },
   {
     variable: LocalStorageVariables.LS_DATA_SEARCH_TEMPORAL_RANGE,
-    context: ''
+    context: CONTEXT_RESOURCE
   },
   {
-    variable: 'dataDiscoverResponse',
-    context: ''
+    variable: LocalStorageVariables.LS_DATA_DISCOVER_RESPONSE,
+    context: CONTEXT_RESOURCE
   },
   {
     variable: LocalStorageVariables.LS_DATA_SEARCH_FACET_LEAF_ITEMS,
-    context: ''
+    context: CONTEXT_RESOURCE
   },
   {
     variable: LocalStorageVariables.LS_DATA_SEARCH_TYPE_DATA,
-    context: ''
+    context: CONTEXT_RESOURCE
   },
   {
-    variable: 'domainMI',
-    context: ''
-  }
+    variable: LocalStorageVariables.LS_DOMAIN,
+    context: CONTEXT_RESOURCE
+  },
 ];
 

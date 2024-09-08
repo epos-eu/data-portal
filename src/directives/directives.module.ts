@@ -17,7 +17,9 @@ import { NgModule } from '@angular/core';
 import { ShowDisclaimerDirective } from './showDisclaimer.directive';
 import { AppRouterOutletDirective } from './appRouterOutlet.directive';
 import { LinkIfUrlDirective } from './linkIfUrl.directive';
-import { TourStageDirective } from './tour-stage-directive';
+import { TourStageDirective } from './tourStage.directive';
+import { MatBadgeFaIconDirective } from './matBadgeFaIcon.directive';
+import { ResultPanelFluidHeightDirective } from './resultPanelFluidHeight.directive';
 
 /**
  * Module for registering new directives that may be used anywhere in the app.
@@ -28,6 +30,8 @@ import { TourStageDirective } from './tour-stage-directive';
     AppRouterOutletDirective,
     LinkIfUrlDirective,
     TourStageDirective,
+    ResultPanelFluidHeightDirective,
+    MatBadgeFaIconDirective,
   ],
   imports: [
   ],
@@ -37,6 +41,8 @@ import { TourStageDirective } from './tour-stage-directive';
     AppRouterOutletDirective,
     LinkIfUrlDirective,
     TourStageDirective,
+    ResultPanelFluidHeightDirective,
+    MatBadgeFaIconDirective,
   ],
   bootstrap: []
 })

@@ -18,7 +18,7 @@ import { LoggingService } from 'services/logging.service';
 import * as HttpStatus from 'http-status-codes'; // https://www.npmjs.com/package/http-status-codes
 import { NotificationService } from 'services/notification.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { MatDialog, MatDialogRef, MatDialogState } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ErrorDialogComponent } from 'components/dialog/errorDialog/errorDialog.component';
 
 /**
@@ -92,9 +92,6 @@ export class ErrorHandlerImpl implements ErrorHandler {
             break;
           }
           default:
-            if (this.dialogRef.getState() === MatDialogState.OPEN) {
-              this.dialogRef.close();
-            }
             break;
         }
       }

@@ -29,7 +29,7 @@ export interface DistributionDetails extends DistributionSummary {
 
   getEndPoint(): string;
 
-  getType(): DistributionType;
+  getType(): DistributionType | string;
   getTypeString(): string;
   getTemporalRange(): TemporalRange;
   getSpatialRange(): SpatialRange;
@@ -52,8 +52,9 @@ export interface DistributionDetails extends DistributionSummary {
   getFrequencyUpdate(): string;
   getQualityAssurance(): string;
   getLevel(): Array<DistributionLevel>;
-  getDomainCode(): string;
+  getDomainCode(): string | undefined;
   getDomain(): string | undefined;
   getCategories(): DistributionCategories | null;
   getAvailableContactPoints(): Array<DistributionContactPoint>;
+  getPage(): Array<string>;
 }

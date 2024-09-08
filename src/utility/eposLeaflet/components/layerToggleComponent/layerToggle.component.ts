@@ -86,13 +86,20 @@ export class LayerToggleComponent implements OnInit {
     this.layersService.layerChange(this.layer);
 
     // if bbox layer
-    if (this.layer.id === MapLayer.BBOX_LAYER_ID) {
+    if (this.layer.id.includes(MapLayer.BBOX_LAYER_ID)) {
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const objStyle = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_BBOX_STYLE) as string);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      objStyle.enable = event.checked;
-      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(objStyle), false, LocalStorageVariables.LS_BBOX_STYLE);
+      void this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_BBOX_STYLE).then((styleMapString: string) => {
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        const styleMap = new Map(Object.entries(JSON.parse(styleMapString)));
+
+        const objStyle = styleMap.get(this.layer.id) as Record<string, unknown>;
+        objStyle.enable = event.checked;
+        styleMap.set(this.layer.id, objStyle);
+
+        this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(Object.fromEntries(styleMap)), false, LocalStorageVariables.LS_BBOX_STYLE);
+
+      });
     }
 
   }

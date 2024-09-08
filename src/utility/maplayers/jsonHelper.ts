@@ -77,7 +77,7 @@ export class JsonHelper {
     return label ?? defaultLabel;
   }
 
-  public static createExternalLinksAsHTMLProperties(links: Array<Record<string, unknown>>, onlyUrl = false): Array<PopupProperty> {
+  public static createExternalLinksAsHTMLProperties(links: Array<Record<string, unknown>>, onlyUrl = false, downloadsDialog = false): Array<PopupProperty> {
     const linkPropertiesToUse: Array<PopupProperty> = [];
 
     // "href": "https://www.etc.etc",
@@ -87,6 +87,7 @@ export class JsonHelper {
     links.forEach((link: Record<string, unknown>) => {
       const href = ObjectHelper.getObjectValue<string>(link, 'href');
       const label = ObjectHelper.getObjectValue<string>(link, 'label');
+      const group = ObjectHelper.getObjectValue<string>(link, 'group');
       const type = ObjectHelper.getObjectValue<string>(link, 'type');
 
       // optional
@@ -96,10 +97,10 @@ export class JsonHelper {
 
         if (authenticatedDownload) {
           linkPropertiesToUse.push(
-            new PopupProperty('Download', [href!.trim()], PopupPropertyType.AUTHENTICATED_DOWNLOAD, label!)
+            new PopupProperty(group === null? 'Download' : group!, [href!.trim()], PopupPropertyType.AUTHENTICATED_DOWNLOAD, label!)
           );
         } else { // normal link (could be a non-authenticated download, might just be a link)
-          linkPropertiesToUse.push(new PopupProperty(label!, [onlyUrl ? href! : this.makeLink(href!, label!)]).setFormatType(type ?? ''));
+          linkPropertiesToUse.push(new PopupProperty(group === null || downloadsDialog ? label! : group!, [onlyUrl ? href! : this.makeLink(href!, label!)]).setFormatType(type ?? ''));
         }
       }
     });
@@ -210,7 +211,12 @@ export class JsonHelper {
 
       response += '>';
 
-      response += `<th>${property.name}</th>`;
+      if (property.type === PopupPropertyType.IMAGE) {
+        response += `<th>${property.description}</th>`;
+      } else {
+        response += `<th>${property.name}</th>`;
+      }
+
       response += this.popupPropertyValueToTableCell(property);
       response += '</tr>';
     });
@@ -230,12 +236,31 @@ export class JsonHelper {
     const mapKeys = ObjectHelper.getObjectArray<string>(propertiesObj, keysObjectId, false);
 
     // if mapKeys defined add PROPERTY_ID key
-    if (propertiesObj[PopupProperty.PROPERTY_ID] !== undefined && mapKeys.length > 0) {
+    if (propertiesObj[PopupProperty.PROPERTY_ID] !== undefined && mapKeys.length > 0 && !mapKeys.includes(PopupProperty.PROPERTY_ID)) {
       mapKeys.push(PopupProperty.PROPERTY_ID);
     }
 
-    const propertiesToUse: Array<PopupProperty> = [];
+    // add eventually IMAGES key if there's an image in external link
+    const listImages: Array<PopupProperty> = [];
+    if (propertiesObj[this.EXTERNAL_LINK_ATTR] !== undefined) {
+      const listImagesTmp = this.createExternalLinksAsHTMLProperties(propertiesObj[this.EXTERNAL_LINK_ATTR] as Array<Record<string, unknown>>, true);
 
+      listImagesTmp.forEach((imageTmp: PopupProperty) => {
+        if (imageTmp.formatType === 'image/jpeg') {
+          imageTmp.setType(PopupPropertyType.IMAGE)
+            .setDescription(imageTmp.name);
+
+          imageTmp.name = PopupProperty.IMAGES;
+          listImages.push(imageTmp);
+
+          if (mapKeys.length > 0 && !mapKeys.includes(PopupProperty.IMAGES)) {
+            mapKeys.unshift(PopupProperty.IMAGES);
+          }
+        }
+      });
+    }
+
+    const propertiesToUse: Array<PopupProperty> = [];
 
     if (ObjectHelper.isValidArray(mapKeys)) {
       // There are specific property keys to use for the map popup
@@ -244,7 +269,12 @@ export class JsonHelper {
           const value = ObjectHelper.getObjectValue(propertiesObj, key, false);
 
           if (null == value) {
-            // do nothing (this stops additional nesting)
+
+            // if there are images
+            if (key === PopupProperty.IMAGES && listImages.length > 0) {
+              propertiesToUse.push(...listImages);
+            }
+
           } else if (key.startsWith(this.EXTERNAL_LINK_ATTR)) { // Special case for links
             const linkProperties = this.createExternalLinksAsHTMLProperties(value as Array<Record<string, unknown>>);
             propertiesToUse.push(...linkProperties);
@@ -293,6 +323,9 @@ export class JsonHelper {
       switch (property.type) {
         case (PopupPropertyType.AUTHENTICATED_DOWNLOAD):
           return AuthenticatedLink.getElementHTMLFromPopupProperty(property);
+
+        case (PopupPropertyType.IMAGE):
+          return '<img class="openGallery" data-caption="' + property.description + '" src="' + property.values[0] + '" style="width: 80%; border: 2px solid grey; cursor: pointer;" title="Open images slideshow"></img>';
         default: return String(val);
       }
     };

@@ -25,6 +25,7 @@ import { SimpleFacet } from 'api/webApi/data/impl/simpleFacet';
 import { SimpleFacetModel } from 'api/webApi/data/impl/simpleFacetModel';
 import { JSONDistributionFactory } from 'api/webApi/data/impl/jsonDistributionFactory';
 import { Optional } from 'api/webApi/utility/optional';
+import { Domain } from 'api/webApi/data/domain.interface';
 
 /**
  * Responsible for triggering calls to the webApi module "discover" endpoint.
@@ -36,32 +37,66 @@ import { Optional } from 'api/webApi/utility/optional';
 export class DevDiscoverApi implements DiscoverApi {
 
   constructor(
-    private readonly baseUrl: BaseUrl,
-    private readonly rest: Rest,
+    protected readonly baseUrl: BaseUrl,
+    protected readonly rest: Rest,
   ) { }
 
+  getDomains(context: string): Promise<null | Array<Domain>> {
+    const builder: UrlBuilder = this.baseUrl.urlBuilder();
+
+    builder.addPathElements(context);
+    builder.addPathElements('search');
+
+    const url = builder.build();
+
+    return this.rest.get(url)
+      .then((json: Record<string, unknown>) => {
+
+        const response = this.parseJSONDomains(json);
+
+        return response.orNull();
+      });
+  }
+
+  getFilters(context: string): Promise<null | DiscoverResponse> {
+    const builder: UrlBuilder = this.baseUrl.urlBuilder();
+
+    builder.addPathElements(context);
+    builder.addPathElements('search');
+
+    const url = builder.build();
+
+    return this.fetchAndParse(url);
+  }
+
   discover(request: DiscoverRequest): Promise<null | DiscoverResponse> {
-    const bulider: UrlBuilder = this.baseUrl.urlBuilder();
-    bulider.addPathElements('search');
+    const builder: UrlBuilder = this.baseUrl.urlBuilder();
+
+    builder.addPathElements(request.getContext() ?? '');
+
+    builder.addPathElements('search');
 
     // QUERY
     const query = request.getQuery();
     if (query != null) {
-      bulider.addParameter('q', query);
+      builder.addParameter('q', query);
     }
 
-    const momentFormat = 'YYYY-MM-DDThh:mm:ssZ';
+    if (request.hasTemporalRange()) {
+      const momentFormat = 'YYYY-MM-DDThh:mm:ssZ';
 
-    // START
-    const start = request.getStartDate();
-    if (start != null) {
-      bulider.addParameter('startDate', start.format(momentFormat));
-    }
+      // START
+      const start = request.getStartDate();
+      if (start != null) {
+        builder.addParameter('startDate', start.format(momentFormat));
+      }
 
-    // END
-    const end = request.getEndDate();
-    if (end != null) {
-      bulider.addParameter('endDate', end.format(momentFormat));
+      // END
+      const end = request.getEndDate();
+      if (end != null) {
+        builder.addParameter('endDate', end.format(momentFormat));
+      }
+
     }
 
     // BBOX
@@ -71,31 +106,30 @@ export class DevDiscoverApi implements DiscoverApi {
       // (north,east,south,west)
       // const value: string = '' + bbox[0] + ',' + bbox[1] + ',' + bbox[2] + ',' + bbox[3] + '';
       const value: string = bbox.asArray().join(',');
-      bulider.addParameter('bbox', value);
+      builder.addParameter('bbox', value);
     }
 
     // keywords
     const keywords = request.getKeywordIds();
     if (keywords != null && keywords.length > 0) {
       const value: string = keywords.join(',');
-      bulider.addParameter('keywords', value);
+      builder.addParameter('keywords', value);
     }
 
     // organisations
     const organisations = request.getOrganisationIds();
     if (organisations != null && organisations.length > 0) {
       const value: string = organisations.join(',');
-      bulider.addParameter('organisations', value);
+      builder.addParameter('organisations', value);
     }
 
-
     // the search URL
-    const url = bulider.build();
+    const url = builder.build();
 
     return this.fetchAndParse(url);
   }
 
-  private fetchAndParse(url: string): Promise<null | DiscoverResponse> {
+  protected fetchAndParse(url: string): Promise<null | DiscoverResponse> {
 
     return this.rest.get(url)
       .then((json: Record<string, unknown>) => {
@@ -104,6 +138,35 @@ export class DevDiscoverApi implements DiscoverApi {
 
         return response.orNull();
       });
+  }
+
+  private parseJSONDomains(json: Record<string, unknown>): Optional<null | Array<Domain>> {
+
+    const domainsAppendTo: Array<Domain> = [];
+
+    if (json == null) {
+      return Optional.empty();
+    }
+
+    const resultsRoot = ObjectAccessUtility.getObjectValue<Record<string, unknown>>(json, 'results', true);
+    if (resultsRoot != null) {
+
+      const childrenJSONArray = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(resultsRoot, 'children', false);
+
+      childrenJSONArray.forEach(domainJson => {
+        domainsAppendTo.push({
+          code: ObjectAccessUtility.getObjectValueString(domainJson, 'code', false),
+          color: ObjectAccessUtility.getObjectValueString(domainJson, 'color', false),
+          id: ObjectAccessUtility.getObjectValueString(domainJson, 'id', false),
+          imgUrl: ObjectAccessUtility.getObjectValueString(domainJson, 'imgUrl', false),
+          linkUrl: ObjectAccessUtility.getObjectValueString(domainJson, 'linkUrl', false),
+          title: ObjectAccessUtility.getObjectValueString(domainJson, 'name', false),
+        });
+
+      });
+    }
+
+    return Optional.ofNullable(domainsAppendTo);
   }
 
   private parseJSON(json: Record<string, unknown>): Optional<null | DiscoverResponse> {
@@ -224,9 +287,6 @@ export class DevDiscoverApi implements DiscoverApi {
 
     // DISTRIBUTIONS
     this.appendToByName(resultJSON, distributionsAppendTo, 'distributions');
-
-    // FACILITIES
-    this.appendToByName(resultJSON, distributionsAppendTo, 'facilities');
 
     // If there is no facet name or id - abort
     if (facetName == null || facetID == null) {

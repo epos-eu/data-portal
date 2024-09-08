@@ -38,9 +38,19 @@ import { SimpleDataProvider } from './simpleDataProvider';
 import { DataProvider } from '../dataProvider.interface';
 import { DistributionContactPoint } from '../distributionContactPoint.interface';
 import { DistributionCategories } from '../distributionCategories.interface';
+import { Organization } from '../organization.interface';
+import { SimpleOrganization } from './simpleOrganization';
 
 export class JSONDistributionFactory {
 
+  /**
+   * The function `jsonToOriginalUrl` takes a JSON object and extracts the 'url' property value,
+   * returning it as a nullable string.
+   * @param json - The `json` parameter is a JavaScript object (Record<string, unknown>) that contains
+   * data in JSON format.
+   * @returns The function `jsonToOriginalUrl` is returning an Optional containing either `null` or a
+   * string value extracted from the `url` property of the input JSON object.
+   */
   public static jsonToOriginalUrl(json: Record<string, unknown>): Optional<null | string> {
 
     const url = ObjectAccessUtility.getObjectValueString(json, 'url', true, null);
@@ -48,6 +58,15 @@ export class JSONDistributionFactory {
     return Optional.ofNullable(url);
   }
 
+  /**
+   * This function converts a JSON object into DistributionDetails if all required fields are valid,
+   * otherwise returns null.
+   * @param distributionObj - The `jsonToDistributionDetails` function takes a JSON object
+   * `distributionObj` as input and processes it to create a `DistributionDetails` object.
+   * @returns The `jsonToDistributionDetails` function returns an Optional containing either a
+   * `DistributionDetails` object if all input validations pass, or `null` if any of the validations
+   * fail.
+   */
   public static jsonToDistributionDetails(distributionObj: Record<string, unknown>): Optional<null | DistributionDetails> {
 
     // read the summary part first
@@ -63,11 +82,16 @@ export class JSONDistributionFactory {
       const webServiceProvider = JSONDistributionFactory.jsonToDataProvider(distributionObj, 'serviceProvider');
       const webServiceName = ObjectAccessUtility.getObjectValueString(distributionObj, 'serviceName', false);
       const webServiceEndpoint = ObjectAccessUtility.getObjectValueString(distributionObj, 'serviceEndpoint', false);
-      const description = ObjectAccessUtility.getObjectValueString(distributionObj, 'description', true);
+      const description = ObjectAccessUtility.getObjectValueString(distributionObj, 'description', false);
       const license = ObjectAccessUtility.getObjectValueString(distributionObj, 'license', false, '');
-      const endpoint = ObjectAccessUtility.getObjectValueString(distributionObj, 'endpoint', true);
-      const typeString = ObjectAccessUtility.getObjectValueString(distributionObj, 'type', true);
-      const typeEnum = DistributionType[typeString.toUpperCase()] as DistributionType;
+      const endpoint = ObjectAccessUtility.getObjectValueString(distributionObj, 'endpoint', false);
+      const typeString = ObjectAccessUtility.getObjectValueString(distributionObj, 'type', false);
+
+      let typeEnum: DistributionType | string = DistributionType[typeString.toUpperCase()] as DistributionType;
+      if (typeEnum === undefined) {
+        typeEnum = typeString;
+      }
+
       const dataProvider = JSONDistributionFactory.jsonToArrayDataProvider(distributionObj, 'dataProvider');
       // DDSS ID for internal usage/check during implementation phase
       const internalID = ObjectAccessUtility.getObjectArray<string>(distributionObj, 'internalID', false);
@@ -92,6 +116,8 @@ export class JSONDistributionFactory {
       const domainCode = '';
 
       const categories = ObjectAccessUtility.getObjectValue<DistributionCategories>(distributionObj, 'categories');
+
+      const page = ObjectAccessUtility.getObjectArray<string>(distributionObj, 'page', false);
 
       // available contact point
       const availableContactPoints = ObjectAccessUtility.getObjectArray<DistributionContactPoint>(
@@ -136,7 +162,8 @@ export class JSONDistributionFactory {
           level,
           domainCode,
           availableContactPoints,
-          categories
+          categories,
+          page,
         );
       } else {
         return null;
@@ -144,21 +171,40 @@ export class JSONDistributionFactory {
     });
   }
 
+  /**
+   * The function `jsonToDataProvider` parses a JSON object to create a DataProvider object with
+   * specific fields.
+   * @param jsonWithParams - The `jsonWithParams` parameter is expected to be an object containing
+   * key-value pairs where the keys are strings and the values are of type unknown. This object likely
+   * represents some JSON data with parameters that will be used to create a DataProvider object.
+   * @param {string} value - The `value` parameter in the `jsonToDataProvider` function is a string
+   * that specifies the path to the data provider object within the JSON object `jsonWithParams`. This
+   * path is used to access the specific data provider object that needs to be converted into a
+   * `DataProvider` object.
+   * @returns The `jsonToDataProvider` function returns a `DataProvider` object if the `providerObject`
+   * is not null and all required fields (`dataProviderLegalName`, `dataProviderUrl`, and
+   * `relatedDataServiceProvider`) are present in the `providerObject`. If any of the required fields
+   * are missing or if the `providerObject` itself is null, the function returns null.
+   */
   public static jsonToDataProvider(jsonWithParams: Record<string, unknown>, value: string): DataProvider | null {
-    const providerObject = ObjectAccessUtility.getObjectValue<Record<string, unknown>>(jsonWithParams, value, true);
+    const providerObject = ObjectAccessUtility.getObjectValue<Record<string, unknown>>(jsonWithParams, value, false);
 
     if (providerObject != null) {
       // check required fields
       const dataProviderLegalName = ObjectAccessUtility.getObjectValueString(providerObject, 'dataProviderLegalName', false, null);
       const dataProviderUrl = ObjectAccessUtility.getObjectValueString(providerObject, 'dataProviderUrl', false, null);
       const relatedDataProvider = ObjectAccessUtility.getObjectArray<DataProvider>(providerObject, 'relatedDataServiceProvider', false);
+      const dataProviderId = ObjectAccessUtility.getObjectValueString(providerObject, 'uid', false, null);
+      const country = ObjectAccessUtility.getObjectValueString(providerObject, 'country', false, null);
 
       // Create parameter
 
       const provider = SimpleDataProvider.make(
         dataProviderLegalName,
         dataProviderUrl,
-        relatedDataProvider
+        relatedDataProvider,
+        dataProviderId,
+        country
       );
 
       return provider;
@@ -168,9 +214,21 @@ export class JSONDistributionFactory {
 
   }
 
+  /**
+   * The function `jsonToArrayDataProvider` converts JSON data into an array of DataProvider objects by
+   * extracting specific values and creating instances of DataProvider.
+   * @param jsonWithParams - The `jsonWithParams` parameter is expected to be a JSON object containing
+   * parameters for data providers. This function takes this JSON object and extracts data provider
+   * information from it to create an array of `DataProvider` objects.
+   * @param {string} value - The `value` parameter in the `jsonToArrayDataProvider` function is used to
+   * specify the key in the `jsonWithParams` object from which to extract an array of objects. This
+   * array of objects will then be processed to create an array of `DataProvider` objects.
+   * @returns An array of DataProvider objects is being returned from the `jsonToArrayDataProvider`
+   * function.
+   */
   public static jsonToArrayDataProvider(jsonWithParams: Record<string, unknown>, value: string): Array<DataProvider> {
     const providers = new Array<DataProvider>();
-    const providerObjects = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(jsonWithParams, value, true);
+    const providerObjects = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(jsonWithParams, value, false);
 
     if (providerObjects != null) {
       providerObjects.forEach((providerObj: Record<string, unknown>) => {
@@ -178,6 +236,8 @@ export class JSONDistributionFactory {
         const dataProviderLegalName = ObjectAccessUtility.getObjectValueString(providerObj, 'dataProviderLegalName', false, null);
         const dataProviderUrl = ObjectAccessUtility.getObjectValueString(providerObj, 'dataProviderUrl', false, null);
         const relatedDataProvider = ObjectAccessUtility.getObjectArray<DataProvider>(providerObj, 'relatedDataServiceProvider', false);
+        const dataProviderId = ObjectAccessUtility.getObjectValueString(providerObj, 'uid', false, null);
+        const country = ObjectAccessUtility.getObjectValueString(providerObj, 'country', false, null);
         if ((dataProviderLegalName == null)
         ) {
           console.log('Data Provider no name', providerObj);
@@ -187,7 +247,9 @@ export class JSONDistributionFactory {
           const createdParam = SimpleDataProvider.make(
             dataProviderLegalName,
             dataProviderUrl,
-            relatedDataProvider
+            relatedDataProvider,
+            dataProviderId,
+            country
           );
 
           providers.push(createdParam);
@@ -198,17 +260,30 @@ export class JSONDistributionFactory {
     return providers;
   }
 
+  /**
+   * The function `jsonToParameters` parses a JSON object containing parameter definitions and returns
+   * a list of ParameterDefinitions.
+   * @param jsonWithParams - The `jsonWithParams` parameter is expected to be a JSON object containing
+   * parameters for creating ParameterDefinitions. This function will extract information from this
+   * JSON object to create ParameterDefinition objects.
+   * @param {string} value - The function `jsonToParameters` takes in a JSON object `jsonWithParams`
+   * and a string `value` as parameters. The function processes the JSON object to extract parameter
+   * definitions based on the provided value.
+   * @returns The function `jsonToParameters` returns an object of type `ParameterDefinitions`, which
+   * is created using the parameters extracted from the provided JSON object `jsonWithParams` based on
+   * the specified `value`.
+   */
   public static jsonToParameters(jsonWithParams: Record<string, unknown>, value: string): ParameterDefinitions {
     const params = new Array<ParameterDefinition>();
-    const parameterObjects = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(jsonWithParams, value, true);
+    const parameterObjects = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(jsonWithParams, value, false);
 
     if (parameterObjects != null) {
       parameterObjects.forEach((paramObj: Record<string, unknown>) => {
         // check required fields
-        const paramName = ObjectAccessUtility.getObjectValueString(paramObj, 'name', true, null);
-        const paramType = ObjectAccessUtility.getObjectValueString(paramObj, 'type', true, null);
-        const paramLabel = ObjectAccessUtility.getObjectValueString(paramObj, 'label', true, null);
-        const paramRequired = ObjectAccessUtility.getObjectValueBoolean(paramObj, 'required', true, true);
+        const paramName = ObjectAccessUtility.getObjectValueString(paramObj, 'name', false, null);
+        const paramType = ObjectAccessUtility.getObjectValueString(paramObj, 'type', false, null);
+        const paramLabel = ObjectAccessUtility.getObjectValueString(paramObj, 'label', false, null);
+        const paramRequired = ObjectAccessUtility.getObjectValueBoolean(paramObj, 'required', false, true);
         const paramTypeEnum = ParameterType[paramType.toUpperCase()] as ParameterType || ParameterType.UNKNOWN;
         const paramProperty = ObjectAccessUtility.getObjectValueString(paramObj, 'property', false, null);
         const paramPropertyEnum = ParameterProperty.fromProperty(paramProperty);
@@ -248,6 +323,22 @@ export class JSONDistributionFactory {
     return SimpleParameterDefinitions.make(params);
   }
 
+  /**
+   * The function `jsonToSpatialRange` converts a JSON object containing spatial data into a
+   * SpatialRange object, handling different spatial shapes like points and polygons.
+   * @param jsonWithSpatial - The `jsonWithSpatial` parameter is expected to be a JSON object that
+   * contains spatial data in a specific format. The function `jsonToSpatialRange` takes this JSON
+   * object and extracts spatial information from it to create a `SpatialRange` object.
+   * @param {string} value - The `value` parameter in the `jsonToSpatialRange` function is used to
+   * specify the key in the JSON object `jsonWithSpatial` from which the spatial data will be
+   * extracted. This key is used to access the spatial information within the JSON object.
+   * @returns The function `jsonToSpatialRange` returns an Optional<SpatialRange> object. The returned
+   * value can be one of the following:
+   * 1. If the input JSON does not contain spatial information (spatial == null), it returns an
+   * Optional<SpatialRange> with an unknown SimpleSpatialRange.
+   * 2. If the spatial information represents a point with valid x and y coordinates, it returns an
+   * Optional<S
+   */
   public static jsonToSpatialRange(jsonWithSpatial: Record<string, unknown>, value: string): Optional<SpatialRange> {
 
     // SPATIAL {}
@@ -347,11 +438,23 @@ export class JSONDistributionFactory {
   }
 
 
+  /**
+   * The function `jsonToTemporalRange` converts a JSON object containing date information into a
+   * TemporalRange object.
+   * @param jsonWithDate - The `jsonWithDate` parameter is a JSON object that contains date information
+   * in a specific format. The function `jsonToTemporalRange` takes this JSON object and extracts
+   * temporal coverage information from it based on the provided `value`.
+   * @param {string} value - The `value` parameter in the `jsonToTemporalRange` function is used to
+   * specify the key in the `jsonWithDate` object from which the temporal coverage information will be
+   * extracted. This key is used to access the start date and end date values within the
+   * `temporalCoverage` object.
+   * @returns The function `jsonToTemporalRange` returns an Optional<TemporalRange> object.
+   */
   public static jsonToDistributionSummary(distJson: Record<string, unknown>): Optional<null | DistributionSummary> {
 
     // Extract from JSON
-    const title = ObjectAccessUtility.getObjectValueString(distJson, 'title', true);
-    const id = ObjectAccessUtility.getObjectValueString(distJson, 'id', true);
+    const title = ObjectAccessUtility.getObjectValueString(distJson, 'title', false);
+    const id = ObjectAccessUtility.getObjectValueString(distJson, 'id', false);
     const availableFormatsJSONArray = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(distJson, 'availableFormats', false);
     const status = ObjectAccessUtility.getObjectValueNumber(distJson, 'status', false);
     const statusTimestamp = ObjectAccessUtility.getObjectValueString(distJson, 'statusTimestamp', false);
@@ -378,19 +481,24 @@ export class JSONDistributionFactory {
     }
   }
 
+
   /**
-   * Create DistributionFormat, null if fails
-   * @param formatJson
-   * @param formatsAppendTo
+   * The function `jsonToDistributionFormat` converts a JSON object into a DistributionFormat object if
+   * certain string properties are valid.
+   * @param formatJson - The `jsonToDistributionFormat` function takes in a JSON object `formatJson` as
+   * input. This JSON object is expected to have the following properties:
+   * @returns The `jsonToDistributionFormat` function is returning an `Optional` containing either a
+   * `DistributionFormat` object created using the provided data from the `formatJson` parameter, or an
+   * empty `Optional` if any of the required fields are missing or invalid.
    */
   public static jsonToDistributionFormat(formatJson: Record<string, unknown>): Optional<null | DistributionFormat> {
 
     // Extract from JSON
-    const label = ObjectAccessUtility.getObjectValueString(formatJson, 'label', true);
-    const format = ObjectAccessUtility.getObjectValueString(formatJson, 'format', true);
-    const originalFormat = ObjectAccessUtility.getObjectValueString(formatJson, 'originalFormat', true);
-    const type = ObjectAccessUtility.getObjectValueString(formatJson, 'type', true);
-    const href = ObjectAccessUtility.getObjectValueString(formatJson, 'href', true);
+    const label = ObjectAccessUtility.getObjectValueString(formatJson, 'label', false);
+    const format = ObjectAccessUtility.getObjectValueString(formatJson, 'format', false);
+    const originalFormat = ObjectAccessUtility.getObjectValueString(formatJson, 'originalFormat', false);
+    const type = ObjectAccessUtility.getObjectValueString(formatJson, 'type', false);
+    const href = ObjectAccessUtility.getObjectValueString(formatJson, 'href', false);
 
 
     if (Confirm.isValidString(label) && //
@@ -405,4 +513,69 @@ export class JSONDistributionFactory {
       return Optional.empty();
     }
   }
-}
+
+  /**
+   * The function `jsonToOrganizations` takes in a JSON object and converts it into an array of
+   * `Organization` objects, checking for required fields and logging any missing fields.
+   * @param {unknown} json - The `json` parameter is of type `unknown`, which means it can be any type
+   * of value. In this case, it is expected to be a JSON object or array.
+   * @returns either `null` or an array of `Organization` objects.
+   */
+  public static jsonToOrganizations(json: unknown): null | Array<Organization> {
+
+    // Extract from JSON
+    const organizations = new Array<Organization>();
+
+    if (Array.isArray(json)) {
+      json.forEach((element: Record<string, unknown>) => {
+        // check required fields
+        const id = ObjectAccessUtility.getObjectValueString(element, 'id', false, null);
+        const name = ObjectAccessUtility.getObjectValueString(element, 'name', false, null);
+        const url = ObjectAccessUtility.getObjectValueString(element, 'url', false, null);
+        const country = ObjectAccessUtility.getObjectValueString(element, 'country', false, null);
+        const logoUrl = ObjectAccessUtility.getObjectValueString(element, 'logo', false, null);
+
+        if ((id === null && name === null)
+        ) {
+          console.log('Organization no name or id', element);
+        } else {
+          // Create parameter
+
+          const organization = SimpleOrganization.make(
+            id,
+            name,
+            url,
+            country,
+            logoUrl,
+          );
+
+          organizations.push(organization);
+        }
+
+      });
+    }
+
+    return organizations;
+  }
+
+public static jsonToOrganization(json: unknown): Organization | null {
+    // Assert json is an array and has at least one element
+    if (Array.isArray(json) && json.length > 0) {
+      // Extract the first element of the array and assert its type
+      const firstElement = json[0] as Record<string, unknown>;
+
+      // Use the existing logic on the first element with type assertions
+      const id = ObjectAccessUtility.getObjectValueString(firstElement as Record<string, unknown>, 'id', false);
+      const name = ObjectAccessUtility.getObjectValueString(firstElement as Record<string, unknown>, 'name', false);
+      const url = ObjectAccessUtility.getObjectValueString(firstElement as Record<string, unknown>, 'url', false);
+      const country = ObjectAccessUtility.getObjectValueString(firstElement as Record<string, unknown>, 'country', false);
+      const logoUrl = ObjectAccessUtility.getObjectValueString(firstElement as Record<string, unknown>, 'logo', false);
+
+      if (id == null || name == null) {
+        return null;
+      }
+      return SimpleOrganization.make(id, name, url, country, logoUrl);
+    }
+    // Return null if json is not an array or is empty
+    return null;
+}}

@@ -120,6 +120,25 @@ export const defaultStyles = [
   new Style('b22222', 'ffffff'), // FIREBRICK, WHITE
 ];
 
+export const graphDefaultStyles = [
+  new Style('1f77b4', 'ffffff'), // blue, WHITE
+  new Style('ff7f0e', 'ffffff'), // orange, WHITE
+  new Style('2ca02c', 'ffffff'), // green, WHITE
+  new Style('d62728', 'ffffff'), // red, WHITE
+  new Style('9400d3', 'ffffff'), // DARKVIOLET, WHITE
+  new Style('ffa500', 'ffffff'), // ORANGE, WHITE
+  new Style('cd5c5c', 'ffffff'), // INDIANRED, WHITE
+  new Style('000080', 'ffffff'), // NAVY, WHITE
+  new Style('dda0dd', 'ffffff'), // PLUM, WHITE
+  new Style('d2691e', 'ffffff'), // CHOCOLATE, WHITE
+  new Style('ffa07a', 'ffffff'), // LIGHTSALMON, WHITE
+  new Style('0000ff', 'ffffff'), // BLUE, WHITE
+  new Style('ff00ff', 'ffffff'), // MAGENTA, WHITE
+  new Style('ffebcd', '000000'), // BLANCHEDALMOND, BLACK
+  new Style('000000', 'ffffff'), // BLACK, WHITE
+  new Style('b22222', 'ffffff'), // FIREBRICK, WHITE
+];
+
 /** The `FaMarkerOption` interface defines the structure of an object that represents a marker icon
 option. It has two properties: `id`, which is a string representing the unique identifier of the
 marker icon option, and `value`, which is an array of strings representing the classes or values
@@ -136,6 +155,10 @@ export interface FaMarkerOption {
   interface. The `value` property is of type `Array<string>`, which means it can hold an array of
   string values. This property represents the classes or values needed to display the marker icon. */
   value: Array<string>;
+
+  /** The line `context?: string;` in the `FaMarkerOption` interface is defining an optional property
+  called `context`. */
+  context?: string;
 
 }
 

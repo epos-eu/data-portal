@@ -596,13 +596,9 @@ export abstract class MapLayer {
     }
   }
 
-  /**
-   * The function "updateLeafletLayerMarker" is a protected method that does not have any
-   * implementation.
-   */
-  protected updateLeafletLayerMarker(): void {
+  protected updateLeafletLayerMarker(): this {
+    return this;
   }
-
 
   /**
    * The function brings a specific layer to the front in a Leaflet map.

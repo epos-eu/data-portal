@@ -9,8 +9,11 @@ export class LoadingService {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public showLoadingObs = this.showLoadingSrc.asObservable();
 
-  constructor() { }
-
+  /**
+   * The function "showLoading" is used to toggle the visibility of a loading indicator.
+   * @param {boolean} showLoading - The `showLoading` parameter is a boolean value that determines
+   * whether to show or hide a loading indicator.
+   */
   public showLoading(showLoading: boolean): void {
     this.showLoadingSrc.next(showLoading);
   }

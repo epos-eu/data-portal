@@ -20,11 +20,13 @@ import { baseLayerOptions } from '../components/controls/baseLayerControl/baseLa
 import { BaseLayerOption, MapLayer } from '../eposLeaflet';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { Tracker } from 'utility/tracker/tracker.service';
+import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 @Injectable()
 export class LayersService {
 
-  public static readonly INDEX_DEFAULT_BASEMAP = 2;
+  public static readonly INDEX_DEFAULT_BASEMAP = 1;
 
 
   public lastActiveBaseLayer = baseLayerOptions[LayersService.INDEX_DEFAULT_BASEMAP];
@@ -42,7 +44,8 @@ export class LayersService {
   public baseLayerChangeSourceObs = this.baseLayerChangeSource.asObservable();
 
   constructor(
-    private readonly localStoragePersister: LocalStoragePersister
+    private readonly localStoragePersister: LocalStoragePersister,
+    private readonly tracker: Tracker,
   ) { }
 
   public layersChange(layers: Array<MapLayer>): void {
@@ -56,6 +59,8 @@ export class LayersService {
   public baseLayerChange(layer: BaseLayerOption): void {
     this.baseLayerChangeSource.next(layer);
     this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, layer.name, false, LocalStorageVariables.LS_BASEMAP);
+
+    this.tracker.trackEvent(TrackerCategory.MAP, TrackerAction.BASEMAP, layer.name);
 
     if (layer != null && layer.name !== 'None') {
       this.lastActiveBaseLayer = layer;

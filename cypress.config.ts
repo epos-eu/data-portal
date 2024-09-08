@@ -6,7 +6,7 @@ export default defineConfig({
   fixturesFolder: 'cypress/fixtures',
   video: false,
   screenshotOnRunFailure: false,
-  defaultCommandTimeout: 300,
+  defaultCommandTimeout: 4000,
   viewportWidth: 1920,
   viewportHeight: 1200,
   e2e: {
@@ -18,5 +18,6 @@ export default defineConfig({
       return require('./cypress/plugins/index.js')(on, config);
     },
     baseUrl: 'http://localhost:4200',
+    experimentalStudio: true,
   },
 });

@@ -39,12 +39,6 @@ export class FaMarkerIcon {
   protected sizePercent = 33;
 
   /**
-   * The above code snippet is a constructor function in TypeScript.
-   */
-  constructor() {
-  }
-
-  /**
    * The configure function sets the values of faClasses, colorHex, and sizePercent properties, and
    * returns the instance of the class.
    * @param faClasses - An array of strings representing Font Awesome classes. These classes are used

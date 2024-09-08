@@ -56,7 +56,7 @@ export class OAuthAuthenticationProvider implements AuthenticationProvider {
     return this.userProfileSource.getValue();
   }
 
-  // TODO: angular-oauth2-oidc suggests that "Code Flow" rather than "Implicit Flow" should be favoured.
+  // angular-oauth2-oidc suggests that "Code Flow" rather than "Implicit Flow" should be favoured.
   // SHould we adopt that? https://www.npmjs.com/package/angular-oauth2-oidc
   public login(): void {
     this.oAuthService.initCodeFlow();

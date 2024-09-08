@@ -14,17 +14,18 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit } from '@angular/core';
 import { DataConfigurable } from 'utility/configurables/dataConfigurable.abstract';
 import { Trace } from '../objects/trace';
-import { Style } from 'utility/styler/style';
-import { Styler } from 'utility/styler/styler';
+import { Styler, graphDefaultStyles } from 'utility/styler/styler';
 import { YAxis } from '../objects/yAxis';
 import { Subscription } from 'rxjs';
 import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
 import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
 import { TraceSelectorService } from './traceSelector.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
+import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
+import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 
 /**
  * Allows a user to select which traces to display on the associated graph.
@@ -35,11 +36,13 @@ import { Unsubscriber } from 'decorators/unsubscriber.decorator';
   templateUrl: './traceSelector.component.html',
   styleUrls: ['./traceSelector.component.scss']
 })
-export class TraceSelectorComponent implements OnInit {
+export class TraceSelectorComponent implements OnInit, AfterViewInit {
   /** An EventEmitter that allows changes in the selected items to be passed to the parent */
   @Output() selectedTraces = new EventEmitter<Array<Trace>>();
 
-  /* The `traceSelectorExpanded` variable is a boolean flag that determines whether the trace selector
+  @Output() loading = new EventEmitter<boolean>();
+
+  /** The `traceSelectorExpanded` variable is a boolean flag that determines whether the trace selector
   component is expanded or collapsed. It is used to control the visibility of the trace selector in
   the user interface. */
   public traceSelectorExpanded: boolean;
@@ -68,18 +71,15 @@ export class TraceSelectorComponent implements OnInit {
   /**
    * {@link Style} objects assigned to and used in the display of selected traces.
    */
-  private readonly TRACE_STYLES = [
-    new Style('1f77b4', 'ffffff'), // blue, WHITE
-    new Style('ff7f0e', 'ffffff'), // orange, WHITE
-    new Style('2ca02c', 'ffffff'), // green, WHITE
-    new Style('d62728', 'ffffff'), // red, WHITE
-  ];
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  private readonly TRACE_STYLES = graphDefaultStyles;
 
   /** Maximum number of {@link Trace}s that can be selected at one time. */
-  // eslint-disable-next-line @typescript-eslint/member-ordering
+  // eslint-disable-next-line @typescript-eslint/member-ordering, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   public readonly MAX_SELECTED_TOGGLES = this.TRACE_STYLES.length;
 
   /** {@link Styler} object used to manage assigning {@link Style}s to {@link Trace}s. */
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   private readonly styler = new Styler(this.TRACE_STYLES);
 
   /** Variable for keeping track of subscriptions, which are cleaned up by Unsubscriber */
@@ -88,8 +88,36 @@ export class TraceSelectorComponent implements OnInit {
   constructor(
     private readonly panelsEvent: PanelsEmitterService,
     private readonly traceSelector: TraceSelectorService,
+    private readonly localStoragePersister: LocalStoragePersister,
   ) {
     this.traceSelectorExpanded = false;
+  }
+
+  public ngAfterViewInit(): void {
+    this.loading.emit(true);
+    setTimeout(() => {
+
+      const tracesSelected = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_DATA_TRACES_SELECTED) as string ?? '[]') as Array<string>;
+
+      const allTraces = this.getAllTraces(this.traceRecord);
+      const traceToSelect: Array<Trace> = [];
+
+      tracesSelected.forEach((traceId: string) => {
+
+        allTraces.forEach(_t => {
+          if (_t.id === traceId) {
+            // set yaxis
+            _t.yAxis = _t.generateYAxis();
+            this.styler.assignStyle(_t, Object.values(traceToSelect));
+            traceToSelect.push(_t);
+          }
+        });
+
+      });
+
+      this.setSelectedTraces(traceToSelect);
+      this.loading.emit(false);
+    }, 5000);
   }
 
   public ngOnInit(): void {
@@ -104,10 +132,11 @@ export class TraceSelectorComponent implements OnInit {
       this.traceSelector.traceSelectedObs.subscribe((traceSelector) => {
         const layerId = traceSelector[0];
         const traceId = traceSelector[1] ?? '';
+        const selected = traceSelector[2] ?? true;
         const trace = this.traceRecord[layerId]?.filter(traceObj => (traceObj.id === traceId));
 
         if (trace !== undefined && trace.length > 0) {
-          this.setSelected(trace[0], true);
+          this.setSelected(trace[0], selected);
         }
 
       })
@@ -118,6 +147,21 @@ export class TraceSelectorComponent implements OnInit {
   /** Returns an ARray of {@link Trace} objects associated with the passed in {@link YAxis} object. */
   public getTracesForYAxis(yAxis: YAxis): Array<Trace> {
     return Object.values(this._selectedTraces).filter(thisTrace => (thisTrace.yAxis === yAxis));
+  }
+
+  /**
+   * The function `selectTrace` sets the trace selector for a specific layer and trace
+   * based on the selected boolean value.
+   * @param {string} layerId - LayerId is a string that represents the identifier of a specific layer
+   * in the application.
+   * @param {Trace} trace - The `trace` parameter is an object that likely contains information about a
+   * trace, such as its id, name, type, or other relevant data.
+   * @param {boolean} selected - The `selected` parameter in the `selectTrace` function is
+   * a boolean value that indicates whether the trace should be selected or not. If `selected` is
+   * `true`, the trace will be selected; if `selected` is `false`, the trace will be deselected.
+   */
+  public selectTrace(layerId: string, trace: Trace, selected: boolean): void {
+    this.traceSelector.setTraceSelector(layerId, trace.id, selected);
   }
 
   /**
@@ -147,6 +191,14 @@ export class TraceSelectorComponent implements OnInit {
         // set yaxis
         trace.yAxis = (null == yAxis) ? trace.generateYAxis() : yAxis;
       }
+
+      this.localStoragePersister.set(
+        LocalStorageVariables.LS_CONFIGURABLES,
+        JSON.stringify(Object.keys(this._selectedTraces)),
+        false,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        LocalStorageVariables.LS_DATA_TRACES_SELECTED
+      );
 
       this.setSelectedTraces(Object.values(this._selectedTraces));
     }

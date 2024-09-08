@@ -1,0 +1,16 @@
+<app-base-dialog [data]="data" [title]="'Cite this dataset'">
+  <ng-container class="content">
+    <div class="citation-wrapper">
+      <p>
+        {{ citation }}
+      </p>
+      <button mat-icon-button (click)="copyCitationToClipboard(citation)">
+        <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
+      </button>
+    </div>
+
+    <div class="buttons">
+      <button mat-flat-button [color]="'primary'" (click)="closeDialog()">OK</button>
+    </div>
+  </ng-container>
+</app-base-dialog>

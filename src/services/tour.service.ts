@@ -159,22 +159,20 @@ export class TourService {
     this.triggerInfoIconStep.next();
   }
 
-  public updateTourRunnerSteps(tourName: string): void {
-    if (this.tourSteps.has(tourName)) {
-      const stepMap = this.tourSteps.get(tourName);
-      if (null != stepMap) {
-        const stepArray = Array.from(stepMap);
-        stepArray.sort((a, b) => {
-          return a[0] - b[0];
-        });
-        const steps = stepArray.map((a) => {
-          return a[1];
-        });
-        this.tourDriver.defineSteps(steps);
-      }
-    }
-  }
-
+  /**
+   * The `startTour` function starts a tour by setting the current tour name and step, updating the
+   * tour runner steps, and starting the tour driver.
+   * @param {string} tourName - The `tourName` parameter is a string that represents the name of the
+   * tour. It is used to identify a specific tour that you want to start.
+   * @param {Event | null} [event] - The `event` parameter is an optional parameter of type `Event` or
+   * `null`. It is used to handle the event that triggers the start of the tour. If provided, it can be
+   * used to stop the propagation of the event using `event.stopPropagation()`. If not provided, it
+   * will be
+   * @param {number} [stage] - The `stage` parameter is an optional parameter of type `number`. It
+   * represents the starting step of the tour. If provided, the tour will start from the specified
+   * step. If not provided, the tour will start from the beginning (step 0) if the current step is
+   * greater than 0
+   */
   public startTour(tourName: string, event?: Event | null, stage?: number): void {
     const startStep = typeof stage !== 'undefined' ? stage : this.tourCurrentStep > 0 ? this.tourCurrentStep : 0;
 
@@ -247,6 +245,10 @@ export class TourService {
     this.tourDriver['overlay'].refresh();
   }
 
+  public isActive(): boolean {
+    return this.tourActive.getValue() === 'true';
+  }
+
   private cacheFiltersAndFavourites(): void {
 
     // save on temp variable cache all configurables informations
@@ -280,5 +282,35 @@ export class TourService {
       this.localStoragePersistor.set(TourFilterCache.CACHED_DATA_SEARCH_CONFIGURABLES, '[]');
       location.reload();
     });
+  }
+
+  /**
+   * The function updates the steps of a tour runner by removing invalid steps and sorting the
+   * remaining steps in ascending order.
+   * @param {string} tourName - The `tourName` parameter is a string that represents the name of a
+   * tour.
+   */
+  private updateTourRunnerSteps(tourName: string): void {
+    if (this.tourSteps.has(tourName)) {
+      const stepMap = this.tourSteps.get(tourName);
+      if (null != stepMap) {
+
+        // remove step without valid Element
+        stepMap.forEach((_step, index) => {
+          if (_step.element === null) {
+            stepMap.delete(index);
+          }
+        });
+
+        const stepArray = Array.from(stepMap);
+        stepArray.sort((a, b) => {
+          return a[0] - b[0];
+        });
+        const steps = stepArray.map((a) => {
+          return a[1];
+        });
+        this.tourDriver.defineSteps(steps);
+      }
+    }
   }
 }

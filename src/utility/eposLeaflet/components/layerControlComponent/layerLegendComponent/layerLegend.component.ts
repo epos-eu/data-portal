@@ -22,6 +22,10 @@ import { Subscription } from 'rxjs';
 import { GeoJSONMapLayer } from 'utility/maplayers/geoJSONMapLayer';
 import { LayersService } from 'utility/eposLeaflet/services/layers.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
+import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
+import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
+import { GeoJSONHelper } from 'utility/maplayers/geoJSONHelper';
 
 @Unsubscriber('subscriptions')
 @Component({
@@ -77,7 +81,9 @@ export class LayerLegendComponent implements OnInit {
   constructor(
     private http: HttpClient,
     private renderer: Renderer2,
-    private layersService: LayersService) {
+    private layersService: LayersService,
+    private localStoragePersister: LocalStoragePersister,
+    private mapInteractionService: MapInteractionService,) {
   }
 
   /** The `@Input() set layer(layer: MapLayer)` is a setter method for the `layer` input property. It is
@@ -96,8 +102,21 @@ export class LayerLegendComponent implements OnInit {
     this.subscriptions.push(
       this.layersService.layerChangeSourceObs.subscribe((layer: MapLayer) => {
         this.updateLegendContent();
+      }),
 
-      })
+      this.mapInteractionService.featureOnlayerToggle.subscribe((featureOnLayer: Map<string, Array<number> | string | boolean>) => {
+        const imageOverlay = featureOnLayer.get('imageOverlay');
+        let layerId = featureOnLayer.get('layerId') as string;
+
+        if (imageOverlay) {
+          layerId += GeoJSONHelper.IMAGE_OVERLAY_ID_SUFFIX;
+
+          if (layerId === this._layer.id) {
+            this.getLegendContent(this._layer);
+          }
+        }
+      }),
+
     );
   }
 
@@ -109,13 +128,19 @@ export class LayerLegendComponent implements OnInit {
   private getLegendContent(layer: MapLayer): void {
 
     setTimeout(() => {
+
+      (this.legendContent.nativeElement as HTMLElement).innerHTML = '';
+
       if (!(layer.options.get('paneType') !== 'geoJsonPane' && this.showImage === false)) {
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const dataSearchToggleOnMap: Array<string> = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_TOGGLE_ON_MAP) as string || '[]');
 
         void layer.getLegendData(this.http).then((legendArray: Array<Legend>) => {
           if (legendArray !== null) {
 
             legendArray.forEach((legend: Legend) => {
-              (this.legendContent.nativeElement as HTMLElement).appendChild(legend.createDisplayContent());
+              (this.legendContent.nativeElement as HTMLElement).appendChild(legend.createDisplayContent(dataSearchToggleOnMap));
             });
           }
         });

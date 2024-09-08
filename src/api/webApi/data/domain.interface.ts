@@ -1,4 +1,10 @@
 export interface Domain {
+  id?: string;
   code: string;
-  isSelected: boolean;
+  title?: string;
+  isSelected?: boolean;
+  linkUrl?: string;
+  imgUrl?: string;
+  color?: string;
+  domain?: boolean;
 }

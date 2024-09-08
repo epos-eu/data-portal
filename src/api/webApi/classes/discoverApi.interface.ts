@@ -17,9 +17,14 @@ import { FacetModel } from '../data/facetModel.interface';
 import { DistributionSummary } from '../data/distributionSummary.interface';
 import { Moment } from 'moment';
 import { BoundingBox } from '../data/boundingBox.interface';
+import { Domain } from '../data/domain.interface';
 
 export interface DiscoverApi {
   discover(request: DiscoverRequest): Promise<null | DiscoverResponse>;
+
+  getFilters(context: string): Promise<null | DiscoverResponse>;
+
+  getDomains(context: string): Promise<null | Array<Domain>>;
 }
 
 export interface DiscoverResponse {
@@ -28,6 +33,8 @@ export interface DiscoverResponse {
 }
 
 export interface DiscoverRequest {
+
+  getContext(): null | string;
 
   getQuery(): null | string;
   /**
@@ -46,4 +53,6 @@ export interface DiscoverRequest {
   getBBox(): BoundingBox;
   getKeywordIds(): null | Array<string>;
   getOrganisationIds(): null | Array<string>;
+
+  hasTemporalRange(): boolean;
 }

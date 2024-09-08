@@ -58,9 +58,6 @@ export class CustomLayerControl extends AbstractControl {
 
   }
 
-  protected init(): void {
-  }
-
   protected getControlContainer(
     controlId: string,
     faIconClasses: string,
@@ -103,6 +100,7 @@ export class CustomLayerControl extends AbstractControl {
     });
 
     const iconWrapper = document.createElement('span');
+    iconWrapper.setAttribute('data-cy', 'layer-control-content');
     iconWrapper.classList.add('icon-wrapper');
     iconWrapper.classList.add('bordered');
     iconWrapper.title = title;

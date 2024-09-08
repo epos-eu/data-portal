@@ -31,7 +31,7 @@
     margin: 5em 5em;
   }
 
-  mwlResizable {
+  th[mwlResizable] {
     box-sizing: border-box;
   }
 
@@ -41,7 +41,7 @@
 }
 
 .container {
-  height: 35vh;
+  height: 30vh;
   resize: vertical;
   margin-left: auto;
   display: flex;
@@ -138,6 +138,10 @@ table {
     &.mat-column-propertyId {
       display: none;
     }
+
+    &.mat-column-eposImages {
+      display: none;
+    }
   }
 
   th {
@@ -155,12 +159,13 @@ table {
       display: none;
     }
 
-    &.mat-column-rowActions {
-      width: 50px;
+    &.mat-column-eposImages {
+      display: none;
     }
 
-    &.mat-column-rowActions ::ng-deep div {
-      display: none;
+    &.mat-column-showOnMap,
+    &.mat-column-toggleOnMap {
+      width: 30px;
     }
   }
 
@@ -212,4 +217,13 @@ mat-icon.action {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+i.action {
+  color: rgb(36, 36, 36);
+  cursor: pointer;
+
+  &.disabled {
+    color: grey !important;
+  }
 }

@@ -23,6 +23,7 @@ import { SimpleBoundingBox } from './simpleBoundingBox';
 export class SimpleDiscoverRequest implements DiscoverRequest {
 
   private constructor(
+    private readonly context: null | string,
     private readonly query: null | string,
     private readonly temporalRange: TemporalRange,
     private readonly bbox: BoundingBox,
@@ -39,13 +40,18 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
   }
 
   public static makeFullQuery(//
+    context: null | string = null,
     query: null | string = null,
     temporalRange: TemporalRange = SimpleTemporalRange.makeUnbounded(),
     bbox: BoundingBox = SimpleBoundingBox.makeUnbounded(),
     keywordIds: null | Array<string> = null,
     organisationIds: null | Array<string> = null,
   ): DiscoverRequest {
-    return new SimpleDiscoverRequest(query, temporalRange, bbox, keywordIds, organisationIds);
+    return new SimpleDiscoverRequest(context, query, temporalRange, bbox, keywordIds, organisationIds);
+  }
+
+  getContext(): null | string {
+    return this.context;
   }
 
   getQuery(): null | string {
@@ -65,6 +71,9 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
   }
   getOrganisationIds(): null | Array<string> {
     return this.organisationIds;
+  }
+  hasTemporalRange(): boolean {
+    return true;
   }
 
 

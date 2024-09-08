@@ -13,9 +13,6 @@ export class SpatialCoverageMapComponent implements AfterViewInit {
 
   private map: L.Map;
 
-
-  constructor() { }
-
   ngAfterViewInit(): void {
     this.initMap();
   }
@@ -23,10 +20,9 @@ export class SpatialCoverageMapComponent implements AfterViewInit {
   private initMap(): void {
 
     const shape = this.spatialRange;
-    const esriLink = '<a href="https://www.esri.com/">Esri</a>';
-    const whoLink = 'Source: Esri';
-    const tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: `| Powered by ${esriLink} | ${whoLink}`,
+    const esriLink = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+    const tiles = L.tileLayer('https://tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: `| Powered by ${esriLink}`,
     });
     this.map = L.map('map', {
       center: [45, 3],

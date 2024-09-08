@@ -36,11 +36,19 @@ export class PopupProperty {
   contains points on a map in a popup. */
   public static readonly POINTS_ON_MAP = 'pointsOnMap';
 
-  /** The line `public static readonly ROW_ACTIONS = 'rowActions';` is declaring a public static
-  readonly property named `ROW_ACTIONS` in the `PopupProperty` class. The value of this property is
-  a string `'rowActions'`. This property is used to represent the name of a property that contains
-  row actions in a popup. */
-  public static readonly ROW_ACTIONS = 'rowActions';
+  /** The line `public static readonly TOGGLE_ON_MAP = 'toggleOnMap';` is declaring a public static
+  readonly property named `TOGGLE_ON_MAP` in the `PopupProperty` class. The value of this property is
+  a string `'toggleOnMap'`. This property is used to represent the name of a property that indicates
+  whether to toggle the popup on a map or not. */
+  public static readonly TOGGLE_ON_MAP = 'toggleOnMap';
+
+  /** The line `public static readonly SHOW_ON_MAP = 'showOnMap';` is declaring a public static readonly
+  property named `SHOW_ON_MAP` in the `PopupProperty` class. The value of this property is a string
+  `'showOnMap'`. This property is used to represent the name of a property that indicates whether to
+  show the popup on a map or not. */
+  public static readonly SHOW_ON_MAP = 'showOnMap';
+
+  public static readonly IMAGES = 'eposImages';
 
   /** The line `public readonly isEmpty: boolean;` is declaring a public readonly property named
   `isEmpty` in the `PopupProperty` class. This property is of type boolean and is used to determine
@@ -75,6 +83,8 @@ export class PopupProperty {
   `PopupProperty` class. */
   public formatType = '';
 
+  public description = '';
+
   /**
    * The constructor initializes the properties of a PopupProperty object and performs some additional
    * checks and assignments.
@@ -88,9 +98,9 @@ export class PopupProperty {
    * an optional parameter and its default value is an empty string.
    */
   constructor(
-    public readonly name: string,
+    public name: string,
     public readonly values: Array<number | boolean | string>,
-    public readonly type = PopupPropertyType.SIMPLE,
+    public type = PopupPropertyType.SIMPLE,
     public readonly authenticatedDownloadFileName = '',
   ) {
     this.name = name.trim();
@@ -124,15 +134,23 @@ export class PopupProperty {
     this.formatType = formatType;
     return this;
   }
+
+  public setType(type: PopupPropertyType): this {
+    this.type = type;
+    return this;
+  }
+
+  public setDescription(description: string): this {
+    this.description = description;
+    return this;
+  }
 }
 
-/** The line `export enum PopupPropertyType {` is declaring an enumeration named `PopupPropertyType` and
-exporting it from the module. An enumeration is a way to define a set of named values, where each
-value has an associated numeric value. In this case, the `PopupPropertyType` enumeration defines
-three values: `SIMPLE`, `AUTHENTICATED_DOWNLOAD`, and `ACTIONS`. These values can be used to specify
-the type of a popup property in the `PopupProperty` class. */
+/* The `export enum PopupPropertyType` is defining an enumeration in TypeScript. An enumeration, or
+enum, is a way to define a set of named values. In this case, the `PopupPropertyType` enum has two
+values: `SIMPLE` and `AUTHENTICATED_DOWNLOAD`. */
 export enum PopupPropertyType {
   SIMPLE,
   AUTHENTICATED_DOWNLOAD,
-  ACTIONS
+  IMAGE,
 }

@@ -29,6 +29,8 @@ import { PoliciesService } from './policiesService.service';
 import { InformationsService } from './informationsService.service';
 import { LocalStoragePersister } from './model/persisters/localStoragePersister';
 import { PanelsEmitterService } from './panelsEventEmitter.service';
+import { TourService } from './tour.service';
+import { ShareService } from './share.service';
 /**
  * Module for registering new services that may be used anywhere in the app.
  */
@@ -37,7 +39,7 @@ import { PanelsEmitterService } from './panelsEventEmitter.service';
   ],
   imports: [
     CommonModule,
-    HttpClientModule,
+    HttpClientModule
   ],
 })
 
@@ -56,6 +58,8 @@ export class ServicesModule {
         InformationsService,
         LocalStoragePersister,
         PanelsEmitterService,
+        TourService,
+        ShareService,
       ]
     };
   }

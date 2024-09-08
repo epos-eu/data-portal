@@ -25,7 +25,7 @@ import { Injector } from '@angular/core';
 import { Feature, GeoJsonObject, GeoJsonProperties, GeometryObject, Point } from 'geojson';
 import { FeatureCollection } from '@turf/turf';
 import { PopupProperty } from './popupProperty';
-import { JsonMapLayer } from './jsonMapLayer';
+import { JsonMapLayer, Marker } from './jsonMapLayer';
 import { CovJSONHelper } from './covJSONHelper';
 import { JsonHelper } from './jsonHelper';
 import { HttpClient } from '@angular/common/http';
@@ -114,7 +114,25 @@ export class CovJSONMapLayer extends JsonMapLayer {
       */
       ;
 
+  }
 
+
+  /**
+   * The function creates a Leaflet marker with specified styling and position.
+   * @param {Stylable} stylable - Stylable is an object that contains information about the style of
+   * the marker, such as color, size, and shape.
+   * @param {null | Marker} marker - The `marker` parameter in the `createLeafletMarker` function is a
+   * variable that can hold either a `null` value or an instance of the `Marker` class. It is used to
+   * specify the marker that will be created on the map at the specified `latlng` coordinates.
+   * @param latlng - The `latlng` parameter in the `createLeafletMarker` function represents the
+   * geographical coordinates (latitude and longitude) where the marker will be placed on the map. It
+   * is of type `L.LatLng`, which is a Leaflet class representing a geographical point.
+   * @returns The `createLeafletMarker` method is being called with the parameters `stylable`,
+   * `marker`, and `latlng`, and the boolean value `false`. The method is expected to return a
+   * `L.Layer` object.
+   */
+  protected createLeafletMarker(stylable: Stylable, marker: null | Marker, latlng: L.LatLng): L.Layer {
+    return super.createLeafletMarker(stylable, marker, latlng, false);
   }
 
   private addStyle() {
@@ -249,7 +267,7 @@ export class CovJSONMapLayer extends JsonMapLayer {
 
       // add feature identifier
       if (feature.properties !== null) {
-        feature.properties[PopupProperty.PROPERTY_ID] = '#' + index.toString() + '#';
+        feature.properties[PopupProperty.PROPERTY_ID] = this.id + '#' + index.toString() + '#';
       }
     });
 

@@ -17,11 +17,19 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatChipsModule } from '@angular/material/chips';
 import { DirectivesModule } from 'directives/directives.module';
 import { SpatialTemporalControlsModule } from '../../temporalSpatialControls/spatialTemporalControls.module';
+import { DialogModule } from 'components/dialog/dialog.module';
+import { ComponentsModule } from 'components/components.module';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 
 
 @NgModule({
-  declarations: [FilterSearchPanelComponent, SearchFacilityComponent, SearchFacetsComponent],
+  declarations: [
+    FilterSearchPanelComponent,
+    SearchFacilityComponent,
+    SearchFacetsComponent,
+  ],
   imports: [
     CommonModule,
     MatExpansionModule,
@@ -35,13 +43,19 @@ import { SpatialTemporalControlsModule } from '../../temporalSpatialControls/spa
     MatRadioModule,
     MatIconModule,
     MatTooltipModule,
+    MatProgressSpinnerModule,
     SpatialTemporalControlsModule,
     MatAutocompleteModule,
     MatChipsModule,
+    MatCheckboxModule,
     DirectivesModule,
+    DialogModule,
+    ComponentsModule,
   ],
   exports: [
     FilterSearchPanelComponent
+  ],
+  providers: [
   ]
 })
 export class FilterSearchModule { }

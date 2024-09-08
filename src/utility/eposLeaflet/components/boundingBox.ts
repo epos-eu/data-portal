@@ -16,6 +16,8 @@
 
 export class BoundingBox {
 
+  protected id: string;
+
   /** The `protected bounded: boolean;` line is declaring a protected property named `bounded` of type
   boolean in the `BoundingBox` class. The `protected` keyword means that the property can only be
   accessed within the class and its subclasses. */
@@ -58,6 +60,7 @@ export class BoundingBox {
    * is used to define the lower boundary of a geographical area.
    */
   public constructor(maxLat: null | number, maxLon: null | number, minLat: null | number, minLon: null | number) {
+
     this.bounded = null != maxLat && null != maxLon && null != minLat && null != minLon;
 
     if (this.bounded) {
@@ -111,6 +114,10 @@ export class BoundingBox {
     return new BoundingBox(null, null, null, null);
   }
 
+  getId(): string {
+    return this.id;
+  }
+
   /**
    * The getMaxLat function returns the maximum latitude value.
    * @returns The getMaxLat() function is returning the value of the maxLat variable, which is a
@@ -161,5 +168,38 @@ export class BoundingBox {
    */
   asArray(): [number, number, number, number] {
     return [this.getMaxLat(), this.getMaxLon(), this.getMinLat(), this.getMinLon()];
+  }
+
+  /**
+   * The function `asArrayFormat` in TypeScript returns geographic coordinates in a specified format.
+   * @param [format=nesw] - The `format` parameter in the `asArrayFormat` method specifies the desired
+   * format for the output array. In the provided code snippet, the method checks the `format`
+   * parameter and rearranges the elements of the array accordingly based on the specified format.
+   * @returns The function `asArrayFormat` is returning an array of numbers in the format specified by
+   * the `format` parameter. If the `format` is 'nswe', the function returns an array with the maximum
+   * latitude, minimum longitude, minimum latitude, and maximum longitude. If the `format` is any other
+   * value, the function returns the original array obtained from `this.asArray()`.
+   */
+  asArrayFormat(format = 'nesw'): [number, number, number, number] {
+    let result: [number, number, number, number] = this.asArray();
+    switch (format) {
+      case 'nswe':
+        result = [
+          this.getMaxLat(),
+          this.getMinLat(),
+          this.getMinLon(),
+          this.getMaxLon(),
+        ];
+        break;
+
+      default:
+        break;
+    }
+    return result;
+  }
+
+  setId(id: string): BoundingBox {
+    this.id = id;
+    return this;
   }
 }

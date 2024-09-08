@@ -76,8 +76,7 @@ export class DevExecutionApi implements ExecutionApi {
 
   public getOriginatorUrl(distribution: DistributionSummary, params: null | Array<ParameterValue>): Promise<string> {
 
-    const urlBuilder = this.baseUrl.urlBuilder()
-      .addPathElements(DevExecutionApi.GET_ORIGINAL, distribution.getIdentifier());
+    const urlBuilder = this.baseUrl.urlBuilder().addPathElements(DevExecutionApi.GET_ORIGINAL,distribution.getIdentifier());
 
     if (params != null) {
       const paramsValueString = this.paramsToJSONString(params);

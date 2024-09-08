@@ -47,7 +47,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     private readonly description: string, //
     private readonly license: string, //
     private readonly endpoint: string, //
-    private readonly type: DistributionType, //
+    private readonly type: DistributionType | string, //
     private readonly dataProvider: Array<DataProvider>, //
     private readonly doi: Array<string>,
     private readonly internalID: Array<string>, //
@@ -62,7 +62,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
     private readonly level: Array<DistributionLevel>,
     private readonly domainCode: string,
     private readonly availableContactPoints: Array<DistributionContactPoint>,
-    private readonly categories: DistributionCategories | null
+    private readonly categories: DistributionCategories | null,
+    private readonly page: Array<string>,
   ) {
     this.isMappable = this.summary.isMappable;
     this.isGraphable = this.summary.isGraphable;
@@ -85,7 +86,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     description: string, //
     license: string, //
     endpoint: string, //
-    type: DistributionType, //
+    type: DistributionType | string, //
     dataProvider: Array<DataProvider>, //
     doi: Array<string>, //
     internalID: Array<string>, //
@@ -100,7 +101,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
     level: Array<DistributionLevel>,
     domainCode: string,
     availableContactPoints: Array<DistributionContactPoint>,
-    categories: DistributionCategories | null
+    categories: DistributionCategories | null,
+    page: Array<string>,
   ): DistributionDetails {
     // objects
     Confirm.requiresValid(summary);
@@ -134,7 +136,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
       level,
       domainCode,
       availableContactPoints,
-      categories
+      categories,
+      page,
     );
   }
 
@@ -151,7 +154,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     description: string, //
     license: string, //
     endpoint: string, //
-    type: DistributionType, //
+    type: DistributionType | string, //
     dataProvider: Array<DataProvider>, //
     doi: Array<string>, //
     internalID: Array<string>, //
@@ -166,7 +169,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
     level: Array<DistributionLevel>,
     domainCode: string,
     availableContactPoints: Array<DistributionContactPoint>,
-    categories: DistributionCategories
+    categories: DistributionCategories,
+    page: Array<string>,
   ): DistributionDetails {
     // objects
     Confirm.requiresValid(summary);
@@ -215,7 +219,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
       level,
       domainCode,
       availableContactPoints,
-      categories
+      categories,
+      page,
     );
   }
 
@@ -286,11 +291,11 @@ export class SimpleDistributionDetails implements DistributionDetails {
     return this.license;
   }
 
-  getType(): DistributionType {
+  getType(): DistributionType | string {
     return this.type;
   }
   getTypeString(): string {
-    return DistributionType[this.type];
+    return DistributionType[this.type as DistributionType];
   }
 
   getInternalID(): Array<string> {
@@ -340,8 +345,20 @@ export class SimpleDistributionDetails implements DistributionDetails {
   getLevel(): DistributionLevel[] {
     return this.level;
   }
-  getDomainCode(): string {
-    return this.domainCode;
+
+  /**
+   * This function returns the code of the first child category within the "categories" property, if it
+   * exists.
+   * @returns The function `getDomainCode()` is returning the code of the first child category under
+   * the `categories` property, if it exists. If the `categories` property or the first child category
+   * does not exist, it will return `undefined`.
+   */
+  getDomainCode(): string | undefined {
+    if (this.domainCode === '') {
+      return this.categories?.children[0].code;
+    } else {
+      return this.domainCode;
+    }
   }
 
   /**
@@ -368,6 +385,10 @@ export class SimpleDistributionDetails implements DistributionDetails {
    */
   getAvailableContactPoints(): Array<DistributionContactPoint> {
     return this.availableContactPoints;
+  }
+
+  getPage(): Array<string> {
+    return this.page;
   }
 
 }

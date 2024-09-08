@@ -345,7 +345,7 @@ export class SimpleParameterDefinitions implements ParameterDefinitions {
    * parameter whose value needs to be replaced in the `params` array.
    * @param {ParameterValue} newValue - The `newValue` parameter is of type `ParameterValue`.
    */
-  private replaceParamValueInArray(params: Array<ParameterValue>, paramName: string, newValue: ParameterValue): void {
+  public replaceParamValueInArray(params: Array<ParameterValue>, paramName: string, newValue: ParameterValue): void {
     const paramIndex = this.findParamIndexByName(params, paramName);
     if (paramIndex > -1) {
       // replace
