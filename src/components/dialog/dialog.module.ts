@@ -75,6 +75,8 @@ import { TablePanelDialogComponent } from './tablePanelDialog/tablePanelDialog.c
 import { CitationComponent } from './detailsDialog/citation/citation.component';
 import { CitationDialogComponent } from './citationDialog/citationDialog.component';
 import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
+import { ECVUseCases } from './ECVUseCases/ECVUseCases.component';
+import { ECVFilterDialogComponent } from './ECVFilterDialog/ECVFilterDialog.component';
 
 
 /**
@@ -107,6 +109,8 @@ import { ShareInformationsDialogComponent } from './shareInformationsDialog/shar
     CitationComponent,
     CitationDialogComponent,
     ShareInformationsDialogComponent,
+    ECVUseCases,
+    ECVFilterDialogComponent
   ],
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   imports: [

@@ -25,6 +25,10 @@ export const environmentBase = {
   version: (require('../../package.json') as Record<string, unknown>).version,
   githash: 'GITHASH', // populated during pipeline
   commitDate: 'COMMIT_DATE', // populated during pipeline
+
+  gitlabApiEcvUseCasesUrl:'https://raw.githubusercontent.com/epos-eu/ENVRI-Hub-Next-Use-Cases/refs/heads/main/useCases.JSON', // TO BE POPULATED (WHEN TOKEN AVAILABLE IN GITLAB(CREATE THE VARIABLES!))
+  gitlabApiEcvUseCasesToken:'', // No need for a token, the api is public. Keeping this variable for consistency with other variables.
+
   gitlabApiFeedbackProjectUrl: 'GITLAB_API_FEEDBACK_PROJECT_URL', // populated during pipeline
   gitlabApiFeedbackToken: 'GITLAB_API_FEEDBACK_TOKEN', // populated during pipeline
   eposSiteApiRestUrl: 'EPOS_SITE_API_REST_URL', // populated during pipeline
@@ -41,16 +45,16 @@ export const environmentBase = {
   vocabularyEndpoint: 'https://registry.epos-eu.org/ncl/system/query',
   videos: [
     {
-      title: 'Introduction to EPOS',
-      url: 'https://www.youtube-nocookie.com/embed/A5-WiWeG5-4'
+      title: 'Introduction to ENVRI',
+      url: ''
     },
     {
       title: 'Data search',
-      url: 'https://www.youtube-nocookie.com/embed/qpQuBlZBT7Y'
+      url: ''
     },
     {
       title: 'Configuration and visualization of services',
-      url: 'https://www.youtube-nocookie.com/embed/p4Sq7s40M0I'
+      url: ''
     }
   ],
   modules: {
@@ -61,11 +65,11 @@ export const environmentBase = {
     children: [
       {
         name: 'About Data Portal',
-        url: 'https://www.epos-eu.org/dataportal',
+        url: 'https://envri.eu/',
         icon: 'info'
       },
       {
-        name: 'EPOS API ',
+        name: 'ENVRI API',
         url: window.location.href + '/api/v1/ui/',
         icon: 'cloud'
       },
