@@ -103,12 +103,14 @@ export class OAuthAuthenticationProvider implements AuthenticationProvider {
 
       timeoutFactor: 0.75,
 
+      responseType: 'code',
+
       // set the scope for the permissions the client should request
       // The first three are defined by OIDC. The 4th is a usecase-specific one
       scope: [
         'openid',
         'profile',
-        'single-logout',
+        'email',
       ].join(' '),
 
       disableAtHashCheck: true,
