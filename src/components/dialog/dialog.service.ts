@@ -38,7 +38,8 @@ import { TablePanelDialogComponent } from './tablePanelDialog/tablePanelDialog.c
 import { CitationDialogComponent, CitationsDataIn } from './citationDialog/citationDialog.component';
 import { DistributionDetails } from '../../api/webApi/data/distributionDetails.interface';
 import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
-
+import { ECVUseCaseDataType, ECVUseCases } from './ECVUseCases/ECVUseCases.component';
+import { ECVFilterDialogComponent } from './ECVFilterDialog/ECVFilterDialog.component';
 
 /**
  * A service used for showing dialogs.
@@ -362,6 +363,26 @@ export class DialogService extends BaseDialogService {
     );
   }
 
+  public openECVFilter
+  (ECVsList, ECVsSelected, mockECVs, title = 'Filter by ECV'){
+    return this.openDialog(
+      'ECVFilter',
+      ECVFilterDialogComponent,
+      'epos-dialog',
+      false,
+      {
+        ECVsList: ECVsList,
+        ECVsSelected: ECVsSelected,
+        mockECVs: mockECVs,
+        title: title,
+      },
+      {
+        width: '80vw',
+        height: '80vh',
+      }
+    );
+  }
+
   public openGraphPanel(): void {
 
     const widthWindows = window.innerWidth;
@@ -458,6 +479,29 @@ export class DialogService extends BaseDialogService {
         }
       }
     ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
+  }
+
+  public openECVUseCases(
+    confirmButtonHtml = 'Activate Scientific example',
+    title = 'Filter by ECV'
+  ): Promise<null | DialogData> {
+    return this.openDialog<ECVUseCaseDataType>(
+      'ECVUseCases',
+      ECVUseCases,
+      'no-resize',
+      true,
+      {
+        confirmButtonHtml: confirmButtonHtml,
+        title: title,
+      },
+      {
+        width: '1090px',
+        position: {
+          top: '200px',
+          right: '50px',
+        },
+      }
+    );
   }
 
   private closeDialogById(dialogId: string): void {

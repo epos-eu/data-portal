@@ -43,6 +43,7 @@ import { FacetLeafItemMI } from 'services/model/modelItems/facetLeafItemMI';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
+import { ECVFilterDialogComponent } from 'components/dialog/ECVFilterDialog/ECVFilterDialog.component';
 
 /**
  * This component displays the facet panel and when a user changes their selection,
@@ -94,6 +95,10 @@ export class SearchFacetsComponent implements OnInit {
   // TODO: add comments for below variables.
   public locationRadio = new UntypedFormControl();
   public dataProviders: Array<Organization>;
+
+  // the following variable is being passed in input to template, to be used when we're actually fetching ECVs from the API !! (FOR NOW ONLY MOCKUP DATA)
+  public ECVsList: Array<Object> = [];
+
   public types: Array<string> = [ViewType.MAP, ViewType.TABLE, ViewType.GRAPH];
   public selectedOrganisations: Array<FacetLeafItem> = [];
   public selectedTypes: Array<string> = [];
@@ -103,6 +108,11 @@ export class SearchFacetsComponent implements OnInit {
   public startBBoxSource = new Subject<void>();
 
   public organisationsSelected: Array<string> = [];
+  
+  // ENVRI: TO BE COMPLETED: !!
+  // the following variable is being passed in input to template, to be used when we're actually fetching ECVs from the API !! (FOR NOW ONLY MOCKUP DATA)
+  public ECVsSelected: Array<string> = [];
+
   public organisationsModel: FacetLeafItemMI;
 
   public locationRadioSelectTypeCoordinates = SearchFacetsComponent.SELECT_TYPE_COORDINATES;
@@ -200,6 +210,15 @@ export class SearchFacetsComponent implements OnInit {
   public dataProviderSelected(listDataProvider: Array<string>): void {
     this.model.dataSearchFacetLeafItems.set(listDataProvider);
     this.triggerAdvancedSearch();
+  }
+
+  // ENVRI: TO BE COMPLETED: !!
+  // This function will be called to set the selected ECVs in the model and trigger an advanced search (JUST LIKE THE 'dataProvidersSelected()' ABOVE)
+  // should we create a ModelItem for ECVs as well? (like we did for organisations)
+  public ecvSelected(listEcv: Array<string>): void {
+    /* this.ECVsSelected = listEcv;
+    this.model.dataSearchEcv.set(listEcv);
+    this.triggerAdvancedSearch(); */
   }
 
 

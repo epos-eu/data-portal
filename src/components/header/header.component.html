@@ -16,7 +16,7 @@
 <header class="header">
   <div class="header-logo-wrapper">
     <a class="header-logo" (click)="clickItem({ id: 'homepage', url: urlHomepage, newTab: true })">
-      <img src="assets/img/logo/logo-white.svg" />
+      <img src="assets/img/logo/ENVRI-Hub-logo-white.svg" />
     </a>
     <div class="title">
       <p class="main"></p>
@@ -28,6 +28,14 @@
   </div>
   <div class="header-actions-wrapper">
     <ul>
+      <li> 
+        <div class="nav-top-items-item guest">
+          <a class="nav-top-items-item-text" (click)="ECVUseCases()" data-toggle="dropdown">
+            <mat-icon>science</mat-icon>
+            <span class="hidden-xs text">ECVs Use Cases</span>
+          </a>
+        </div>
+      </li>
       <li>
         <div class="nav-top-items-item guest" [ngClass]="{ 'nav-top-items-item--active': this.dropdown === 'user' }">
           <a class="nav-top-items-item-text" (click)="toggleDropdown('user')" data-toggle="dropdown">

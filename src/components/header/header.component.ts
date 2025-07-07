@@ -179,6 +179,10 @@ export class HeaderComponent implements OnInit {
     this.tourService.triggerClearFiltersCall();
   }
 
+  public ECVUseCases(): void {
+    this.dialogService.openECVUseCases('Activate Scientific Example' );
+  }
+
 
   /**
    * The `share` function opens a dialog service to display a share information banner with a specified
