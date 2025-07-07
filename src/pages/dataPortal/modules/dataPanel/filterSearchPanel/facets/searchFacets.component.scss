@@ -67,9 +67,12 @@
 
   ::ng-deep mat-form-field,
   .countrySelect,
-  .dataProviderSelect {
+  .dataProviderSelect,
+  .ecvFilterSelect {
     width: 100%;
   }
+
+
 
   .button-container {
     display: flex;

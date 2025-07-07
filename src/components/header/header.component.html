@@ -28,6 +28,14 @@
   </div>
   <div class="header-actions-wrapper">
     <ul>
+      <li> 
+        <div class="nav-top-items-item guest">
+          <a class="nav-top-items-item-text" (click)="ECVUseCases()" data-toggle="dropdown">
+            <mat-icon>science</mat-icon>
+            <span class="hidden-xs text">ECVs Use Cases</span>
+          </a>
+        </div>
+      </li>
       <li>
         <div class="nav-top-items-item guest" [ngClass]="{ 'nav-top-items-item--active': this.dropdown === 'user' }">
           <a class="nav-top-items-item-text" (click)="toggleDropdown('user')" data-toggle="dropdown">

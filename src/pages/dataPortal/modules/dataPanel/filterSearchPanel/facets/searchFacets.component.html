@@ -77,6 +77,17 @@
       [label]="'Data and Service Providers'"
       [model]="organisationsModel"
       (newDataProvidersSelected)="dataProviderSelected($event)"></app-data-provider-filter>
+    <app-ecv-filter
+      class="ecvFilterSelect" 
+      [ECVsList]="ECVsList"
+      [ECVsSelected]="ECVsSelected"
+      [title]="'Filter by ECV'"
+      [label]="'ECV Filter'"
+      (newECVsSelected)="ecvSelected($event)"></app-ecv-filter>
+
+  </div>
+  <div>
+    
   </div>
   <div class="row">
     <div class="type-wrapper half" data-cy="data-visibility-selector">

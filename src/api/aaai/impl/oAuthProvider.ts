@@ -25,9 +25,9 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 /** OAuth provider implementation */
 export class OAuthAuthenticationProvider implements AuthenticationProvider {
-  private static readonly EPOS_CLIENT = 'eposICS';
-  private static readonly CYFRONET_ROOT = 'https://aaai.epos-eu.org';
-  private static readonly CYFRONET_ISSUER = OAuthAuthenticationProvider.CYFRONET_ROOT + '/oauth2';
+  private static readonly EPOS_CLIENT = '2d7f667e-9d6c-4c09-ad15-ceec571ae554';
+  private static readonly CYFRONET_ROOT = 'https://login.staging.envri.eu/auth/realms/envri';
+  private static readonly CYFRONET_ISSUER = OAuthAuthenticationProvider.CYFRONET_ROOT + '';
   private static readonly REVOKE_ENDPOINT = OAuthAuthenticationProvider.CYFRONET_ISSUER + '/revoke';
   private static readonly REDIRECTION_PAGE = '/last-page-redirect';
 

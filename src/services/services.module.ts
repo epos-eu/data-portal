@@ -31,6 +31,7 @@ import { LocalStoragePersister } from './model/persisters/localStoragePersister'
 import { PanelsEmitterService } from './panelsEventEmitter.service';
 import { TourService } from './tour.service';
 import { ShareService } from './share.service';
+import { ECVUseCasesService } from './ecvUseCases.service';
 /**
  * Module for registering new services that may be used anywhere in the app.
  */
@@ -60,6 +61,7 @@ export class ServicesModule {
         PanelsEmitterService,
         TourService,
         ShareService,
+        ECVUseCasesService
       ]
     };
   }

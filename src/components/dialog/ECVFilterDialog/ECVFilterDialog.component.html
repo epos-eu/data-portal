@@ -1,0 +1,139 @@
+<app-base-dialog [data]="data" [title]="title" class="content-data">
+  <ng-container class="content" id="contentData">
+    <div class="contentWrapper">
+      <div class="filter">
+        <div class="top nice-scrollbar">
+          <div class="alphabet">
+            <ul>
+              <li
+                style="margin-right: 30px"
+                (click)="activateLetter('selected')"
+                [ngClass]="{ danger: activeLetter === 'selected' }"
+              >
+                Selected
+              </li>
+              <li
+                (click)="activateLetter('')"
+                [ngClass]="{ danger: activeLetter === '' }"
+              >
+                ALL
+              </li>
+              <li
+                *ngFor="let letter of alphabetList"
+                  
+              >
+              <!-- ATTENTION: this part of code HAS to be placed in the preceding <li> element (the one with *ngFor let letter of alphabetlist) !!! FOR NOW, commented (no backend connecte, need the interface) FOR REFERENCE, GUARDA DATAPROVIDERFILTER -->
+              <!-- (click)="
+                  alphabetCheck.includes(letter) ? activateLetter(letter) : false
+                "
+                [ngClass]="{
+                  danger: letter === activeLetter,
+                  disabled: !alphabetCheck.includes(letter)
+                }" -->
+                {{ letter }}
+              </li>
+            </ul>
+          </div>
+          <div class="freetext">
+            <mat-form-field > <!-- *ngIf="!showOnlySelected" : This ngIf has to placed inside the beside left "mat-form-field", FOR REFERENCE, look at dataProviderFilterDialog -->
+              <mat-label>Free text search</mat-label>
+              <input
+                matInput
+                #freetext
+                [formControl]="freeTextFormControl"
+                placeholder="Free text search"
+                aria-name="Name"
+              />
+            </mat-form-field>
+          </div>
+        </div>
+        <div class="bottom"> <!-- *ngIf="showOnlySelected === false" : This ngIf has to placed inside the beside left "div class=bottom", FOR REFERENCE, look at dataProviderFilterDialog -->
+          Found
+          <strong
+            >{{ ECVCounter
+            }}{{
+              filters.country || filters.letter || filters.text
+                ? "/" + ECVCounterTotal
+                : ""
+            }}</strong
+          >
+          Data and Service Providers
+          {{
+            filters.country || filters.letter || filters.text ? " (filtered)" : ""
+          }}
+        </div>
+      </div>
+
+      <div class="ecvsCategoriesBoxes" style="display: flex;">
+
+        <!-- Atmosphere -->
+        <div class="ECVCategory" style="flex: 1;">
+          
+          <ng-container *ngFor="let category of ecvsArray">
+            <ng-container *ngIf="category.Atmosphere">
+              <div class="ECVCategoryHeader" id="atmosphere">
+                <h2>Atmosphere</h2>
+              </div>
+              <ul style="padding: 15px; height: 100%;">
+                <li *ngFor="let ecv of category.Atmosphere">
+                    <mat-checkbox>
+                      {{ ecv }}
+                    </mat-checkbox>
+                </li>
+              </ul>
+            </ng-container>
+          </ng-container>
+          
+        </div>
+      
+        <!-- Land -->
+        <div class="ECVCategory" style="flex: 1;">
+          
+          <ng-container *ngFor="let category of ecvsArray">
+            <ng-container *ngIf="category.Land">
+              <div class="ECVCategoryHeader" id="land">
+                <h2>Land</h2>
+              </div>
+              <ul style="padding: 15px; height: 100%;">
+                <li *ngFor="let ecv of category.Land">
+                    <mat-checkbox>
+                      {{ ecv }}
+                    </mat-checkbox>
+                </li>
+              </ul>
+            </ng-container>
+          </ng-container>
+          
+        </div>
+      
+        <!-- Ocean -->
+        <div class="ECVCategory" style="flex: 1;">
+          
+          <ng-container *ngFor="let category of ecvsArray">
+            <ng-container *ngIf="category.Ocean">
+              <div class="ECVCategoryHeader" id="ocean">
+                <h2>Ocean</h2>
+              </div>
+              <ul style="padding: 15px; height: 100%;">
+                <li *ngFor="let ecv of category.Ocean">
+                    <mat-checkbox>
+                      {{ ecv }}
+                    </mat-checkbox>
+                </li>
+              </ul>
+            </ng-container>
+          </ng-container>
+          
+        </div>
+      </div>
+
+
+    </div>
+    <!-- action buttons -->
+    <div class="actions">
+      <button mat-flat-button [color]="'primary'" type="submit" [disabled]="false" (click)="submit()">Apply</button>
+      <button mat-flat-button [color]="'secondary'" type="submit" [disabled]="false" (click)="cancel()">Cancel</button>
+    </div>
+  </ng-container>
+</app-base-dialog>
+

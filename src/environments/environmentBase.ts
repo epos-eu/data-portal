@@ -25,6 +25,10 @@ export const environmentBase = {
   version: (require('../../package.json') as Record<string, unknown>).version,
   githash: 'GITHASH', // populated during pipeline
   commitDate: 'COMMIT_DATE', // populated during pipeline
+
+  gitlabApiEcvUseCasesUrl:'https://raw.githubusercontent.com/epos-eu/ENVRI-Hub-Next-Use-Cases/refs/heads/main/useCases.JSON', // TO BE POPULATED (WHEN TOKEN AVAILABLE IN GITLAB(CREATE THE VARIABLES!))
+  gitlabApiEcvUseCasesToken:'', // No need for a token, the api is public. Keeping this variable for consistency with other variables.
+
   gitlabApiFeedbackProjectUrl: 'GITLAB_API_FEEDBACK_PROJECT_URL', // populated during pipeline
   gitlabApiFeedbackToken: 'GITLAB_API_FEEDBACK_TOKEN', // populated during pipeline
   eposSiteApiRestUrl: 'EPOS_SITE_API_REST_URL', // populated during pipeline
