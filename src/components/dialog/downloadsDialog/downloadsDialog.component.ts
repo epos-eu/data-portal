@@ -300,7 +300,7 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
   }
 
   public openCitationDialog(): void {
-    // We have to inject here instead of the constructor to avoid circular dependencies
+/*     // We have to inject here instead of the constructor to avoid circular dependencies
     const dialogService = this.injector.get(DialogService);
 
     // Open the dialog
@@ -308,7 +308,7 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
       this.distributionDetails,
       [0],  // Show only the first citation
       '50vw',
-    );
+    ); */
   }
 
   /**

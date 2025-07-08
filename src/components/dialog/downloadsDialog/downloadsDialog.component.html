@@ -92,7 +92,7 @@
       </mat-form-field>
       <mat-paginator #paginator matPaginator [pageSize]="10" [pageSizeOptions]="[5, 10, 25, 50, 100]"></mat-paginator>
     </div>
-    <div class="citation-wrapper">
+<!--     <div class="citation-wrapper">
       <p>
         <b>How to cite:</b>
         {{ citation }}
@@ -100,7 +100,7 @@
       <button mat-icon-button (click)="copyCitationToClipboard(citation)">
         <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
       </button>
-    </div>
+    </div> -->
     <div class="buttons" [hidden]="dataSource.data.length < 2">
       <button mat-flat-button [color]="'primary'" [disabled]="!selection.hasValue()" (click)="downloadSelected($event); openCitationDialog()">Download files</button>
       <button mat-flat-button [color]="'secondary'" [disabled]="!selection.hasValue()" (click)="downloadUrls()">Generate URLs</button>
