@@ -73,21 +73,21 @@ export const environmentBase = {
         url: window.location.href + '/api/v1/ui/',
         icon: 'cloud'
       },
-      {
+/*       {
         name: 'Open Source project',
         url: 'https://epos-eu.github.io/epos-open-source/',
         icon: 'shopping_basket'
-      },
-      {
+      }, */
+/*       {
         name: 'Citation Guide',
         url: 'https://www.epos-eu.org/sites/default/files/2024-03/01_EPOS%20DDSS%20Citation%20Guide%20v3.0_11Mar2024_270324_BA.pdf',
         icon: 'speaker_notes'
-      },
-      {
+      }, */
+/*       {
         name: 'Terms and Conditions ',
         url: 'https://www.epos-eu.org/sites/default/files/Terms_and_Conditions.pdf',
         icon: 'insert_drive_file'
-      }
+      } */
     ],
   },
   {
@@ -100,10 +100,10 @@ export const environmentBase = {
     action: 'startGuidedTour',
     icon: 'live_help',
   },
-  {
+/*   {
     name: 'Video Guides',
     action: 'videoguide',
     icon: 'movie',
-  }
+  } */
   ]
 };

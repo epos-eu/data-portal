@@ -20,6 +20,9 @@
     <div appRouterOutlet></div>
   </div>
 
+  <!-- Powered by EPOS (desktop only) -->
+  <app-powered-by *ngIf="!mobile"></app-powered-by>
+
   <div class="no-view" *ngIf="mobile">
   </div>
 </div>

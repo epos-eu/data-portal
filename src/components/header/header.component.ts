@@ -86,8 +86,9 @@ export class HeaderComponent implements OnInit {
     this.subscriptions.push(
       this.routeInfo.watchCurrentRoute().subscribe(() => {
         this.title = this.routeInfo.getDataValue('title', '')!;
-        this.version = this.routeInfo.getDataValue('version', environment.version)!;
-      }),
+        // Retrieves the version and displays it next to the title
+        // this.version = this.routeInfo.getDataValue('version', environment.version)!;
+       }),
       this.panelsEvent.invokeTablePanel.subscribe(() => {
         // closes the drop-down menu when the table panel opens
         this.dropdown = '';

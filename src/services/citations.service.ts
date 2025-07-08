@@ -29,13 +29,13 @@ export class CitationsService {
 
     return new Citation(
       'For citing the dataset as a reference in any publication',
-      `${name}, provided by ${providersString}${license ? `, ${license}` : ''}${doisString ? `, ${doisString}` : ''}. Accessed on ${this.getTodayString()} through the EPOS Data Portal (${this.URL})`,
+      `${name}, provided by ${providersString}${license ? `, ${license}` : ''}${doisString ? `, ${doisString}` : ''}. Accessed on ${this.getTodayString()} through the ENVRI-Hub Catalogue of Services (${this.URL})`,
     );
   }
 
   public getDataPortalCitation(): Citation {
     return new Citation(
-      'For citing the EPOS Data Portal as a reference in any publication',
+      'For citing the ENVRI-Hub Catalogue of Services as a reference in any publication',
       'Bailo, D., Paciello, R., Michalek, J. et al. The EPOS multi-disciplinary Data Portal for integrated access to solid Earth science datasets. Sci Data 10, 784 (2023). https://doi.org/10.1038/s41597-023-02697-9',
     );
   }
@@ -43,8 +43,8 @@ export class CitationsService {
   public getDataPortalContentsCitation(distributionDetails: DistributionDetails): Citation {
     const { providersString, doisString, license } = this.getCitationComponents(distributionDetails);
     return new Citation(
-      'For citing the EPOS Data Portal contents different from DDSS (e.g. images, pictures)',
-      `Credits: EPOS Data Portal (${this.URL}), ${providersString}${license ? `, ${license}` : ''}${doisString ? `, ${(doisString)}` : ''}. Accessed on ${this.getTodayString()}`,
+      'For citing the ENVRI-Hub Catalogue of Services contents different from DDSS (e.g. images, pictures)',
+      `Credits: ENVRI-Hub Catalogue of Services (${this.URL}), ${providersString}${license ? `, ${license}` : ''}${doisString ? `, ${(doisString)}` : ''}. Accessed on ${this.getTodayString()}`,
     );
   }
 

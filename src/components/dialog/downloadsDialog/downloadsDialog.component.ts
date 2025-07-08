@@ -138,7 +138,7 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
 
           // check there are external_link on featureCollection
           (data as FeatureCollection).features.forEach(feature => {
-            const externalLinks = ObjectHelper.getObjectArray(feature.properties ?? [], GeoJSONHelper.EXTERNAL_LINK_ATTR);
+            const externalLinks = ObjectHelper.getObjectArray(feature.properties ?? {}, GeoJSONHelper.EXTERNAL_LINK_ATTR);
             const links = JsonHelper.createExternalLinksAsHTMLProperties(externalLinks as Array<Record<string, unknown>>, true, true);
             if (links.length > 0) {
 
