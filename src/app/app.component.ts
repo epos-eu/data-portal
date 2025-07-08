@@ -78,7 +78,11 @@ export class AppComponent implements OnInit {
     private readonly activatedRoute: ActivatedRoute,
   ) {
 
-    if ((window.location.href.indexOf('policy-index') < 0)
+
+// I was requested to remove the policies popup and the welcome banner.
+// As a result, I have commented out the code block responsible for opening the CookiesBanner and InformationBanner
+
+/*     if ((window.location.href.indexOf('policy-index') < 0)
       && (!policiesService.hasConsents)) {
       void this.dialogService.openCookiesBanner();
     } else {
@@ -86,7 +90,7 @@ export class AppComponent implements OnInit {
       if (!informationService.infoEnabled && this.mobile === false) {
         void this.dialogService.openInformationBanner();
       }
-    }
+    } */
 
     if (policiesService.cookiesEnabled) {
       initHotjarFunc();
