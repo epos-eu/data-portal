@@ -64,7 +64,7 @@ export const environmentBase = {
     name: 'About',
     children: [
       {
-        name: 'About Data Portal',
+        name: 'About ENVRI',
         url: 'https://envri.eu/',
         icon: 'info'
       },
@@ -90,11 +90,11 @@ export const environmentBase = {
       } */
     ],
   },
-  {
+  /* {
     name: 'Feedback',
     action: 'feedback',
     icon: 'feedback',
-  },
+  }, */
   {
     name: 'Guided Tour',
     action: 'startGuidedTour',
