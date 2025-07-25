@@ -20,10 +20,11 @@ import { AuthenticationProvider } from '../authProvider.interface';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { AAAIUser } from '../aaaiUser.interface';
 import { BasicUser } from './basicUser';
-import { Injector } from '@angular/core';
+import { Injectable, Injector } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 /** OAuth provider implementation */
+@Injectable()
 export class OAuthAuthenticationProvider implements AuthenticationProvider {
   private static readonly EPOS_CLIENT = '2d7f667e-9d6c-4c09-ad15-ceec571ae554';
   private static readonly CYFRONET_ROOT = 'https://login.staging.envri.eu/auth/realms/envri';
@@ -111,6 +112,7 @@ export class OAuthAuthenticationProvider implements AuthenticationProvider {
         'openid',
         'profile',
         'email',
+        'offline_access',
       ].join(' '),
 
       disableAtHashCheck: true,
@@ -118,30 +120,29 @@ export class OAuthAuthenticationProvider implements AuthenticationProvider {
     return authConfig;
   }
 
-  private init() {
+  public async init() {
     this.configure();
     this.oAuthService.setupAutomaticSilentRefresh();
-    this.oAuthService.tokenValidationHandler = new JwksValidationHandler();
-    void this.oAuthService.loadDiscoveryDocumentAndTryLogin()
-      // maybe we should do this like this
-      // https://www.linkedin.com/pulse/implicit-flow-authentication-using-angular-ghanshyam-shukla
-      .catch((e) => {
-        console.warn('Caught Error - Failed to contact Authentication Server.', e);
-      })
-      .then(() => {
-        console.log('Successfully Contacted Authentication Server.');
-      });
-
+    /* this.oAuthService.tokenValidationHandler = new JwksValidationHandler(); */ // ATTENTION, TO BE VERIFIED: this is now commented out since returning an error, check how to maintain it with Code Flow!
     this.oAuthService.events.subscribe(e => {
+      console.log('OAuth event', e);
       // angular-oauth2-oidc EventType string values
       switch (e.type) {
-        case ('discovery_document_loaded'): // page refresh when logged in
+        case ('discovery_document_loaded'):
         case ('token_received'): // first logged in
         case ('logout'): // logout to clear user info
           this.updateUserProfile();
           break;
       }
     });
+    try {
+      await this.oAuthService.loadDiscoveryDocumentAndTryLogin();
+      if (this.oAuthService.hasValidAccessToken()) {
+        this.updateUserProfile(); 
+      }
+    } catch (e) {
+      console.warn('❌ Failed to contact Authentication Server.', e);
+    }
 
   }
 
