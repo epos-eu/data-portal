@@ -46,8 +46,8 @@ export class LastPageRedirectService {
     // get last navigated to page
     const lastPage = localStorage.getItem(this.KEY);
     void this.router.navigate(
-      [(lastPage == null) ? '' : lastPage],
-      { preserveFragment: true }, // Needed to retain token info during login redirect
+      [(lastPage == null) ? '' : lastPage]/* ,
+      { preserveFragment: true }, */ // Needed to retain token info during login redirect
     );
   }
 

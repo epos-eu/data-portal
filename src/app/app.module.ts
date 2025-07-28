@@ -15,10 +15,10 @@
  */
 import { AppComponent } from './app.component';
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import { Injector, NgModule } from '@angular/core';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
-import { UrlHelperService, OAuthModule, OAuthStorage } from 'angular-oauth2-oidc';
+import { UrlHelperService, OAuthModule, OAuthStorage, OAuthService } from 'angular-oauth2-oidc';
 import { CustomReuseStrategy } from 'utility/reuseStrategy';
 import { RouteReuseStrategy } from '@angular/router';
 import { PagesModule } from 'pages/pages.module';
@@ -41,6 +41,10 @@ import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar'
 import { MAT_TOOLTIP_DEFAULT_OPTIONS } from '@angular/material/tooltip';
 import { myCustomTooltipDefaults } from './app.materialTooltipOptions';
 import { TrackerModule } from 'utility/tracker/tracker.module';
+import { OAuthAuthenticationProvider } from 'api/aaai/impl/oAuthProvider';
+import { authAppInitializer } from 'api/auth-app.initializer';
+import { APP_INITIALIZER } from '@angular/core';
+import { AaaiService, aaaiServiceFactory } from 'api/aaai.service';
 
 /**
  * This is the root module, included by the main.ts file, which is core to the Angular app.
@@ -81,6 +85,21 @@ import { TrackerModule } from 'utility/tracker/tracker.module';
     { provide: MatBottomSheetRef, useValue: {} },
     { provide: MAT_BOTTOM_SHEET_DATA, useValue: {} },
     { provide: MAT_BOTTOM_SHEET_DEFAULT_OPTIONS, useValue: { hasBackdrop: true, disableClose: true } },
+    {
+      provide: OAuthAuthenticationProvider,
+      useClass: OAuthAuthenticationProvider,
+    },
+    {
+      provide: AaaiService,
+      useFactory: aaaiServiceFactory,
+      deps: [Injector, OAuthService]
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: authAppInitializer,
+      deps: [OAuthAuthenticationProvider],
+      multi: true
+    },
     { provide: OAuthStorage, useFactory: oauthStorageFactory },
     LastPageRedirectService,
     { provide: MatSnackBarRef, useValue: {} },
