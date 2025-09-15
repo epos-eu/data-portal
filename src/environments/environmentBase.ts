@@ -100,6 +100,11 @@ export const environmentBase = {
     action: 'startGuidedTour',
     icon: 'live_help',
   },
+  {
+    name: 'Backoffice',
+    url: 'https://catalogue.staging.envri.eu/backoffice/login',
+    icon: 'edit_document'
+  },
 /*   {
     name: 'Video Guides',
     action: 'videoguide',
