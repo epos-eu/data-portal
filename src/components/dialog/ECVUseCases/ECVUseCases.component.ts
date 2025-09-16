@@ -47,7 +47,7 @@ export class ECVUseCases implements OnInit {
         this.ecvUseCases = examplesData;
          // Set the first example as the default selected example if data exists
     if (this.ecvUseCases.length > 0) {
-      this.selectedExample = this.examples[0];
+      this.selectedExample = this.ecvUseCases[0];
     }
       },
       error: (error) => {
