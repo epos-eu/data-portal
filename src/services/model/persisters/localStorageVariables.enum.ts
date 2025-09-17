@@ -17,6 +17,12 @@ export enum LocalStorageVariables {
   STORAGE_PREFIX = 'EPOS_',
   LS_VERSION = 'version',
   LS_INFO_CHECK = 'infoCheck',
+  // Dialog Check Metadata Status ("don't show again")
+  LS_METADATA_STATUS_MODE = 'metaDataStatusCheck',
+  // Metadata Preview Mode active or not
+  LS_METADATA_PREVIEW_MODE = 'metadataPreviewMode',
+  // Metadata Preview Mode selected statuses ('published', 'draft'...)
+  LS_METADATA_PREVIEW_SELECTED_STATUSES = 'metadataPreviewSelectedStatuses',
   LS_CONFIGURABLES = 'configurables',
   LS_TOUR_ACTIVE = 'tourActive',
   LS_MAP_ZOOM = 'mapZoom',

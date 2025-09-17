@@ -40,6 +40,7 @@ import { DistributionDetails } from '../../api/webApi/data/distributionDetails.i
 import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
 import { ECVUseCaseDataType, ECVUseCases } from './ECVUseCases/ECVUseCases.component';
 import { ECVFilterDialogComponent } from './ECVFilterDialog/ECVFilterDialog.component';
+import { MetaDataStatusDialogComponent } from './metaDataStatusDialog/metaDataStatusDialog.component';
 
 /**
  * A service used for showing dialogs.
@@ -123,6 +124,41 @@ export class DialogService extends BaseDialogService {
       },
     ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
   }
+
+  public openMetaDataStatusDialog(
+    options: {
+      dialogTitle?: string;
+      closable?: boolean;
+      userRole?: string;
+      activateMetadataStatusModeCssClass?: string;
+      cancelButtonHtml?: string;
+    } = {}
+  ): Promise<boolean> {
+    const {
+      dialogTitle = 'Activate Metadata Preview Mode?',
+      closable = false,
+      userRole = '',
+      activateMetadataStatusModeCssClass = 'confirm',
+      cancelButtonHtml = 'Cancel'
+    } = options;
+
+    return this.openDialog<ConfirmationDataIn>(
+      'metaDataStatus',
+      MetaDataStatusDialogComponent,
+      'no-resize',
+      closable,
+      {
+        dialogTitle: dialogTitle,
+        userRole: userRole,
+        activateMetadataStatusModeCssClass: activateMetadataStatusModeCssClass,
+        cancelButtonHtml: cancelButtonHtml,
+      },
+      {
+        width: '30vw'
+      }
+    ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
+  }
+
 
   /**
    * The function `openDetailsDialog` opens a dialog box with details data, positioned relative to a

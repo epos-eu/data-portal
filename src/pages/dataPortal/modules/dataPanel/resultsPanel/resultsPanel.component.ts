@@ -36,6 +36,8 @@ import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { SearchService } from '../../../../../services/search.service';
 import { LeafletLoadingService } from '../../../../../utility/eposLeaflet/services/leafletLoading.service';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
+import { AaaiService } from 'api/aaai.service';
 
 @Unsubscriber(['domainSubscription', 'subscriptions'])
 @Component({
@@ -47,7 +49,7 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
 
   private serviceParent: HTMLTableElement;
 
-  constructor(protected readonly model: Model,
+  constructor(readonly model: Model,
     public readonly configurables: DataSearchConfigurablesServiceResource,
     protected readonly dialogService: DialogService,
     protected readonly loadingService: LoadingService,
@@ -60,8 +62,10 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
     protected readonly searchService: SearchService,
     private readonly tracker: Tracker,
     protected readonly leafletLoadingService: LeafletLoadingService,
+    protected readonly metadataStatusService: MetaDataStatusService,
+    protected readonly aaaiService: AaaiService,
   ) {
-    super(configurables, dialogService, loadingService, landingService, panelsEvent, resultPanelService, localStoragePersister, notification, searchService, leafletLoadingService);
+    super(configurables, dialogService, loadingService, landingService, panelsEvent, resultPanelService, localStoragePersister, notification, searchService, leafletLoadingService, metadataStatusService, model, aaaiService);
 
     this.context = CONTEXT_RESOURCE;
   }

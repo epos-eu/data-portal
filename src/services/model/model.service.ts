@@ -31,6 +31,8 @@ import { FacetLeafItemMI } from './modelItems/facetLeafItemMI';
 import { TypeDataMI } from './modelItems/typeDataMI';
 import { LocalStorageVariables } from './persisters/localStorageVariables.enum';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { MetadataPreviewModeMI } from './modelItems/metadataPreviewModeMI';
+import { MetadataPreviewModeStatusesMI } from './modelItems/metadataPreviewModeStatusesMI';
 
 /**
  * The model service is a globally accessible single point of truth.  It is a wrapper for
@@ -137,6 +139,22 @@ export class Model extends ModelBase {
    * infrastructure search page search.
    */
   public infrastructureSearchSelectedItem = ModelItem.makeNullable<ItemSummary>();
+
+  // START OF Metadata Preview Mode Model Items -----------------------------------------------------
+  /**
+   * A {@link ModelItem} for accessing the status of Metadata Preview Mode (active or not) and the selected metadata statuses
+   * (Selected Statuses still need to be correclty implemented in this model!)
+   */
+  /* public metadataPreviewMode = new MetadataPreviewModeMI(); */
+  public metadataPreviewMode = new MetadataPreviewModeMI();
+
+  /**
+   * A {@link ModelItem} for accessing the selected statuses of Metadata Preview Mode
+   */
+  /* public metadataPreviewModeStatuses = new MetadataPreviewModeStatusesMI(); */
+  public metadataPreviewModeStatuses = new MetadataPreviewModeStatusesMI();
+  // END OF Metadata Preview Mode Model Items ----------------------------------------------------------------------
+
 
   /**
    * Initialises the object and sets the persistance to use a {@link LocalStoragePersister} as the

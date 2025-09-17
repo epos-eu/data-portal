@@ -103,6 +103,38 @@
                       <ng-container>
                         <app-visible-on [item]="element" [configurables]="configurables" data-cy="results-panel-visible-on"></app-visible-on>
                       </ng-container>
+                      <!-- START OF Metadata Preview Area: Author/Date AND Versioning (Published, Draft...) -->
+                      <ng-container *ngIf="metadataStatusModeActive === true && element.versioningStatus !== '' && showStatusChipsOnCards ">
+                        
+                        <div *ngIf="element.versioningStatusInfo.versioningStatusInfo[0]" style="display: flex; flex-wrap: wrap; justify-content: start; align-items: center;">
+                          <p style="display: flex; width: 100%; justify-content: start; align-items: center; gap: 2px; margin-bottom: 3px;">
+                            Last change:
+                            <mat-icon>calendar_month</mat-icon>
+                            {{ element.versioningStatusInfo.versioningStatusInfo[0].changeDate | date:'dd/MM/yyyy' }}
+                            <mat-icon>schedule</mat-icon>
+                            {{ element.versioningStatusInfo.versioningStatusInfo[0].changeDate | date:'HH:mm' }}
+                          </p>
+                          <br/>
+                          <p style="display: flex; width: 100%; justify-content: start; align-items: center; gap: 2px; margin-bottom: 3px;">
+                            Author:
+                            <mat-icon>person</mat-icon>
+                            {{ element.versioningStatusInfo.versioningStatusInfo[0].editorFullName }}
+                          </p>
+                        </div>
+                        
+                        <p style="display: flex; width: 100%; justify-content: start; align-items: center; gap: 2px; margin-bottom: 3px;">
+                          Status:
+                          <mat-chip style="height: auto; font-size: 5px; padding: 0 4px; line-height: 1.2; border-radius: 777px;"
+                          [ngClass]="{
+                          'metadata-published-status': element.versioningStatus === 'PUBLISHED',
+                          'metadata-submitted-status': element.versioningStatus === 'SUBMITTED',
+                          'metadata-draft-status': element.versioningStatus === 'DRAFT',
+                          'metadata-archived-status': element.versioningStatus === 'ARCHIVED'
+                          }">
+                        {{ element.versioningStatus }}</mat-chip>
+                        </p>
+                      </ng-container>
+                      <!-- END OF Metadata Preview Area -->
                     </div>
                     <div class="informations-bottom-right"></div>
                   </div>

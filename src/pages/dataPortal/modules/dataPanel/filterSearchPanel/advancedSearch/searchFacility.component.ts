@@ -44,6 +44,8 @@ import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { DataSearchConfigurablesServiceResource } from '../../services/dataSearchConfigurables.service';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
+import { DataSearchService } from 'services/dataSearch.service';
 
 
 /**
@@ -100,9 +102,13 @@ export class SearchFacilityComponent implements OnInit {
   /** Timer used to ensure that the search isn't done too many times in quick succession. */
   private searchTimer: NodeJS.Timeout;
 
+  private metadataStatusModeActive: boolean = false;
+  private selectedStatuses: Array<string> = [];
+
   /** Constructor. */
   public constructor(
     private readonly dataSearchService: SearchService,
+    private readonly dataSearchServiceAuth: DataSearchService,
     private landingService: LandingService,
     private readonly model: Model,
     private mapInteractionService: MapInteractionService,
@@ -112,6 +118,7 @@ export class SearchFacilityComponent implements OnInit {
     private readonly configurables: DataSearchConfigurablesServiceResource,
     private readonly localStoragePersister: LocalStoragePersister,
     private readonly tracker: Tracker,
+    private readonly metadataStatusService: MetaDataStatusService
   ) {
     this.filteredKeys = this.autoCompleteFormControl.valueChanges.pipe(
       startWith(''),
@@ -134,6 +141,43 @@ export class SearchFacilityComponent implements OnInit {
 
       this.model.dataSearchBounds.valueObs.subscribe(() => {
         this.triggerAdvancedSearch();
+      }),
+
+      this.model.metadataPreviewMode.valueObs.subscribe((active: boolean)=>{
+        if(active){
+          this.metadataStatusModeActive = true;
+        }
+        else{
+          this.metadataStatusModeActive = false;
+        }
+      }),
+      // using this subscription for startup, page reload, trigger of search call from Header component
+      this.model.metadataPreviewModeStatuses.valueObs.subscribe((selectedStatuses: null | Array<string>)=>{
+        if(this.metadataStatusModeActive && selectedStatuses !== null ){
+
+          if(selectedStatuses.length === 0){
+            this.selectedStatuses = [];
+            this.triggerAdvancedSearch();
+            return;
+          }
+          this.selectedStatuses = selectedStatuses as Array<string>;
+          // at startup, loggedIn not immediately available, so subscription
+          if(this.model.user.get() == null){
+            this.model.user.valueObs.subscribe((logged)=>{
+              if(logged !== null){
+                this.triggerAdvancedSearch();
+              }
+            });
+          }
+          // if already loggedIn and just selecting/deselecting statuses
+          else{
+            this.triggerAdvancedSearch();
+          }
+        }
+        else if(this.metadataStatusModeActive === false){
+          this.selectedStatuses = [];
+          this.triggerAdvancedSearch();
+        }
       }),
 
       this.landingService.returnToLandingObs.subscribe(() => {
@@ -177,14 +221,28 @@ export class SearchFacilityComponent implements OnInit {
     // reset text
     this.newText = this.listKeyString.toString();
 
-    this.doSearch(SimpleDiscoverRequest.makeFullQuery(
-      CONTEXT_RESOURCE,
-      this.newText,
-      this.model.dataSearchTemporalRange.get(),
-      this.model.dataSearchBounds.get(),
-      null,
-      this.model.dataSearchFacetLeafItems.get(),
-    ));
+    // if metadata preview mode active and selectedStatuses not empty
+    if(this.metadataStatusModeActive === true && this.selectedStatuses.length > 0 && this.model.user.get() !== null){
+      this.doSearchWithAuth(SimpleDiscoverRequest.makeFullQuery(
+        CONTEXT_RESOURCE,
+        this.newText,
+        this.model.dataSearchTemporalRange.get(),
+        this.model.dataSearchBounds.get(),
+        null,
+        this.model.dataSearchFacetLeafItems.get(),
+        this.selectedStatuses
+      ));
+    }
+    else{
+      this.doSearch(SimpleDiscoverRequest.makeFullQuery(
+        CONTEXT_RESOURCE,
+        this.newText,
+        this.model.dataSearchTemporalRange.get(),
+        this.model.dataSearchBounds.get(),
+        null,
+        this.model.dataSearchFacetLeafItems.get(),
+      ));
+    }
 
   }
 
@@ -345,6 +403,21 @@ export class SearchFacilityComponent implements OnInit {
     clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       void this.dataSearchService.search(request).then(() => {
+        this.somethingChanged();
+      });
+    }, 100);
+  }
+
+  /**
+   * Triggers a search. It differs from the 'doSearch' in which the request includes the Authorization-header.
+   * Uses the {@link #searchTimer} to ensure not called too often.
+   * @param request An object containing the search parameters.
+   */
+  private doSearchWithAuth(request: DiscoverRequest): void {
+    // Ensure not called too many times in succession on init
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      void this.dataSearchServiceAuth.doSearch(request).then(() => {
         this.somethingChanged();
       });
     }, 100);

@@ -19,6 +19,7 @@ import { PageLoadingService } from '../pageLoading.service';
 import { DataSearchService } from 'services/dataSearch.service';
 import { SearchService } from 'services/search.service';
 import { AaaiService } from 'api/aaai.service';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
 
 /**
  * All this class does is stop circular dependencies on the model service.
@@ -38,6 +39,7 @@ export class ModelPrimer {
     private readonly searchService: SearchService,
     private readonly injector: Injector,
     private readonly aaaiService: AaaiService,
+    private readonly metadataStatusService: MetaDataStatusService
   ) {
   }
 
@@ -48,6 +50,7 @@ export class ModelPrimer {
       SearchService: this.searchService,
       Injector: this.injector,
       AaaiService: this.aaaiService,
+      MetaDataStatusService: this.metadataStatusService
     });
   }
 }
