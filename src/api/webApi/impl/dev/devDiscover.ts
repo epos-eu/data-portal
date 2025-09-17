@@ -123,6 +123,13 @@ export class DevDiscoverApi implements DiscoverApi {
       builder.addParameter('organisations', value);
     }
 
+    // versioning Status ("Metadata Status" feature)
+    const versioningStatus = request.getVersioningStatus();
+    if(versioningStatus != null && versioningStatus.length > 0){
+      const value: string = versioningStatus.join(',');
+      builder.addParameter('versioningStatus', value);
+    }
+
     // the search URL
     const url = builder.build();
 

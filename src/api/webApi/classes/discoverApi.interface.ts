@@ -55,4 +55,8 @@ export interface DiscoverRequest {
   getOrganisationIds(): null | Array<string>;
 
   hasTemporalRange(): boolean;
+
+  // used in search calls for 'Metadata Status' feature
+  getVersioningStatus(): null | Array<string>;
+
 }

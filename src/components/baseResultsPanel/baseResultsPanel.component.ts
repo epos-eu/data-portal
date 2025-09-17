@@ -48,6 +48,10 @@ import { LeafletLoadingService } from '../../utility/eposLeaflet/services/leafle
 import { NotificationSnackComponent } from '../notificationSnack/notificationSnack.component';
 import { MatSnackBarRef } from '@angular/material/snack-bar';
 import { environment } from 'environments/environment';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
+import { AAAIUser } from 'api/aaai/aaaiUser.interface';
+import { Model } from 'services/model/model.service';
+import { AaaiService } from 'api/aaai.service';
 
 @Unsubscriber(['domainSubscription', 'subscriptions'])
 @Component({
@@ -87,6 +91,13 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
   public messageType = NotificationService.TYPE_INFO;
   public messageCheckShowAgain = false;
 
+  public metadataStatusModeActive: boolean = false;
+
+  public metadataSelectedStatuses: Array<string> = [];
+
+  public showStatusChipsOnCards: boolean = false;
+
+
   protected timeout: NodeJS.Timeout;
   protected favTimeout: NodeJS.Timeout;
 
@@ -116,6 +127,9 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
     protected readonly notification: NotificationService,
     protected readonly searchService: SearchService,
     protected readonly leafletLoadingService: LeafletLoadingService,
+    protected readonly metadataStatusService: MetaDataStatusService,
+    protected readonly model: Model,
+    protected readonly aaaiService: AaaiService,
   ) {
     this.expandedElement = null;
   }
@@ -217,6 +231,23 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
 
             this.configurables.watchAll().subscribe(() => {
               this.updateConfigs();
+            }),
+
+            this.model.metadataPreviewMode.valueObs.subscribe((active)=>{
+              // resultsPanel checks this variable for its template
+              if(active != null){
+                this.metadataStatusModeActive = active;
+                this.showStatusChipsOnCards = false;
+              }
+            }),
+
+            this.aaaiService.watchUser().subscribe((user: null | AAAIUser)=>{
+              if(user == null && this.metadataStatusModeActive === true){
+                this.metadataStatusModeActive = false;
+                this.showStatusChipsOnCards = false;
+                this.metadataStatusService.metadataStatusModeActive.next(false);
+                this.metadataStatusService.metadataSelectedStatuses.next([]);
+              }
             }),
 
             // notification by data service

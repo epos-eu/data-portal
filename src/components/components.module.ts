@@ -29,6 +29,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { InfoToolTipComponent } from './infoToolTip/infoToolTip.component';
 import { LoginComponent } from './login/login.component';
 import { LoadingComponent } from './loading/loading.component';
@@ -96,6 +97,7 @@ import { PoweredByComponent } from './powered-by/powered-by.component';
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
     MatTreeModule,
     MatExpansionModule,

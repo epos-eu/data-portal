@@ -77,6 +77,7 @@ import { CitationDialogComponent } from './citationDialog/citationDialog.compone
 import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
 import { ECVUseCases } from './ECVUseCases/ECVUseCases.component';
 import { ECVFilterDialogComponent } from './ECVFilterDialog/ECVFilterDialog.component';
+import { MetaDataStatusDialogComponent } from './metaDataStatusDialog/metaDataStatusDialog.component';
 
 
 /**
@@ -110,7 +111,8 @@ import { ECVFilterDialogComponent } from './ECVFilterDialog/ECVFilterDialog.comp
     CitationDialogComponent,
     ShareInformationsDialogComponent,
     ECVUseCases,
-    ECVFilterDialogComponent
+    ECVFilterDialogComponent,
+    MetaDataStatusDialogComponent,
   ],
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   imports: [
