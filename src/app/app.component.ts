@@ -79,13 +79,11 @@ export class AppComponent implements OnInit {
   ) {
 
 
-// I was requested to remove the policies popup and the welcome banner.
-// As a result, I have commented out the code block responsible for opening the CookiesBanner and InformationBanner
-
-/*     if ((window.location.href.indexOf('policy-index') < 0)
+    // Commenting out only information banner for now
+    if ((window.location.href.indexOf('policy-index') < 0)
       && (!policiesService.hasConsents)) {
       void this.dialogService.openCookiesBanner();
-    } else {
+    } /* else {
       this.checkMobile();
       if (!informationService.infoEnabled && this.mobile === false) {
         void this.dialogService.openInformationBanner();
