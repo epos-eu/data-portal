@@ -20,7 +20,6 @@ jobs:
 
       - name: Docker build
         run: |
-          ./gitlab/pre-build.sh
           npm run build-prod
           docker build . -t epos/data-portal:latest
 
