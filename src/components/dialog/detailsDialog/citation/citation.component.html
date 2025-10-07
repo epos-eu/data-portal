@@ -8,7 +8,7 @@
     </ng-container>
     <ng-container matColumnDef="citation">
       <td mat-cell *matCellDef="let citation; let i = index" data-cy="details-dialog-how-to-cite-value">
-        {{ citation.citation }}
+        <span [innerHTML]="citation.citation" #citationEl></span>
       </td>
     </ng-container>
     <ng-container matColumnDef="copyButton">

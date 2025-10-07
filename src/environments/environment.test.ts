@@ -24,6 +24,8 @@ export const environmentTest = {
     matomoTrackEvent: false,
     modules: {
       data: true, // turns the data section on and off
+      analysis: false, // turns the analysis section on and off
+      registry: true // turns the registry section on and off
     },
   }
 };

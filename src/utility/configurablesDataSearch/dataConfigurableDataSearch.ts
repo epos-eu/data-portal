@@ -34,6 +34,7 @@ import { NotificationService } from 'services/notification.service';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
+
 export class DataConfigurableDataSearch
   extends DataConfigurableParamValues
   implements DataConfigurableDataSearchI {
@@ -45,6 +46,10 @@ export class DataConfigurableDataSearch
   private readonly pinnedSrc = new BehaviorSubject<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public pinnedObs = this.pinnedSrc.asObservable();
+
+
+  private layerBboxSrc = new BehaviorSubject<number[] | null>(null);
+
 
   private readonly selectedSrc = new BehaviorSubject<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/member-ordering
@@ -58,6 +63,7 @@ export class DataConfigurableDataSearch
     temporalOverrides?: TemporalRange,
   ) {
     super(injector, distributionDetails, paramValues, spatialOverrides, temporalOverrides);
+
 
     const copyUrlAction = new DataConfigurableAction(
       'Copy URL',
@@ -94,7 +100,7 @@ export class DataConfigurableDataSearch
       .then((dist: DistributionDetails) => {
         const paramValues = (object.paramValues as Array<Record<string, unknown>>)
           .map((obj: Record<string, unknown>) => new SimpleParameterValue(String(obj.name), String(obj.value)));
-
+        const layerBbox: Array<number> = [];
         const levels = (object.levels as Array<Record<string, unknown>>)
           .map((obj: Record<string, unknown>) => new SimpleDistributionLevel(Number(obj.id), String(obj.value)));
         return new DataConfigurableDataSearch(injector, dist, paramValues)
@@ -104,10 +110,19 @@ export class DataConfigurableDataSearch
           .setSpatialLinked(!!object.spatialLinked)
           .setTemporalLinked(!!object.temporalLinked)
           .setShowSpatialCoverage(!!object.showSpatialCoverage)
-          .setLevels(levels);
+          .setLevels(levels)
+          .setLayerBbox(layerBbox);
       })
       .catch(() => null)
     );
+  }
+
+  public setLayerBbox(layerBbox: Array<number> | null){
+    this.layerBboxSrc.next(layerBbox);
+    return this;
+  }
+  public getLayerBbox(){
+    return this.layerBboxSrc.value;
   }
 
 
@@ -174,6 +189,7 @@ export class DataConfigurableDataSearch
       temporalLinked: this.isTemporalLinked(),
       showSpatialCoverage: this.getShowSpatialCoverage(),
       levels: this.getLevels(),
+      layerBbox: this.getLayerBbox(),
     };
   }
 
@@ -224,7 +240,8 @@ export class DataConfigurableDataSearch
       .setSpatialLinked(this.isSpatialLinked())
       .setTemporalLinked(this.isTemporalLinked())
       .setShowSpatialCoverage(this.getShowSpatialCoverage())
-      .setLevels(this.getLevels());
+      .setLevels(this.getLevels())
+      .setLayerBbox(this.getLayerBbox());
 
     if (null != newNewParams) {
       newConfigurable.setNewParams(newNewParams);

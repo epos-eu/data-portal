@@ -29,6 +29,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { InfoToolTipComponent } from './infoToolTip/infoToolTip.component';
 import { LoginComponent } from './login/login.component';
 import { LoadingComponent } from './loading/loading.component';
@@ -53,6 +54,7 @@ import { BaseResultsPanelComponent } from './baseResultsPanel/baseResultsPanel.c
 import { BaseLandingService } from 'pages/dataPortal/services/baseLanding.service';
 import { MenuComponent } from './menu/menu.component';
 import { MenuService } from './menu/menu.service';
+import { PoweredByComponent } from './powered-by/poweredBy.component';
 
 /**
  * Module for registering new components that may be used anywhere in the app.
@@ -76,6 +78,7 @@ import { MenuService } from './menu/menu.service';
     VisibleOnComponent,
     BaseResultsPanelComponent,
     MenuComponent,
+    PoweredByComponent,
   ],
   imports: [
     RouterModule,
@@ -92,6 +95,7 @@ import { MenuService } from './menu/menu.service';
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
     MatTreeModule,
     MatExpansionModule,
@@ -115,6 +119,7 @@ import { MenuService } from './menu/menu.service';
     MultiSelectComponent,
     VisibleOnComponent,
     BaseResultsPanelComponent,
+    PoweredByComponent
   ],
 })
 

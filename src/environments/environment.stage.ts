@@ -19,11 +19,11 @@ import { environmentBase } from './environmentBase';
 export const environmentStage = {
   ...environmentBase,
   ...{
-    matomoEndpoint: 'EPOS_STAGE_MATOMO_ENDPOINT', // populated during pipeline
-    matomoSiteId: 'EPOS_STAGE_MATOMO_SITE_ID', // populated during pipeline
     matomoTrackEvent: true,
     modules: {
       data: true, // turns the data section on and off
+      analysis: false, // turns the analysis section on and off
+      registry: true // turns the registry section on and off
     },
   }
 };

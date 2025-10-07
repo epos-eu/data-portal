@@ -23,6 +23,7 @@ import { TourService } from 'services/tour.service';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
+import { environment } from 'environments/environment';
 
 /**
  * The header component that is displayed in the app.
@@ -83,9 +84,17 @@ export class MenuComponent {
           this.injector.get(DialogService).openShareInformationBanner('createUrl', 'COPY URL ON CLIPBOARD');
           break;
 
+        case 'stats':
+          this.injector.get(DialogService).openStatsDialog();
+          break;
+
         case 'resetall':
           this.injector.get(LocalStoragePersister).resetAllVariables(true);
           track = false;
+          break;
+
+        case 'fairAssessment':
+          window.open(environment.fairAssessmentUrl, '_blank');
           break;
 
         default:

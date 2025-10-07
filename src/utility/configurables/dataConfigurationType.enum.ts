@@ -14,5 +14,6 @@
  the License.
  */
 export enum DataConfigurationType {
-  DATA
+  DATA,
+  ANALYSIS,
 }

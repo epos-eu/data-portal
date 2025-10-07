@@ -66,7 +66,9 @@ import { VideoComponent } from './videoGuidesDialog/videoComponent/video.compone
 import { MobileDisclaimerDialogComponent } from './mobileDisclaimerDialog/mobileDisclaimerDialog.component';
 import { ContactFormDialogComponent } from './contactFormDialog/contactFormDialog.component';
 import { MatTreeModule } from '@angular/material/tree';
+import { CreateEnvironmentFormDialogComponent } from './analysisDialogs/createEnvironmentFormDialog/createEnvironmentFormDialog.component';
 import { DataConfigurationModule } from 'pages/dataPortal/modules/dataConfiguration/dataConfiguration.module';
+import { ConfigurationModule } from 'pages/dataPortal/modules/analysisPanel/components/configurationComponent/configuration.module';
 import { DataProviderFilterDialogComponent } from './dataProviderFilterDialog/dataProviderFilterDialog.component';
 import { GraphPanelDialogComponent } from './graphPanelDialog/graphPanelDialog.component';
 import { GraphPanelModule } from 'pages/dataPortal/modules/graphPanel/graphPanel.module';
@@ -75,6 +77,11 @@ import { TablePanelDialogComponent } from './tablePanelDialog/tablePanelDialog.c
 import { CitationComponent } from './detailsDialog/citation/citation.component';
 import { CitationDialogComponent } from './citationDialog/citationDialog.component';
 import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
+import { SwitchItemConfirmationDialogComponent } from './switchItemConfirmationDialog/switchItemConfirmationDialog.component';
+import { MatomoStatsDialogComponent } from 'components/dialog/matomoStatsDialog/matomoStatsDialog.component';
+import { ScientificExamplesDialogComponent } from './scientificExamplesDialog/scientificExamplesDialog.component';
+import { CrsIncompatDialogComponent } from './crsIncompatDialog/crsIncompatDialog.component';
+import { MetaDataStatusDialogComponent } from './metaDataStatusDialog/metaDataStatusDialog.component';
 
 
 /**
@@ -95,18 +102,24 @@ import { ShareInformationsDialogComponent } from './shareInformationsDialog/shar
     ParametersDialogComponent,
     SpatialCoverageMapComponent,
     InformationsDialogComponent,
+    ScientificExamplesDialogComponent,
     TourDialogComponent,
     DownloadsDialogComponent,
     VideoGuidesDialogComponent,
     VideoComponent,
     MobileDisclaimerDialogComponent,
     ContactFormDialogComponent,
+    CreateEnvironmentFormDialogComponent,
     DataProviderFilterDialogComponent,
     GraphPanelDialogComponent,
     TablePanelDialogComponent,
     CitationComponent,
     CitationDialogComponent,
     ShareInformationsDialogComponent,
+    SwitchItemConfirmationDialogComponent,
+    MatomoStatsDialogComponent,
+    CrsIncompatDialogComponent,
+    MetaDataStatusDialogComponent
   ],
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   imports: [
@@ -145,6 +158,7 @@ import { ShareInformationsDialogComponent } from './shareInformationsDialog/shar
     MatSlideToggleModule,
     MatTreeModule,
     DataConfigurationModule,
+    ConfigurationModule,
     GraphPanelModule,
     TablePanelModule,
   ],

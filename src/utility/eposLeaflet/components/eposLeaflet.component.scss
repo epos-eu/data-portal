@@ -222,6 +222,32 @@
     & .leaflet-tooltip {
       font-size: 12px;
     }
+    
+    // these rules are uniquely intended to address imageOverlay Layers: 
+    // needed to prevent antialising default behaviour and show well defined pixel when zooming.
+    .leaflet-container img.leaflet-image-layer {
+        
+      /* max-width: none !important; */
+        
+      /* Preserve crisp pixels with scaled up images */
+      image-rendering: optimizeSpeed;
+      /* Legal fallback */
+      image-rendering: -moz-crisp-edges;
+      /* Firefox        */
+      image-rendering: -o-crisp-edges;
+      /* Opera          */
+      image-rendering: -webkit-optimize-contrast;
+      /* Safari         */
+      image-rendering: optimize-contrast;
+      /* CSS3 Proposed  */
+      image-rendering: crisp-edges;
+      /* CSS4 Proposed  */
+      image-rendering: pixelated;
+      /* CSS4 Proposed  */
+      -ms-interpolation-mode: nearest-neighbor;
+      /* IE8+           */
+    }
+
   }
 
   .custom-layer-control {

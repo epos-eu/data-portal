@@ -41,12 +41,12 @@ export class LoginComponent {
 
   constructor(
     private readonly aaai: AaaiService,
-    private readonly model: Model,
+    private readonly model: Model
   ) {
     this.subscriptions.push(
       this.model.user.valueObs.subscribe((user: AAAIUser) => {
         this.user = user;
-      })
+      }),
     );
     this.user = this.model.user.get();
 

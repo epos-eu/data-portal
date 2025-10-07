@@ -14,7 +14,7 @@
  the License.
  */
 
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, ChangeDetectorRef } from '@angular/core';
 import { Map as LMap } from 'leaflet';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { MapLayer } from '../layers/mapLayer.abstract';
@@ -27,6 +27,8 @@ import { Style } from 'utility/styler/style';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { GeoJSONImageOverlayMapLayer } from 'utility/maplayers/geoJSONImageOverlayMapLayer';
 
+type WmsCrsRow = { layerName: string; crs: string; status: boolean };
+
 @Unsubscriber('subscriptions')
 @Component({
   selector: 'app-layer-control',
@@ -37,16 +39,31 @@ export class LayerControlComponent implements OnInit {
 
   public selectedBaseLayerVal = '';
 
+  public currentCRS: string = 'EPSG:3857';
 
   public orderedLayers: Array<MapLayer> = [];
-  public basemapToggled = true;
 
+  public arcticOverlays: Array<MapLayer> = [];
+
+  public filteredBaseLayers: BaseLayerOption[] = [];
+
+  public basemapToggled = true;
 
   protected subscriptions: Array<Subscription> = new Array<Subscription>();
 
   private _map: LMap;
 
-  constructor(private layersService: LayersService) {
+  constructor(
+    private layersService: LayersService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  get activeArcticOverlaysCount(): number {
+    if (!this.arcticOverlays) {
+      return 0;
+    }
+    // Counts the layers that are NOT hidden.
+    return this.arcticOverlays.filter(layer => !layer.hidden.get()).length;
   }
 
   @Input() set map(map: LMap) {
@@ -56,27 +73,64 @@ export class LayerControlComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Retrieve stored CRS or use default
+    this.currentCRS = this.layersService.getStoredCRS() ?? 'EPSG:3857';
 
+    // Load and apply base layer for current CRS
+    const baseMapStorage = this.layersService.getBaseLayerFromStorage(this.currentCRS);
+    this.applyBaseLayerState(baseMapStorage);
+
+    // Reactive subscriptions
     this.subscriptions.push(
 
+      // CRS change → update current CRS and base layer
+      this.layersService.crsChange$.subscribe((newCRS: string) => {
+        this.currentCRS = newCRS;
+        const updatedBaseMap = this.layersService.getBaseLayerFromStorage(newCRS);
+        this.applyBaseLayerState(updatedBaseMap);
+
+        // Re-trigger compatibility checks for current layers (new CRS)
+        for (const layer of this.orderedLayers) {
+          // reset pending promise to allow a fresh run for the new CRS
+          if (this.isTileCrsCheckCapable(layer)) {
+            layer.crsCheckReady = undefined;
+          }
+          // trigger (lazy) check; UI will update when the async finishes
+          this.checkLayerCompatibility(layer);
+        }
+      }),
+
+      // Layer changes → reorder visible layers
       this.layersService.layersChangeSourceObs.subscribe((layers: Array<MapLayer>) => {
         this.orderLayers(layers);
+
+        // Trigger (lazy) compatibility checks for any new/updated layer
+        for (const layer of this.orderedLayers) {
+          this.checkLayerCompatibility(layer);
+        }
       }),
+
+      // Base layer change (e.g. via radio or toggle) → update state and options
       this.layersService.baseLayerChangeSourceObs.subscribe((basemap: BaseLayerOption) => {
-        if (null != basemap) {
-          this.basemapToggled = (basemap !== baseLayerOptions[0]) ? true : false;
+        if (basemap) {
+          this.applyBaseLayerState(basemap);
         }
       })
-
     );
+  }
 
-    const baseMapStorage = this.layersService.getBaseLayerFromStorage();
-    this.selectedBaseLayer(baseMapStorage.name);
+  public applyBaseLayerState(basemap: BaseLayerOption): void {
+    this.selectedBaseLayer(basemap.name);
+    this.basemapToggled = basemap.name !== 'None';
 
+    this.filteredBaseLayers = baseLayerOptions.filter(
+      b =>
+        b.supportedCRS?.includes(this.currentCRS) ||
+        b.name === basemap.name
+    );
   }
 
   public drop(event: CdkDragDrop<MapLayer[]>): void {
-
     if (event.previousContainer === event.container) {
       this.changeOrder(event.container.data, event.previousIndex, event.currentIndex);
     }
@@ -88,12 +142,90 @@ export class LayerControlComponent implements OnInit {
 
   public updateEnable(event: MatSlideToggleChange): void {
     if (event.checked) {
-      this.layersService.baseLayerChange(this.layersService.lastActiveBaseLayer);
+      this.layersService.baseLayerChange(this.layersService.lastActiveBaseLayer, this.currentCRS);
       this.selectedBaseLayer((this.layersService.lastActiveBaseLayer as BaseLayerOption).name);
+
+      if (this.arcticOverlays && this.arcticOverlays.length > 0) {
+        this.arcticOverlays.forEach(layer => {
+          layer.hidden.set(false);
+          this.layersService.setArticOverlayLayerVisibility(layer.id, true);
+        });
+      }
+
     } else {
-      this.layersService.baseLayerChange(baseLayerOptions.find((basemap: BaseLayerOption) => basemap.name === 'None')!);
+      const noneLayer = baseLayerOptions.find(b => b.name === 'None')!;
+      this.layersService.baseLayerChange(noneLayer, this.currentCRS);
       this.selectedBaseLayer('None');
+
+      if (this.arcticOverlays && this.arcticOverlays.length > 0) {
+        this.arcticOverlays.forEach(layer => {
+          layer.hidden.set(true);
+          this.layersService.setArticOverlayLayerVisibility(layer.id, false);
+        });
+      }
     }
+  }
+
+  /**
+   * Returns true if the layer is compatible with the current CRS.
+   * Uses layer-internal check (WMS/WMTS) when available; otherwise falls back to supportsCRS if provided.
+   * Triggers an async CRS check on first call for a given CRS.
+   */
+  public checkLayerCompatibility(layer: MapLayer): boolean {
+    const targetCrs = (this.currentCRS ?? 'EPSG:3857').toUpperCase();
+
+    // Fast path: default projection considered OK
+    if (targetCrs === 'EPSG:3857') {
+      return true;
+    }
+
+    // Tile-layer path (WMS or WMTS via duck-typing)
+    if (this.isTileCrsCheckCapable(layer)) {
+      const rowsForCrs: WmsCrsRow[] =
+        layer.crsCompatibilityResults?.filter(r => (r.crs || '').toUpperCase() === targetCrs) ?? [];
+
+      // If we already have results for this CRS, use them
+      if (rowsForCrs.length > 0) {
+        return rowsForCrs.every(r => r.status === true);
+      }
+
+      // Otherwise, trigger the async check once
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      if (!layer.crsCheckReady && typeof layer.checkCrsCompatibility === 'function') {
+        layer.crsCheckReady = layer.checkCrsCompatibility(targetCrs)
+          .then((rows: WmsCrsRow[]) => {
+            // Merge results: keep other CRS rows, add/replace this CRS rows
+            const others = (layer.crsCompatibilityResults ?? []).filter(
+              r => (r.crs || '').toUpperCase() !== targetCrs
+            );
+            layer.crsCompatibilityResults = [...others, ...rows];
+            // Refresh UI (especially with OnPush)
+            this.cdr.markForCheck();
+          })
+          .catch(() => {
+            // Swallow errors; stay optimistic to avoid blocking UI
+          });
+      }
+
+      // Optimistic until results come back
+      return true;
+    }
+
+    // Fallback for non tile layers: call supportsCRS if present
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+    const anyLayer = layer as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (typeof anyLayer.supportsCRS === 'function') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        return !!anyLayer.supportsCRS(targetCrs);
+      } catch {
+        return true;
+      }
+    }
+
+    // Default: consider compatible
+    return true;
   }
 
   /**
@@ -115,14 +247,35 @@ export class LayerControlComponent implements OnInit {
   }
 
   /**
+   * Type guard via duck-typing for tile layers (WMS/WMTS) exposing CRS-check fields.
+   */
+  private isTileCrsCheckCapable(layer: MapLayer): layer is MapLayer & {
+    crsCheckReady?: Promise<void>;
+    crsCompatibilityResults: WmsCrsRow[];
+    checkCrsCompatibility?: (crs: string) => Promise<WmsCrsRow[]>;
+  } {
+    return !!layer
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      && 'crsCompatibilityResults' in (layer as any)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      && Array.isArray((layer as any).crsCompatibilityResults);
+  }
+
+  /**
    * The function orders map layers based on their visibility and sets their z-index.
    * @param layersArray - An array of MapLayer objects that need to be ordered.
    */
-  private orderLayers(layersArray: Array<MapLayer>) {
+  private orderLayers(layersArray: Array<MapLayer>): void {
+    const visibleLayers = this.checkVisible(layersArray);
 
-    this.orderedLayers = this.checkVisible(layersArray);
+    this.orderedLayers = visibleLayers.filter(
+      (layer: MapLayer) => layer.options.pane.get() !== 'arcticOverlays'
+    );
+
+    this.arcticOverlays = visibleLayers.filter(
+      (layer: MapLayer) => layer.options.pane.get() === 'arcticOverlays'
+    );
   }
-
 
   /**
    * The function `checkVisible` filters an array of `MapLayer` objects based on their visibility and

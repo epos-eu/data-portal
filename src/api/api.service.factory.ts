@@ -40,6 +40,10 @@ import { LoggingService } from 'services/logging.service';
 import { SuccessHandler } from './webApi/classes/successHandler.interface';
 import { SuccessHandlerImpl } from './webApi/impl/successHandler';
 import { NotificationService } from 'services/notification.service';
+import { EnvironmentApi } from './webApi/classes/environments/environmentApi.interface';
+import { DevEnvironmentApi } from './webApi/impl/dev/devEnvironment';
+import { EnvironmentTypeApi } from './webApi/classes/environments/environmentTypeApi.interface';
+import { DevEnvironmentTypeApi } from './webApi/impl/dev/devEnvironmentType';
 import { MatDialog } from '@angular/material/dialog';
 import { ShareApi } from './webApi/classes/shareApi.interface';
 import { DevShareApi } from './webApi/impl/dev/devShare';
@@ -49,6 +53,7 @@ const AUTHENTICATING_API_URL = '/api/v1';
 const AUTHENTICATING_API = 'Authenticating';
 
 export const CONTEXT_RESOURCE = 'resources';
+export const CONTEXT_FACILITY = 'facilities';
 
 /**
  * Wrap API in service.
@@ -116,8 +121,11 @@ export const devApiFactory = (
 
   const shareApi: ShareApi = new DevShareApi(baseUrl, rest);
 
+  const environmentApi: EnvironmentApi = new DevEnvironmentApi(baseUrl, rest);
+  const environmentTypeApi: EnvironmentTypeApi = new DevEnvironmentTypeApi(baseUrl, rest);
+
   return new DevCompositeApi(discoverApi, aaaiApi, dictionaryApi, searchApi,
-    detailsApi, executionApi, shareApi);
+    detailsApi, executionApi, shareApi, environmentApi, environmentTypeApi);
 };
 
 /**

@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, Injector } from '@angular/core';
+import { Component, Injector, OnInit, ComponentFactoryResolver, ViewContainerRef } from '@angular/core';
 import {
   MapLayer,
   BoundingBox as EposLeafletBoundingBox,
@@ -23,6 +23,7 @@ import {
   CustomLayerControl,
   MoveMethod,
   FeatureDisplayItem,
+  CrsPreset,
 } from 'utility/eposLeaflet/eposLeaflet';
 import { OnAttachDetach } from 'decorators/onAttachDetach.decorator';
 import { BehaviorSubject, Subscription } from 'rxjs';
@@ -47,8 +48,24 @@ import { GeoJSONImageOverlayMapLayer } from 'utility/maplayers/geoJSONImageOverl
 import { GeoJSONHelper } from 'utility/maplayers/geoJSONHelper';
 import { Feature } from 'geojson';
 import { PopupProperty } from 'utility/maplayers/popupProperty';
-import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { DataSearchConfigurablesServiceRegistry } from '../registryPanel/services/dataSearchConfigurables.service';
+import { CONTEXT_FACILITY, CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { DataSearchConfigurablesServiceResource } from '../dataPanel/services/dataSearchConfigurables.service';
+import { ArcticSwitchControls } from 'utility/eposLeaflet/components/controls/ArcticSwitchControls/arcticSwitchControls';
+import { EPSG_3995, RES_3995 } from 'utility/eposLeaflet/projections/custom-crs';
+import { ExportMapAsImage } from 'utility/eposLeaflet/components/controls/exportMapAsImage/ExportMapAsImage';
+import { ResetZoomControl } from 'utility/eposLeaflet/components/controls/resetZoomControl/ResetZoomControl';
+import { ExportMapAsImageService } from 'utility/eposLeaflet/services/exportMapAsImageService.service';
+import { DialogService } from 'components/dialog/dialog.service';
+// map.component.ts (excerpt)
+import { WmsCrsCheckService } from 'utility/eposLeaflet/services/wms-crs-check.service';
+import { WmsCrsNotifierService } from 'utility/eposLeaflet/services/wms-crs-notifier.service';
+// import { MeasureDistanceControl } from 'utility/eposLeaflet/components/controls/measureDistanceControl/measureDistanceControl';
+import {
+  ArcticContoursLayer,
+  ArcticReferenceLayer,
+  SmartGraticuleLayer,
+} from 'utility/maplayers/arctic-layers';
 
 @OnAttachDetach('onAttachComponents')
 @Unsubscriber('subscriptions')
@@ -57,18 +74,19 @@ import { DataSearchConfigurablesServiceResource } from '../dataPanel/services/da
   templateUrl: './map.component.html',
   styleUrls: ['./map.component.scss'],
 })
-export class MapComponent {
-
+export class MapComponent implements OnInit {
   public eposLeaflet: EposLeafletComponent;
   public bboxControl = new DrawBBoxControl(false);
   public crs = L.CRS.EPSG3857;
   public initialLatLng: [number, number];
   public initialZoom: number;
+  public minZoom: number;
+  public maxZoom: number;
   public currentDataConfigurables = new Array<DataConfigurableI>();
   public currentDataConfigurablesStyleSubs = new Map<string, Subscription>();
   public currentIdToMapLayerIdMap = new Map<string, Array<string>>();
   public previousCoverageLayerIdsString = '';
-
+  public readonly maxZoom3995 = RES_3995.length - 1; // use full resolution range of RES_3995
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   private readonly mapLayerGenerator: MapLayerGenerator;
@@ -78,19 +96,67 @@ export class MapComponent {
   private readonly defaultBboxStyleSecond = { color: '#ffff00', fillColor: '#ffff00', weight: 3, opacity: 1, fillOpacity: 0.2, enable: true };
 
   private bboxContext: string | null = null;
+  private controls: L.Control[] = [];
+
+  private readonly crsPresets = new Map<string, CrsPreset>([
+    ['EPSG:3857', {
+      initialLatLng: MapInteractionService.initialLatLng,
+      initialZoom: MapInteractionService.initialZoom,
+      minZoom: 2.5,
+      maxZoom: 18,
+      crs: L.CRS.EPSG3857,
+    }],
+    ['EPSG:3995', {
+      initialLatLng: [90, 0],
+      initialZoom: 3,
+      minZoom: 2,
+      maxZoom: RES_3995.length - 1,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      crs: EPSG_3995,
+    }],
+  ]);
 
   constructor(
     private injector: Injector,
     private readonly configurables: DataSearchConfigurablesServiceResource,
+    private readonly configurablesRegistry: DataSearchConfigurablesServiceRegistry,
     private readonly mapInteractionService: MapInteractionService,
     private readonly layersService: LayersService,
     private readonly panelsEvent: PanelsEmitterService,
     private readonly localStoragePersister: LocalStoragePersister,
+    private readonly wmsCheck: WmsCrsCheckService,
+    private readonly wmsNotify: WmsCrsNotifierService,
+    private componentFactoryResolver: ComponentFactoryResolver,
+    private viewContainerRef: ViewContainerRef,
+    private exportMapAsImageService: ExportMapAsImageService,
+    private dialogService: DialogService,
   ) {
     this.mapLayerGenerator = MapLayerGenerator.make(injector);
     this.initialLatLng = MapInteractionService.initialLatLng;
     this.initialZoom = MapInteractionService.initialZoom;
   }
+
+  /**
+   * Returns true if the view (center/zoom) should be restored from storage for
+   * the currently active CRS.
+   */
+  public get shouldRestoreView(): boolean {
+    return this.layersService.getStoredCRS() === this.crs?.code;
+  }
+
+
+  ngOnInit(): void {
+    const storedCRSCode = this.layersService.getStoredCRS() ?? 'EPSG:3857';
+    const preset = this.crsPresets.get(storedCRSCode)!;
+    this.crs = preset.crs;
+    this.minZoom = preset.minZoom;
+    this.maxZoom = preset.maxZoom;
+
+    if (this.crs.code === 'EPSG:3995') {
+      this.layersService.notifyCrsChange(this.crs.code);
+    }
+  }
+
 
   public onAttach(): void {
     if (this.eposLeaflet) {
@@ -98,27 +164,162 @@ export class MapComponent {
     }
   }
 
+  /**
+   * Entry-point invoked by the child EposLeafletComponent when the underlying
+   * Leaflet map is ready. This is where we:
+   *  - initialize UI controls,
+   *  - configure CRS-dependent defaults (center/zoom/min-max zoom),
+   *  - decide whether to restore the view from storage,
+   *  - add base layers, and
+   *  - set up subscriptions.
+   */
   public leafletMapObjReady(eposLeaflet: EposLeafletComponent): void {
-    this.eposLeaflet = eposLeaflet
-      .addControl(L.control.mousePosition({ emptyString: 'Position' }).setPosition('topright'))
-      .addControl(new SearchControl(false).setPosition('topright'))
-      .addControl(this.bboxControl.setPosition('topright'))
-      .addControl(L.control.zoom().setPosition('topright'))
-      .addControl(new CustomLayerControl(this.injector).setPosition('topright'))
-      .addControl(L.control.scale({ metric: true, imperial: false, maxWidth: 200 }).setPosition('bottomright'))
-      .enableLayerClickManager();
+    this.eposLeaflet = eposLeaflet;
 
-    const baseLayerFromStorage = this.layersService.getBaseLayerFromStorage();
+    // Apply the preset to the child component
+    const preset = this.crsPresets.get(this.crs.code!)!;
+    this.eposLeaflet.applyPreset(preset);
+
+    // Decide whether to restore the view from storage
+    this.eposLeaflet.restoreViewFromStorage = (this.layersService.getStoredCRS() === this.crs.code);
+
+    // Add controls and layers
+    this.initControls();
+    const baseLayerFromStorage = this.layersService.getBaseLayerFromStorage(this.crs.code);
     this.eposLeaflet.addLayers(baseLayerFromStorage.getLayers());
+    this.layersService.lastActiveBaseLayer = baseLayerFromStorage;
+
+    // Initialize subscriptions
     this.initSubscriptions();
+    // Call `removeAllControls` to remove all controls if needed
+    this.exportMapAsImageService.removeControlsObservable.subscribe(() => {
+      console.warn('Removing all controls');
+      this.removeAllControls();
+      document.querySelector('.geocoder-control')?.remove();
+      document.querySelector('.search-clear')?.remove();
+    });
+    this.exportMapAsImageService.addControlsObservable.subscribe(() => {
+      this.addAllControls();
+    });
   }
 
+  public removeAllControls(): void {
+    const geocoderControl = document.querySelector('.geocoder-control') as HTMLElement | null;
+    const searchClear = document.querySelector('.search-clear') as HTMLElement | null;
+    const leafletRuller = document.querySelector('.leaflet-ruler') as HTMLElement | null;
+
+    if (geocoderControl) {
+      geocoderControl.style.visibility = 'hidden';
+    }
+    if (searchClear) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      searchClear.style.visibility = 'hidden';
+    }
+    if (leafletRuller) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      leafletRuller.style.visibility = 'hidden';
+    }
+    // Assuming this.controls is an array of Leaflet control objects
+    this.controls.forEach(control => {
+      if (control.getContainer()) {
+        control.getContainer()!.style.visibility = 'hidden';
+      }
+    });
+  }
+
+  public addAllControls(): void {
+    this.controls.forEach(control => {
+      if (control.getContainer()) {
+        control.getContainer()!.style.visibility = 'visible';
+      }
+    });
+    const geocoderControl = document.querySelector('.geocoder-control') as HTMLElement | null;
+    const searchClear = document.querySelector('.search-clear') as HTMLElement | null;
+    const leafletRuller = document.querySelector('.leaflet-ruler') as HTMLElement | null;
+    if (geocoderControl) {
+      geocoderControl.style.visibility = 'visible';
+    }
+    if (searchClear) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      searchClear.style.visibility = 'visible';
+    }
+    if (leafletRuller) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      leafletRuller.style.visibility = 'visible';
+    }
+  }
+
+
+
+  /**
+   * (Re)creates and adds all Leaflet controls for the current map instance.
+   * Also adds non-controllable, default layers based on the current CRS.
+   */
+  public initControls(): void {
+    const controls: L.Control[] = [];
+
+    this.manageArcticLayers();
+
+    // Recreate every control to avoid stale references when the map is destroyed and rebuilt
+    const bboxControl = new DrawBBoxControl(false);
+
+    const arcticSwitchControl = new ArcticSwitchControls(
+      this.eposLeaflet.crs.code === 'EPSG:3995',
+      (useArctic: boolean) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        void this.switchToCRS(useArctic ? EPSG_3995 : L.CRS.EPSG3857);
+      }
+    );
+
+    const mousePositionControl = L.control.mousePosition({ emptyString: 'Position' }).setPosition('topright');
+    const searchControl = new SearchControl(false).setPosition('topright');
+    const bboxcontrol = bboxControl.setPosition('topright');
+    const zoomControl = L.control.zoom().setPosition('topright');
+    const customLayerControl = new CustomLayerControl(this.injector).setPosition('topright');
+    const exportMapAsImage = new ExportMapAsImage(this.injector, this.componentFactoryResolver, this.viewContainerRef, this.exportMapAsImageService, this.dialogService);
+    // MEASUR DISTANCE - const measureDistanceControl = new MeasureDistanceControl(this.dialogService);
+    const scaleControl = L.control.scale({ metric: true, imperial: false, maxWidth: 200 }).setPosition('bottomright');
+    const resetZoomControl = new ResetZoomControl(this.layersService).setPosition('topright');
+
+    // Add all controls to the current map instance
+    controls.push(
+      mousePositionControl,
+      searchControl,
+      arcticSwitchControl,
+      zoomControl,
+      resetZoomControl,
+      customLayerControl,
+      scaleControl,
+      bboxcontrol,
+      exportMapAsImage
+      // measureDistanceControl
+    );
+
+    this.eposLeaflet.enableLayerClickManager();
+
+    controls.forEach(c => this.eposLeaflet.addControl(c));
+
+    this.controls = controls;
+
+    // Update internal reference to bboxControl for other features
+    this.bboxControl = bboxControl;
+  }
+
+
+  /**
+   * Re-add or refresh layers originating from a given DataConfigurable when its
+   * style changes, so the rendered appearance stays in sync with the model.
+   */
   public refreshMapLayersOnStyleChange(dataConfigurable: DataConfigurable): void {
     this.eposLeaflet.getLayers().forEach((mapLayer: MapLayer) => {
       if (mapLayer.id.startsWith(dataConfigurable.id)) {
         this.addLayer(mapLayer);
       }
     });
+  }
+
+  public isArctic(): boolean {
+    return this.crs?.code === 'EPSG:3995';
   }
 
   /**
@@ -175,11 +376,18 @@ export class MapComponent {
 
   }
 
+
   private initSubscriptions(): void {
 
     let previousBbox: EposLeafletBoundingBox;
 
     this.subscriptions.push(
+
+      this.configurablesRegistry.watchAll().subscribe((dataConfigurables: Array<DataConfigurableI>) => {
+        if (dataConfigurables !== null) {
+          this.configurablesExecute(dataConfigurables, CONTEXT_FACILITY);
+        }
+      }),
 
       this.configurables.watchAll().subscribe((dataConfigurables: Array<DataConfigurableI>) => {
         if (dataConfigurables != null) {
@@ -195,9 +403,26 @@ export class MapComponent {
 
       this.mapInteractionService.centerMapBBox.observable.subscribe((bbox: BoundingBox) => {
         if (bbox.isBounded()) {
+          // current zoomSnap and zoomDelta values (needed to reset to these after zoom)
+          const originalZoomSnap = this.eposLeaflet.leafletMapObj.options.zoomSnap;
+          const originalZoomDelta = this.eposLeaflet.leafletMapObj.options.zoomDelta;
+          // setting more discrete steps when zooming on a service data
+          this.eposLeaflet.leafletMapObj.options.zoomSnap = 0.6;
+          this.eposLeaflet.leafletMapObj.options.zoomDelta = 0.9;
+
           this.eposLeaflet.leafletMapObj.fitBounds(
-            [[bbox.getMinLat(), bbox.getMinLon()], [bbox.getMaxLat(), bbox.getMaxLon()]],
-            { padding: [300, 300], maxZoom: 5 });
+            [[bbox.getMinLat(), bbox.getMinLon()], [bbox.getMaxLat(), bbox.getMaxLon()]]);
+
+          // resetting zoomSnap and zoomDelta
+          this.eposLeaflet.leafletMapObj.options.zoomSnap = originalZoomSnap;
+          this.eposLeaflet.leafletMapObj.options.zoomDelta = originalZoomDelta;
+        }
+      }),
+
+      // for now, only used to reset zoom level to initial value (triggered from mapIntSer)
+      this.mapInteractionService.zoomLevel.observable.subscribe((zoomLevel: null | number) => {
+        if (zoomLevel !== null) {
+          this.eposLeaflet.leafletMapObj.setZoom(zoomLevel);
         }
       }),
 
@@ -231,7 +456,9 @@ export class MapComponent {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const styleMap = styleMapString !== null ? new Map(Object.entries(JSON.parse(styleMapString))) : new Map();
           let style = JSON.stringify(this.defaultBboxStyle) as string;
-
+          if (bbox.getId() === CONTEXT_FACILITY) {
+            style = JSON.stringify(this.defaultBboxStyleSecond) as string;
+          }
           if (styleMap.has(bbox.getId() + MapLayer.BBOX_LAYER_ID)) {
             style = JSON.stringify(styleMap.get(bbox.getId() + MapLayer.BBOX_LAYER_ID));
           }
@@ -459,7 +686,7 @@ export class MapComponent {
       id = bbox.getId() + type;
     }
 
-    // prevent remove type layer
+    // Prevent removing the type layer
     this.eposLeaflet.removeLayerById(type);
 
     if (!bbox.isBounded()) {
@@ -470,6 +697,9 @@ export class MapComponent {
 
       if (style.color === null) {
         style = this.defaultBboxStyle;
+        if (bbox.getId() === CONTEXT_FACILITY) {
+          style = this.defaultBboxStyleSecond;
+        }
       }
 
       const styleClass = new Style(style.color as string ?? '#3388ff');
@@ -489,7 +719,12 @@ export class MapComponent {
         .setStylingFunction(() => style)
         .visibleOnLayerControl.set(true);
 
-      layer.name = 'Data Spatial Filter';
+      let preBboxName = 'Data ';
+      if (bbox.getId() === CONTEXT_FACILITY) {
+        preBboxName = 'Facilities ';
+      }
+
+      layer.name = preBboxName + 'Spatial Filter';
 
       layer.options.customLayerOptionOpacity.set(style.opacity as number);
       layer.options.customLayerOptionMarkerType.set(MapLayer.MARKERTYPE_POLYGON);
@@ -552,6 +787,16 @@ export class MapComponent {
     // create map layer
     const mapLayers: Array<MapLayer> = this.mapLayerGenerator.createMapLayersFromConfigurable(dataConfigurable, this.eposLeaflet);
 
+    const savedVisibilities = this.layersService.getArticOverlayLayersVisibilityStorage();
+
+    // APPLICA LE PREFERENZE A OGNI LAYER APPENA CREATO
+    mapLayers.forEach(layer => {
+      const savedState = savedVisibilities.get(layer.id);
+      if (savedState !== undefined) {
+        layer.options.customLayerOptionStylable.get()?.getStyle()?.setEnable(savedState);
+      }
+    });
+
     // remove previous subscription
     this.removeConfigurableStyleSubscription(dataConfigurable.id);
     // add new subscription, which will add maplayer immediately
@@ -577,10 +822,14 @@ export class MapComponent {
         });
       }
       this.addLayer(mapLayer);
+
       mapLayerIds.push(mapLayer.id);
     });
 
     this.currentIdToMapLayerIdMap.set(dataConfigurable.id, mapLayerIds);
+
+    // === Start the CRS check on WMS layers ===
+    void this.runWmsChecksForLayers(mapLayers, this.crs.code);
   }
 
 
@@ -590,6 +839,246 @@ export class MapComponent {
       this.currentDataConfigurablesStyleSubs.delete(id);
     }
   }
+
+
+  /**
+   * Switches the underlying Leaflet map to a new Coordinate Reference System (CRS).
+   * This method orchestrates the entire teardown and rebuild process to ensure a clean transition.
+   *
+   * @param crs The new L.CRS object to apply (e.g., L.CRS.EPSG3857 or a custom Proj.CRS).
+   */
+  private async switchToCRS(crs: L.CRS): Promise<void> {
+    // Exit if the map component isn't ready or if we are already using the target CRS.
+    if (!this.eposLeaflet || this.eposLeaflet.crs.code === crs.code) {
+      return;
+    }
+
+    try {
+
+
+      // --- STEP 1: CLEANUP & STATE CAPTURE ---
+
+      // Explicitly clean up existing RxJS subscriptions and Leaflet controls to prevent memory leaks.
+      this.destroySubscriptions();
+      this.controls.forEach(control => control.remove());
+      this.controls = [];
+
+      this.mapInteractionService.startBBox.set(false);
+      if (this.bboxControl) {
+        this.bboxControl.clearBoundingBox();
+      }
+      this.mapInteractionService.mapBBox.set(SimpleBoundingBox.makeUnbounded());
+
+      // Disable the click manager during the transition to prevent user interactions.
+      this.eposLeaflet.disableLayerClickManager();
+
+      // Take a snapshot of the current map state before destroying it.
+      // This includes all visible data layers (non-base layers) and their Z-index order.
+      const baseLayerIds = this.layersService.lastActiveBaseLayer.getLayers().map(layer => layer.id);
+      const visibleDataLayers = this.eposLeaflet.getLayers().filter(layer => !baseLayerIds.includes(layer.id));
+      const storedZIndices = this.layersService.getLayersOrderStorage();
+
+      const snapshot = {
+        visibleDataLayers,
+        layerZIndices: storedZIndices,
+      };
+
+      // Remove all current layers (both base and data) from the map instance.
+      // We use a dedicated method that avoids altering the persisted layer order in storage.
+      [...baseLayerIds, ...snapshot.visibleDataLayers.map(l => l.id)].forEach(id => {
+        this.eposLeaflet.removeLayerByIdCRS(id);
+      });
+
+
+      // --- STEP 2: REBUILD THE MAP ---
+
+      // Get the appropriate view settings (center, zoom, etc.) for the target CRS from our presets.
+      // This assumes you have defined `this.crsPresets` as suggested earlier.
+      const preset = this.crsPresets.get(crs.code!)!;
+
+      // Update zoom level
+      this.minZoom = preset.minZoom;
+      this.maxZoom = preset.maxZoom;
+
+      // Apply the preset to the child EposLeafletComponent and persist the view settings in local storage.
+      this.eposLeaflet.applyPreset(preset, { persist: true });
+
+      // Recreate the Leaflet map instance with the new CRS. This is an async operation that
+      // destroys the old map object and creates a fresh one.
+      await this.eposLeaflet.reinitializeWithCRS(crs);
+
+
+      // --- STEP 3: RESTORE THE STATE ---
+
+      // Update the component's internal state to reflect the new CRS.
+      this.crs = crs;
+
+      // Load and apply the appropriate base layer for the new CRS from the LayersService.
+      const newBaseLayer = this.layersService.getBaseLayerFromStorage(crs.code);
+      this.layersService.baseLayerChange(newBaseLayer, crs.code);
+      this.layersService.lastActiveBaseLayer = newBaseLayer;
+      this.layersService.setCurrentMapCRS(crs.code!);
+
+      // Restore all data layers, controls, and subscriptions onto the new map instance.
+      this.restoreMapState(snapshot);
+
+      // Asynchronously check WMS layers for compatibility with the new CRS.
+      void this.runWmsChecksForLayers(snapshot.visibleDataLayers, crs.code);
+
+    } catch (error) {
+      console.error('Error switching CRS:', error);
+      // As a fallback, re-enable the click manager to ensure the UI remains interactive.
+      this.eposLeaflet.enableLayerClickManager();
+    }
+  }
+
+
+  /**
+   * Re-attaches previously visible data layers, restores their Z-index,
+   * reinitializes controls and subscriptions, and finalizes the map state.
+   *
+   * @param snapshot An object containing the data layers and their Z-indices to restore.
+   */
+  private restoreMapState(snapshot: {
+    visibleDataLayers: MapLayer[];
+    layerZIndices: Map<string, string>;
+  }): void {
+    const map = this.eposLeaflet.getLeafletObject();
+
+    // Loop through the data layers from the snapshot and add them back to the map.
+    snapshot.visibleDataLayers.forEach(layer => {
+      // Check if the layer is managed by a "DataConfigurable". If so, refresh it
+      // to ensure its style and data are up-to-date. Otherwise, just re-add the layer.
+      const conf = this.currentDataConfigurables.find(c => layer.id.startsWith(c.id));
+      if (conf) {
+        this.refreshMapLayersOnStyleChange(conf as DataConfigurable);
+      } else {
+        this.eposLeaflet.addLayer(layer);
+      }
+
+      // Restore the layer's Z-index to maintain the correct visual stacking order.
+      // This is done by setting the zIndex style on the layer's corresponding map pane.
+      const zIndex = snapshot.layerZIndices.get(layer.id);
+      const pane = map.getPane(layer.id);
+      if (pane && zIndex) {
+        pane.style.zIndex = zIndex;
+        layer.options.customLayerOptionZIndex.set(zIndex);
+      }
+    });
+
+    // Recreate and re-add all UI controls (zoom, search, etc.) to the new map instance.
+    this.initControls();
+
+    // Re-establish all RxJS subscriptions for map interactions.
+    this.initSubscriptions();
+
+    // Finalize the process by ordering the map panes according to their z-index
+    // and re-enabling the layer click manager for user interaction.
+    this.eposLeaflet.orderLayerOnMap();
+    this.eposLeaflet.enableLayerClickManager();
+  }
+
+  /**
+   * Unsubscribes from all active RxJS subscriptions and clears the array.
+   * This is a crucial cleanup step to prevent memory leaks when the component
+   * logic is re-initialized, for example during a CRS switch.
+   */
+  private destroySubscriptions(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions.length = 0; // Empty the array
+  }
+
+  /**
+ * Manages the lifecycle of layers specific to the Arctic projection.
+ * - If the map is in Arctic mode, creates and adds the layers.
+ * - If the map is not in Arctic mode, ensures the layers are removed.
+ */
+  private manageArcticLayers(): void {
+    // List of IDs of layers we manage
+    const arcticLayerIds = [
+      'arctic-contours',
+      'arctic-reference',
+      'smart-graticule'
+    ];
+
+    if (this.isArctic()) {
+      // --- ARCTIC STATE: Add layers ---
+      this.eposLeaflet.createPane('arcticOverlays', 200);
+
+      console.log('Arctic projection active, adding dedicated layers.');
+
+      const savedVisibilities = this.layersService.getArticOverlayLayersVisibilityStorage();
+
+      const contourLayer = new ArcticContoursLayer(this.injector);
+      const savedContourState = savedVisibilities.get(contourLayer.id);
+      if (savedContourState !== undefined) {
+        contourLayer.options.customLayerOptionStylable.get()?.getStyle()?.setEnable(savedContourState);
+      }
+
+      const referenceLayer = new ArcticReferenceLayer(this.injector);
+      const savedReferenceState = savedVisibilities.get(referenceLayer.id);
+      if (savedReferenceState !== undefined) {
+        referenceLayer.options.customLayerOptionStylable.get()?.getStyle()?.setEnable(savedReferenceState);
+      }
+
+      const graticuleLayer = new SmartGraticuleLayer(this.injector);
+      const savedGraticuleState = savedVisibilities.get(graticuleLayer.id);
+      if (savedGraticuleState !== undefined) {
+        graticuleLayer.options.customLayerOptionStylable.get()?.getStyle()?.setEnable(savedGraticuleState);
+      }
+
+      // 3. ADD THE LAYERS TO THE MAP, NOW THAT THEY ARE IN THE CORRECT STATE
+      this.eposLeaflet.addLayer(contourLayer);
+      this.eposLeaflet.addLayer(referenceLayer);
+      this.eposLeaflet.addLayer(graticuleLayer);
+
+    } else {
+      // --- NON-ARCTIC STATE: Remove layers (if present) ---
+
+      // This part acts as a safeguard. Even though `switchToCRS` already cleans
+      // the map, this ensures that Arctic layers are never shown
+      // on the global map.
+      const currentLayers = this.eposLeaflet.getLayers();
+      currentLayers.forEach(layer => {
+        if (arcticLayerIds.includes(layer.id)) {
+          console.log(`Removing leftover Arctic layer: ${layer.id}`);
+          this.eposLeaflet.removeLayerById(layer.id);
+        }
+      });
+    }
+  }
+
+  /**
+   * Run CRS compatibility checks for WMS layers when using non-default CRS and
+   * notify the user about any incompatible layers.
+   */
+  private async runWmsChecksForLayers(layers: MapLayer[], crsCode?: string): Promise<void> {
+    const targetCrs = crsCode ?? this.crs?.code ?? 'EPSG:3857';
+
+    // Skip checks if default projection EPSG:3857
+    if (targetCrs.toUpperCase() === 'EPSG:3857') {
+      return;
+    }
+
+    const rows = await this.wmsCheck.runForLayers(layers, targetCrs);
+
+    if (!rows.length) {
+      return;
+    }
+
+    const notOk = rows.filter(r => !r.status);
+    if (notOk.length > 0) {
+      await this.wmsNotify.notifyIncompatibilities(
+        notOk.map(r => ({
+          layerName: r.layerName,
+          subLayer: r.subLayer,
+          crs: r.crs,
+        }))
+      );
+    }
+  }
+
+
 }
 
 class BboxStyle implements Stylable {

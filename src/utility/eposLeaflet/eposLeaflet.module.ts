@@ -25,6 +25,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { LayerControlComponent } from './components/layerControlComponent/layerControl.component';
+import { OverlayArcticComponent } from './components/layerControlComponent/overlayArticLayer/overlayArticLayer.component';
 import { LayerLegendComponent } from './components/layerControlComponent/layerLegendComponent/layerLegend.component';
 import { LayerCustomizeComponent } from './components/layerControlComponent/layerCustomizeComponent/layerCustomize.component';
 import { LayersService } from './services/layers.service';
@@ -46,6 +47,7 @@ import { LightboxModule } from 'ngx-lightbox';
   declarations: [
     EposLeafletComponent,
     LayerControlComponent,
+    OverlayArcticComponent,
     LayerLegendComponent,
     LayerToggleComponent,
     LayerCustomizeComponent,

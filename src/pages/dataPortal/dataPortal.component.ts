@@ -26,8 +26,10 @@ import { LocalStorageVariables } from 'services/model/persisters/localStorageVar
 import { environment } from 'environments/environment';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
 import { MatButtonToggle } from '@angular/material/button-toggle';
-import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { CONTEXT_FACILITY, CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { DialogService } from 'components/dialog/dialog.service';
+import { TourService } from 'services/tour.service';
+
 
 @OnAttachDetach()
 @Unsubscriber('subscriptions')
@@ -41,8 +43,14 @@ export class DataPortalComponent implements AfterViewInit {
   @ViewChild('dataPanel') dataPanel: ElementRef;
   @ViewChild('dataPanelButton') dataPanelButton: MatButtonToggle;
   @ViewChild('dataPanelSidenav') dataPanelSidenav: MatSidenav;
+  @ViewChild('analysisPanelSidenav') analysisPanelSidenav: MatSidenav;
+  @ViewChild('registryPanelSidenav') registryPanelSidenav: MatSidenav;
   @ViewChild('tablePanelSidenav') tablePanelSidenav: MatSidenav;
   @ViewChild('graphPanelSidenav') graphPanelSidenav: MatSidenav;
+  @ViewChild('analysisPanel') analysisPanel: ElementRef;
+  @ViewChild('analysisPanelButton') analysisPanelButton: ElementRef;
+  @ViewChild('registryPanel') registryPanel: ElementRef;
+  @ViewChild('registryPanelButton') registryPanelButton: ElementRef;
   public tableInResults = true;
   public graphInResults = true;
   public checkIsNewSelected = true;
@@ -50,10 +58,14 @@ export class DataPortalComponent implements AfterViewInit {
   public currentScreenWidth;
   public leftNavWidth;
   public counterData = 0;
+  public counterRegistry = 0;
+  public counterEnvironment = 0;
   public counterTable = 0;
   public counterGraph = 0;
 
   public hasModuleData = false;
+  public hasModuleAnalysis = false;
+  public hasModuleRegistry = false;
 
   public hasHiddenMarker = false;
 
@@ -68,10 +80,13 @@ export class DataPortalComponent implements AfterViewInit {
     private readonly localStoragePersister: LocalStoragePersister,
     private readonly mapInteractionService: MapInteractionService,
     private readonly dialogService: DialogService,
+    private readonly tourService: TourService,
     private renderer: Renderer2,
   ) {
 
     this.hasModuleData = environment.modules.data;
+    this.hasModuleAnalysis = environment.modules.analysis;
+    this.hasModuleRegistry = environment.modules.registry;
 
     this.leftNavWidth = this.getWidthLeftPanels();
 
@@ -79,6 +94,17 @@ export class DataPortalComponent implements AfterViewInit {
 
       this.resultPanelService.counterDataObs.subscribe((counter: number) => {
         this.counterData = counter;
+      }),
+
+      this.resultPanelService.counterRegistryObs.subscribe((counter: number) => {
+        this.counterRegistry = counter;
+      }),
+
+      this.resultPanelService.counterEnvironmentObs.subscribe((counter: number) => {
+        clearTimeout(this.updateTimeout);
+        this.updateTimeout = setTimeout(() => {
+          this.counterEnvironment = counter;
+        }, 50);
       }),
 
       this.resultPanelService.counterTableObs.subscribe((counter: number) => {
@@ -95,6 +121,9 @@ export class DataPortalComponent implements AfterViewInit {
 
       this.panelsEvent.invokeDataPanelOpen.subscribe(() => {
         this.setDataPanel(true);
+        if (this.hasModuleRegistry) {
+          this.setRegistryPanel(false);
+        }
       }),
 
       this.panelsEvent.invokeTablePanelToggle.subscribe((itemId: string) => {
@@ -135,9 +164,18 @@ export class DataPortalComponent implements AfterViewInit {
         this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(false), false, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV);
       }),
 
+      this.resultPanelService.landingPanelTopSrcObs.subscribe((top: string) => {
+        this.setTopPositionAnalysis(top);
+      }),
+
       this.mapInteractionService.featureOnlayerToggle.subscribe((featureOnLayer: Map<string, Array<number> | string | boolean>) => {
         this.checkHiddenMarkerOnMap();
       }),
+
+      this.tourService.triggerCloseGraphtablePanelToggleObservable.subscribe(() => {
+        this.closeGraphPanel();
+        this.closeTablePanel();
+      })
 
     );
 
@@ -160,6 +198,23 @@ export class DataPortalComponent implements AfterViewInit {
         this.graphPanelSidenav.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV) === 'true' ? true : false;
       }
 
+      if (this.hasModuleAnalysis) {
+        // leftMidSidenav opened at first time
+        this.analysisPanelSidenav.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_ANALYSIS_SIDENAV) === 'true' ? true : false;
+      }
+
+      if (this.hasModuleRegistry) {
+
+        this.renderer.setStyle((this.registryPanelButton.nativeElement as HTMLElement), 'top', '117px');
+
+        // leftMidSidenav opened at first time
+        this.registryPanelSidenav.opened = this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_REGISTRY_SIDENAV) === 'true' ? true : false;
+
+        this.setRegistryPanel(this.registryPanelSidenav.opened);
+        // check left sidenav panels open
+        this.checkLeftSidenavOpen();
+      }
+
       this.checkHiddenMarkerOnMap();
 
       // When initializing the page, reset the state of the table and graph dialogs
@@ -177,11 +232,64 @@ export class DataPortalComponent implements AfterViewInit {
 
   public dataPanelStatusChange(closing: boolean): void {
     this.leftNavWidth = this.getWidthLeftPanels();
+
+    if (this.hasModuleAnalysis) {
+      this.setAnalysisPanelLeft();
+    }
+
+    if (!closing) {
+      if (this.hasModuleRegistry) {
+        // close registry panel
+        this.setRegistryPanel(false);
+      }
+    }
+  }
+
+  public registryPanelStatusChange(closing: boolean): void {
+    this.leftNavWidth = this.getWidthLeftPanels();
+
+    if (this.hasModuleAnalysis) {
+      this.setAnalysisPanelLeft();
+    }
+
+    if (!closing) {
+      if (this.hasModuleData) {
+        // close data panel
+        this.setDataPanel(false);
+      }
+    }
+  }
+
+  public setAnalysisPanelLeft() {
+    const leftPx = this.getWidthLeftPanels();
+    this.renderer.setStyle((this.analysisPanel.nativeElement as HTMLElement), 'left', leftPx.toString() + 'px');
   }
 
   public filterPanelToggle(): void {
     void this.dataPanelSidenav.toggle().then(() => {
       this.setDataPanel(this.dataPanelSidenav.opened);
+    });
+  }
+
+  public analysisPanelToggle(): void {
+    void this.analysisPanelSidenav.toggle().then(() => {
+      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.analysisPanelSidenav.opened), false, LocalStorageVariables.LS_ANALYSIS_SIDENAV);
+
+      if (this.analysisPanelSidenav.opened) {
+        if (this.tablePanelSidenav.opened) {
+          this.tablePanelToggle();
+        }
+        if (this.graphPanelSidenav.opened) {
+          this.graphPanelToggle();
+        }
+
+      }
+    });
+  }
+
+  public registryPanelToggle(): void {
+    void this.registryPanelSidenav.toggle().then(() => {
+      this.setRegistryPanel(this.registryPanelSidenav.opened);
     });
   }
 
@@ -236,9 +344,47 @@ export class DataPortalComponent implements AfterViewInit {
         break;
     }
   }
+  public closeTablePanel(): void {
+    // Check if the table panel is currently open
+    if (this.tablePanelSidenav.opened) {
+      void this.tablePanelSidenav.close().then(() => {
+        // Emit event to indicate the table panel is closed
+        this.panelsEvent.invokeTablePanel.emit(false);
+        // Update local storage to reflect the closed state
+        this.localStoragePersister.set(
+          LocalStorageVariables.LS_CONFIGURABLES,
+          JSON.stringify(false), // Store the closed state
+          false,
+          LocalStorageVariables.LS_RIGHT_TOP_SIDENAV
+        );
+      });
+    }
+  }
+
+  public closeGraphPanel(): void {
+    // If the graph dialog is open, close it
+    if (this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_GRAPH_DIALOG_OPENED)) {
+      this.panelsEvent.invokeGraphDialogClose.emit();
+    }
+    // Ensure the graph panel is closed
+    if (this.graphPanelSidenav.opened) {
+      void this.graphPanelSidenav.close().then(() => {
+        // Emit event to indicate the panel is closed
+        this.panelsEvent.invokeGraphPanel.emit(false);
+        // Update local storage to reflect the closed state
+        this.localStoragePersister.set(
+          LocalStorageVariables.LS_CONFIGURABLES,
+          JSON.stringify(false), // Store the closed state
+          false,
+          LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV
+        );
+      });
+    }
+  }
 
   /**
-   * The function returns the width of the left panels based on whether the data panel is opened.
+   * The function returns the width of the left panels based on whether the data panel or the registry
+   * panel is opened.
    * @returns a number.
    */
   private getWidthLeftPanels(): number {
@@ -246,7 +392,17 @@ export class DataPortalComponent implements AfterViewInit {
       return (this.dataPanel.nativeElement as HTMLElement).offsetWidth;
     }
 
+    if (this.registryPanelSidenav !== undefined && this.registryPanelSidenav.opened) {
+      return (this.registryPanel.nativeElement as HTMLElement).offsetWidth;
+    }
+
     return 0;
+  }
+
+  private setTopPositionAnalysis(top: string): void {
+    if (this.hasModuleAnalysis) {
+      this.renderer.setStyle((this.analysisPanel.nativeElement as HTMLElement), 'top', top + 'px');
+    }
   }
 
   private checkHiddenMarkerOnMap(): void {
@@ -271,6 +427,12 @@ export class DataPortalComponent implements AfterViewInit {
 
   }
 
+  private checkLeftSidenavOpen(): void {
+    if (this.dataPanelSidenav !== undefined && this.dataPanelSidenav.opened) {
+      this.setRegistryPanel(false);
+    }
+  }
+
   private setDataPanel(open = true): void {
     if (open) {
       void this.dataPanelSidenav.open();
@@ -280,5 +442,17 @@ export class DataPortalComponent implements AfterViewInit {
       void this.dataPanelSidenav.close();
     }
     this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.dataPanelSidenav.opened), false, LocalStorageVariables.LS_LEFT_TOP_SIDENAV);
+  }
+
+  private setRegistryPanel(open = true): void {
+    if (open) {
+      void this.registryPanelSidenav.open();
+
+      // change map context to registry
+      this.mapInteractionService.bboxContext.set(CONTEXT_FACILITY);
+    } else {
+      void this.registryPanelSidenav.close();
+    }
+    this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.registryPanelSidenav.opened), false, LocalStorageVariables.LS_REGISTRY_SIDENAV);
   }
 }

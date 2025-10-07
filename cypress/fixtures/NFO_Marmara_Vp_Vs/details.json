@@ -74,7 +74,7 @@
   "downloadURL": "",
   "endpoint": "https://toros.boun.edu.tr/nfo_marsite/vpvs/query{?stacode, mintime, maxtime, minlat, maxlat, minlon, maxlon, mineqdep, maxeqdep, minnp, minns, maxpw, maxsw, minps, maxgap, midi, maxvpvspw, maxvpvssw, maxherr, maxverr}",
   "frequencyUpdate": "http://purl.org/cld/freq/irregular",
-  "hasQualityAnnotation": "https://fridge.ingv.it/docs/API_prototype_documentation_NFO_QA.pdf",
+  "qualityAssurance": "https://fridge.ingv.it/docs/API_prototype_documentation_NFO_QA.pdf",
   "href": "https://ics-c.epos-ip.org/development/k8s-epos-deploy/latest/api/v1/resources/details/2774cc18-1a66-41bf-8aff-bc78b0c92e8f",
   "hrefExtended": "https://ics-c.epos-ip.org/development/k8s-epos-deploy/latest/api/v1/resources/details/2774cc18-1a66-41bf-8aff-bc78b0c92e8f?extended=true",
   "id": "2774cc18-1a66-41bf-8aff-bc78b0c92e8f",

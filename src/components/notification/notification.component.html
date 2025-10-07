@@ -21,7 +21,7 @@
   </div>
   <div class="body nice-scrollbar" [innerHTML]="message"></div>
   <div class="actions">
-    <button [color]="'primary'" mat-flat-button (click)="handleClose()">
+    <button [color]="'primary'" mat-flat-button (click)="handleClose()" data-cy="app-notification-ok-button">
       Ok
     </button>
     <mat-checkbox color="primary" (change)="handleShowAgain($event.checked)" *ngIf="checkShowAgain">

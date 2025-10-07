@@ -68,7 +68,23 @@
     }
 
     .custom-icon {
-      max-height: 40px;
+      height: 40px;
+      width: auto;
+    }
+  }
+  
+  &.snackbar-available-guided-tour {
+    background: white;
+    border-left: 4px solid $color-primary;
+
+    .icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .custom-icon {
+      height: 40px;
       width: auto;
     }
   }

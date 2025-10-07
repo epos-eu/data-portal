@@ -102,6 +102,53 @@ export abstract class AbstractControl extends L.Control implements SetMapCompone
   }
 
   /**
+   * Creates a Leaflet control container that behaves as a simple clickable button without expansion.
+   *
+   * This is designed for controls that perform a single action (e.g., reset zoom, export, refresh)
+   * and do not require content to be expanded or collapsed. It avoids the usage of `control-expanded`
+   * class and related open/close logic, ensuring the control does not stay visually "active" after click.
+   *
+   * The icon wrapper is clickable and styled with Font Awesome classes, and a callback is triggered
+   * when the user clicks the control.
+   *
+   * @param {string} controlId - The ID to assign to the control's root HTML element.
+   * @param {string} faIconClasses - Font Awesome icon classes to apply (e.g., "fa fa-compress").
+   * @param {string} title - Tooltip text (used as the `title` attribute on the icon).
+   * @param {(event: MouseEvent) => void} onClick - Callback function executed on click.
+   * @returns {HTMLElement} A Leaflet-style control wrapper that can be added to the map.
+   *
+   * @see getControlContainer - Use this method instead if your control has expandable content.
+   */
+  protected getControlContainerForActionOnly(
+    controlId: string,
+    faIconClasses: string,
+    title: string,
+    onClick: (event: MouseEvent) => void
+  ): HTMLElement {
+    const wrapperDiv = document.createElement('div');
+    wrapperDiv.id = controlId;
+    wrapperDiv.classList.add('control-wrapper', 'leaflet-bar');
+
+    const iconWrapper = document.createElement('span');
+    iconWrapper.classList.add('icon-wrapper', 'bordered');
+    iconWrapper.title = title;
+
+    const icon = document.createElement('i');
+    faIconClasses.split(' ').forEach(cls => icon.classList.add(cls.trim()));
+    iconWrapper.appendChild(icon);
+
+    iconWrapper.addEventListener('click', (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      (e.currentTarget as HTMLElement).blur();
+      onClick(e);
+    });
+
+    wrapperDiv.appendChild(iconWrapper);
+    return wrapperDiv;
+  }
+
+  /**
    * The function creates an expander element with a FontAwesome icon and a title.
    * @param {string} faIconClasses - The `faIconClasses` parameter is a string that represents the
    * classes for the Font Awesome icon that will be displayed in the expander. These classes should be
@@ -163,4 +210,5 @@ export abstract class AbstractControl extends L.Control implements SetMapCompone
       clickedElement.closest('.leaflet-control-container')!.querySelectorAll('.control-expanded .icon-wrapper'),
     ).forEach((element: HTMLElement) => element.dispatchEvent(new Event('close')));
   }
+
 }

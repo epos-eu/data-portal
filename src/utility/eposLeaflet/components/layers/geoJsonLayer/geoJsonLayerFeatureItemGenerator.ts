@@ -97,10 +97,6 @@ export class GeoJsonLayerFeatureItemGenerator implements FeatureDisplayItemGener
     clickEvent: L.LeafletMouseEvent,
   ): Promise<Array<FeatureDisplayItem>> {
     return new Promise((resolve) => {
-      const leafletObj = this.mapLayer.getEposLeaflet().leafletMapObj;
-      // clicking on a circlemarker sets the click point to the feature lat lng, so use the original event
-      const latLngActualClickPoint = leafletObj.mouseEventToLatLng(clickEvent.originalEvent);
-
       const featureItemsMap = new Map<number, FeatureDisplayItem>();
       if (this.geoJsonData != null && JSON.stringify(this.geoJsonData) !== '{}' && (this.geoJsonData.type !== undefined && this.geoJsonData.type.toString() !== 'Coverage')) {
         const fixedClickBufferMeters = this.getZoomBufferSize(clickEvent.latlng, this.fixedClickBufferPx);
@@ -110,11 +106,11 @@ export class GeoJsonLayerFeatureItemGenerator implements FeatureDisplayItemGener
           ) => {
             if (!featureItemsMap.has(featureIndex)) {
               const clickBufferMeters = (null != this.clickBufferPxFunc)
-                ? this.getZoomBufferSize(latLngActualClickPoint, this.clickBufferPxFunc(feature))
+                ? this.getZoomBufferSize(clickEvent.latlng, this.clickBufferPxFunc(feature))
                 : fixedClickBufferMeters;
 
 
-              if (this.pointInFeature(feature, latLngActualClickPoint, clickBufferMeters)) {
+              if (this.pointInFeature(feature, clickEvent.latlng, clickBufferMeters)) {
 
                 featureItemsMap.set(featureIndex,
                   new FeatureDisplayItem(

@@ -13,7 +13,9 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Injectable } from '@angular/core';
+/* eslint-disable @typescript-eslint/member-ordering */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+import {  EventEmitter, Injectable } from '@angular/core';
 import { environment } from 'environments/environment';
 import { LocalStoragePersister } from './model/persisters/localStoragePersister';
 import { LocalStorageVariables } from './model/persisters/localStorageVariables.enum';
@@ -27,7 +29,8 @@ import { ApiService } from 'api/api.service';
  */
 @Injectable()
 export class ShareService {
-
+  private readonly triggerRemoveAllFavorites = new EventEmitter<void>();
+  public triggerRemoveAllFavoritesObservable = this.triggerRemoveAllFavorites.asObservable();
   private salt: string = '';
 
   constructor(
@@ -50,28 +53,37 @@ export class ShareService {
     // retrieve all localstorage info
     void this.localStorage.get(LocalStorageVariables.LS_DATA_SEARCH_CONFIGURABLES).then((dataSearchConfigurables: string) => {
 
+      void this.localStorage.get(LocalStorageVariables.LS_DATA_SEARCH_CONFIGURABLES_REG).then((dataSearchConfigurablesReg: string) => {
 
-      void this.localStorage.get(LocalStorageVariables.LS_CONFIGURABLES).then((configurables) => {
+        void this.localStorage.get(LocalStorageVariables.LS_CONFIGURABLES).then((configurables) => {
 
-        const shareConfiguration: ShareConfigurables = {
-          dataSearchConfigurables: dataSearchConfigurables,
-          configurables: JSON.stringify(configurables)
-        };
+          const shareConfiguration: ShareConfigurables = {
+            dataSearchConfigurables: dataSearchConfigurables,
+            dataSearchConfigurablesReg: dataSearchConfigurablesReg,
+            configurables: JSON.stringify(configurables)
+          };
 
-        const encryptConfigurables = this.encrypt((JSON.stringify(shareConfiguration)));
+          const encryptConfigurables = this.encrypt((JSON.stringify(shareConfiguration)));
 
-        // save on DB
-        void this.apiService.saveConfigurables(encryptConfigurables).then(key => {
-          const url = baseUrl + '?share=' + key;
-          this.copyCitationToClipboard(url);
-        }).catch((_) => {
-          // Show an error notification
-          this.notificationService.sendNotification('Failed to copy Data Portal URL to clipboard', 'x', NotificationService.TYPE_ERROR, 5000);
+          // save on DB
+          void this.apiService.saveConfigurables(encryptConfigurables).then(key => {
+            const url = baseUrl + '?share=' + key;
+            this.copyCitationToClipboard(url);
+          }).catch((_) => {
+            // Show an error notification
+            this.notificationService.sendNotification('Failed to copy Data Portal URL to clipboard', 'x', NotificationService.TYPE_ERROR, 5000);
+          });
+
         });
 
       });
+
     });
 
+  }
+
+  public triggerRemoveFavorites(): void {
+    this.triggerRemoveAllFavorites.next();
   }
 
   /**
@@ -116,5 +128,6 @@ export class ShareService {
 
 export interface ShareConfigurables {
   dataSearchConfigurables: string;
+  dataSearchConfigurablesReg: string;
   configurables: string;
 }

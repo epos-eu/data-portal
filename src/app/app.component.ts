@@ -31,6 +31,7 @@ import { LocalStorageVariables } from 'services/model/persisters/localStorageVar
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { Tracker } from 'utility/tracker/tracker.service';
+import { NotificationService } from 'services/notification.service';
 
 /**
  * This is the standard Angular root component that is included by the index.html file.
@@ -76,6 +77,7 @@ export class AppComponent implements OnInit {
     private readonly localStoragePersister: LocalStoragePersister,
     private readonly tracker: Tracker,
     private readonly activatedRoute: ActivatedRoute,
+    private readonly notificationService: NotificationService,
   ) {
 
     if ((window.location.href.indexOf('policy-index') < 0)
@@ -85,6 +87,9 @@ export class AppComponent implements OnInit {
       this.checkMobile();
       if (!informationService.infoEnabled && this.mobile === false) {
         void this.dialogService.openInformationBanner();
+      }
+      if (this.localStoragePersister.getValue(LocalStorageVariables.LS_GUIDE_TOUR_SNACKBAR_CHECK) === false || this.localStoragePersister.getValue(LocalStorageVariables.LS_GUIDE_TOUR_SNACKBAR_CHECK) === null) {
+        void this.notificationService.sendAvailableGuidedTourNotification('Start Guided Tour', 'assets/img/guided_tour_snack_logo_orange.svg');
       }
     }
 

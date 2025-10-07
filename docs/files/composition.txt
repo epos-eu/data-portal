@@ -1,0 +1,27 @@
+
+interface WorkspaceSummary {
+name()
+identifier()
+}
+interface WorkspaceDetails{
+items()
+}
+
+WorkspaceSummary <|-- WorkspaceDetails : extends
+
+class SimpleWorkspaceSummary {
+ 
+}
+
+class SimpleWorkspaceDetails{
+ summary
+}
+
+SimpleWorkspaceSummary ..|> WorkspaceSummary : implements
+SimpleWorkspaceDetails ..|> WorkspaceDetails : implements
+
+
+SimpleWorkspaceDetails "1" *-- "1" SimpleWorkspaceSummary : has
+
+
+ 

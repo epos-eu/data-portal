@@ -28,4 +28,8 @@ export interface DistributionSummary extends DistributionIdentifiable, Usable {
   getTabularableFormats(): Array<DistributionFormat>;
   getStatus(): number;
   getStatusTimestamp(): string;
+  // for search calls in MetadataPreview mode
+  getVersioningStatus(): null | Array<string>;
+  // for MetadataPreview mode informations like author, last edit etc.
+  getVersioningInfo(): null | Record<string, { changeDate: string; editorFullName: string }[]>;
 }

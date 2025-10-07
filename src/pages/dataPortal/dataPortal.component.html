@@ -42,9 +42,64 @@
     </mat-sidenav>
   </ng-container>
 
+  <ng-container *ngIf="hasModuleAnalysis">
+    <div #analysisPanelButton class="analysis-panel-button-wrapper">
+      <mat-button-toggle class="left-sidenav-analysis-toggle" matTooltip="{{ analysisPanelSidenav.opened ? 'Close' : 'Open' }} Analysis Tab" (click)="analysisPanelToggle()">
+        <mat-icon aria-hidden="false" aria-label="LeftSidenav icon" [ngClass]="{ selected: analysisPanelSidenav.opened }">
+          {{ analysisPanelSidenav.opened ? 'chevron_left' : 'chevron_right' }}
+        </mat-icon>
+        <span [ngClass]="{ 'button-text': true, selected: analysisPanelSidenav.opened }">ANALYSIS</span>
+        <span *ngIf="!analysisPanelSidenav.opened && counterEnvironment > 0" matBadge="{{ counterEnvironment }}" matBadgeOverlap="false"></span>
+      </mat-button-toggle>
+    </div>
+    <mat-sidenav
+      #analysisPanelSidenav
+      id="sidenavleftanalysis"
+      [class]="{
+        sidenavanalysis: true,
+        'sidenav-left': true,
+        'sidenav-left-close': !analysisPanelSidenav.opened
+      }"
+      closed
+      mode="side">
+      <div #analysisPanel class="analysisPanel">
+        <app-analysis-panel></app-analysis-panel>
+      </div>
+    </mat-sidenav>
+  </ng-container>
+
+  <ng-container *ngIf="hasModuleRegistry">
+    <div #registryPanelButton class="registry-panel-button-wrapper">
+      <mat-button-toggle class="left-sidenav-registry-toggle" matTooltip="{{ registryPanelSidenav.opened ? 'Close' : 'Open' }} Facility Tab" (click)="registryPanelToggle()">
+        <mat-icon aria-hidden="false" aria-label="LeftSidenav icon" [ngClass]="{ selected: registryPanelSidenav.opened }">
+          {{ registryPanelSidenav.opened ? 'chevron_left' : 'chevron_right' }}
+        </mat-icon>
+        <span [ngClass]="{ 'button-text': true, selected: registryPanelSidenav.opened }">FACILITIES</span>
+        <span *ngIf="counterRegistry > 0 && !registryPanelSidenav.opened" matBadge="{{ counterRegistry }}" matBadgeOverlap="false"></span>
+      </mat-button-toggle>
+    </div>
+    <mat-sidenav
+      #registryPanelSidenav
+      id="sidenavleftregistry"
+      (closedStart)="registryPanelStatusChange(true)"
+      (openedStart)="registryPanelStatusChange(false)"
+      [class]="{
+        sidenavregistry: true,
+        'sidenav-left': true,
+        'sidenav-left-close': !registryPanelSidenav.opened
+      }"
+      closed
+      mode="side"
+      data-cy="registry-sidenav">
+      <div #registryPanel class="registryPanel">
+        <app-registry-panel></app-registry-panel>
+      </div>
+    </mat-sidenav>
+  </ng-container>
+
   <ng-container *ngIf="hasModuleData">
     <div *ngIf="tableInResults">
-      <mat-button-toggle id="table-vis-toggle" class="right-sidenav-toggle" matTooltip="{{ tablePanelSidenav.opened ? 'Close' : 'Open ' }} Table Tab" (click)="tablePanelToggle()">
+      <mat-button-toggle id="table-vis-toggle" class="right-sidenav-toggle" matTooltip="{{ tablePanelSidenav.opened ? 'Close' : 'Open ' }} Table Tab" (click)="tablePanelToggle()" data-cy="table-panel-toggle">
         <span [matBadgeHidden]="!hasHiddenMarker || tablePanelSidenav.opened" matBadge="-" appMatBadgeFaClass="fas fa-eye-slash" matBadgeOverlap="true"></span>
         <mat-icon aria-hidden="false" aria-label="RightSidenav icon" [ngClass]="{ selected: tablePanelSidenav.opened }">
           {{ tablePanelSidenav.opened ? 'chevron_right' : 'chevron_left' }}

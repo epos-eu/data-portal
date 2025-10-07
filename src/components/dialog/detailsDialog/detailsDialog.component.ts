@@ -22,7 +22,6 @@ import { DialogService } from '../dialog.service';
 import { MatTableDataSource } from '@angular/material/table';
 import { SpatialRange } from 'api/webApi/data/spatialRange.interface';
 import { TourService } from 'services/tour.service';
-import * as Driver from 'driver.js';
 import { DataProvider } from 'api/webApi/data/dataProvider.interface';
 import { AuthenticatedClickService } from 'services/authenticatedClick.service';
 import { SearchService } from 'services/search.service';
@@ -33,7 +32,9 @@ import { LocalStoragePersister } from 'services/model/persisters/localStoragePer
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { Subscription } from 'rxjs';
 import { Domain } from 'api/webApi/data/domain.interface';
-import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { CONTEXT_FACILITY, CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { Popover } from 'driver.js';
+import { environment } from 'environments/environment';
 
 export interface DetailsDataIn {
   distId: string;
@@ -93,6 +94,7 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
     this.context = this.data.dataIn.context;
     this.domains = this.data.dataIn.domains;
 
+
     // Set the citations to show in the citation component based on the context
     this.citationsToShow = this.getCitationsToShow();
 
@@ -130,13 +132,13 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
   public addDetailsTourStep(): void {
     const detailsDialog = document.getElementById('detailsTourId') as HTMLElement;
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Details Panel`,
       description: 'This dialog contains details about the service.',
-      position: 'left',
+      side: 'left',
     };
     if (null != detailsDialog) {
-      this.tourService.addStep(tourName, detailsDialog, options, 14, true);
+      this.tourService.addStep(tourName, detailsDialog, options, 15, true);
 
       this.subscriptions.push(
         this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
@@ -144,9 +146,10 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
             this.dialogService.closeDetailsDialog();
           }
         }),
-
         this.tourService.tourStepBackwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
           if (value.nativeElement.id === 'detailsTourId') {
+            this.tourService.triggerHandleCloseNotification();
+            this.tourService.triggeradvancedSerachItemSelected();
             this.tourService.triggerAddInfoIconStep();
             this.dialogService.closeDetailsDialog();
           }
@@ -175,13 +178,41 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
 
   public hasChildCategories = (_: number, node: DistributionCategories) => !!node.children && node.children.length > 0;
 
+  public openFairnessDetails(): void {
+    const id = this.detailsData?.getIdentifier();
+    const url = `${environment.fairAssessmentUrl}details/${id}`;
+
+    if (this.isStaging()) {
+      const devUrl = 'https://ics-c.epos-ip.org/development/k8s-epos-deploy/latest/';
+
+      void this.dialogService.openConfirmationDialog(
+       `<p> ⚠ </p>
+        <p><strong>This feature is not currently available in <em>staging</em>.</strong></p>
+        <p>You can use it in the <strong>develop</strong> environment instead.</p>`,
+        true,                 // closable
+        'GO TO DEVELOP',      // confirm button text
+        'confirm',            // confirm button CSS class
+        'Cancel'              // cancel button text
+      ).then(go => {
+        if (go === true) {
+          window.location.href = devUrl;
+        } else {
+          console.log('User cancelled or closed the dialog');
+        }
+      });
+
+      return;
+    }
+
+    window.open(url, '_blank');
+  }
+
   private updateTable() {
     const tableData = new Array<KeyValue>();
     const tableService = new Array<KeyValue>();
     const tableProvider = new Array<DataProvider>();
 
     const itemDetails = this.detailsData;
-
     if (null != itemDetails) {
       // Alternative value for missing data
       const alt = this.nullDataHtml;
@@ -191,36 +222,51 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
         this.hasContactUsButton = false;
       }
 
+      let isWebService: boolean;
+
+      if (typeof itemDetails.getType() === 'string') {
+        // this distribution is a facility/equipment
+        isWebService = false;
+      } else {
+        // this distribution is a web service/downloadable file
+        isWebService = true;
+      }
+
       tableData.push(this.makeKeyValue('Name', this.stringOrElse(itemDetails.getName(), alt)));
       tableData.push(this.makeKeyValue('Domain', this.stringOrElse(itemDetails.getDomain(), alt)));
       this.getCategories();
       tableData.push(this.makeKeyValue('Categories', ''));
+      if (!isWebService) {
+          tableData.push(this.makeKeyValue('Facility Type', this.stringOrElse(itemDetails.getType() as string, alt)));
+      }
       tableData.push(this.makeKeyValue('Description', this.stringOrElse(itemDetails.getDescription(), alt)));
 
       // Spatial
-      tableData.push(this.makeKeyValue('Spatial Coverage', this.getSpatialValue(itemDetails)));
+      tableData.push(this.makeKeyValue(!isWebService ? 'Location' : 'Spatial Coverage', this.getSpatialValue(itemDetails)));
 
-      if (this.context === CONTEXT_RESOURCE) {
+      if (isWebService) {
         tableData.push(this.makeKeyValue('Temporal Coverage', this.getTemporalValue(itemDetails)));
       }
 
       tableData.push(this.makeKeyValue('Persistent Identifier(s)', this.stringOrElse(this.getDOIAsLink(itemDetails), alt)));
 
-      if (this.context === CONTEXT_RESOURCE) {
+      if (isWebService) {
         tableData.push(this.makeKeyValue('License', this.stringOrElse(itemDetails.getLicense(), alt)));
       }
 
       tableData.push(this.makeKeyValue('Keywords', this.stringOrElse(this.getJoinedKeywords(itemDetails), alt)));
 
-      if (this.context === CONTEXT_RESOURCE) {
+      if (isWebService) {
         tableData.push(this.makeKeyValue('Update Frequency', this.stringOrElse(itemDetails.getFrequencyUpdate(), alt)));
       }
 
       if (itemDetails.getQualityAssurance() !== '') {
         tableData.push(this.makeKeyValue('Quality Assurance', this.stringOrElse(itemDetails.getQualityAssurance(), '')));
+      } else {
+        tableData.push(this.makeKeyValue('Quality Assurance', this.stringOrElse(itemDetails.getQualityAssurance(), alt)));
       }
 
-      tableData.push(this.makeKeyValue('Data Provider(s)', ''));
+      tableData.push(this.makeKeyValue(!isWebService ? 'Organization(s)' : 'Data Provider(s)', ''));
 
       itemDetails.getDataProvider().forEach((provider, index) => {
         tableProvider.push(provider);
@@ -228,12 +274,16 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
 
       // Further information
       let furtherInformation = '';
-      if (this.context === CONTEXT_RESOURCE) {
+      if (isWebService) {
         furtherInformation = this.stringOrElse(this.getDomainLink(), alt);
+      } else if (!isWebService) {
+        if (itemDetails.getPage() !== undefined) {
+          furtherInformation = this.stringOrElse(itemDetails.getPage().join('<br />'), alt);
+        }
       }
       tableData.push(this.makeKeyValue('Further information', furtherInformation));
 
-      if (this.context === CONTEXT_RESOURCE) {
+      if (isWebService) {
 
         if (itemDetails.isOnlyDownloadable) { // it is a downloadable file
           tableData.push(this.makeKeyValue('Download URL', this.stringOrElse(itemDetails.getDownloadURL(), alt)));
@@ -257,10 +307,14 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
 
   /**
    * Returns the citation to show based on the panel that was used to open the details popup:
+   * - Registry: show only the second citation
    * - Data: show the first, second and third citation
    * @returns {number[]} - An array of numbers that represent the citation to be shown in the citation component
    */
   private getCitationsToShow(): number[] {
+    if (this.context === CONTEXT_FACILITY) {
+      return [1];
+    }
     return [0, 1, 2];
   }
 
@@ -354,6 +408,19 @@ export class DetailsDialogComponent implements OnInit, AfterViewInit, OnDestroy 
       joined = providers.join('; ');
     }
     return joined;
+  }
+
+
+  private isStaging(): boolean {
+    const host = window.location.host.toLowerCase();
+
+    // Check explicitly for your staging host
+    if (host === 'epos-ics-c-staging.brgm-rec.fr') {
+      return true;
+    }
+
+    // Or fallback: consider any host containing "staging" as staging
+    return host.includes('staging');
   }
 
 }

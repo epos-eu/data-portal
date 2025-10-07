@@ -18,7 +18,6 @@ import { Subscription } from 'rxjs';
 import { ResultsPanelComponent } from '../resultsPanel/resultsPanel.component';
 import { LandingService } from '../services/landing.service';
 import { TourService } from 'services/tour.service';
-import * as Driver from 'driver.js';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
@@ -29,6 +28,7 @@ import { DistributionItem } from 'api/webApi/data/distributionItem.interface';
 import { DataSearchConfigurablesServiceResource } from '../services/dataSearchConfigurables.service';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
+import { Popover } from 'driver.js';
 
 @Unsubscriber('subscriptions')
 @Component({
@@ -159,10 +159,10 @@ export class LandingPanelComponent implements OnInit, AfterContentInit, AfterVie
   private addTCSWrapperStep(): void {
     const tCSWrapperStepElement = this.blockResults.nativeElement as HTMLElement;
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Thematic Core Service (TCS)`,
       description: 'Services within the chosen thematic domain e.g. Seismology',
-      position: 'right',
+      side: 'right',
     };
     this.tourService.addStep(tourName, tCSWrapperStepElement, options, 7);
     this.subscriptions.push(

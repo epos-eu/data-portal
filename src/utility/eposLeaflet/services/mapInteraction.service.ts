@@ -24,20 +24,22 @@ import { LocalStoragePersister } from 'services/model/persisters/localStoragePer
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 
 
+
 /** The MapInteractionService class provides methods for interacting with a map, such as setting the
 spatial range, centering the map on a bounding box or coordinates, and triggering events when
 clicking on the map. */
 @Injectable()
 export class MapInteractionService {
 
-  static initialLatLng: [number, number] = [44, 3.15];
-  static initialZoom = 5;
+  static initialLatLng: [number, number] = [54.0, -5.0];
+  static initialZoom = 4;
 
   public readonly startBBox = new Accessor<boolean>(false);
   public readonly centerMapBBox = new Accessor<BoundingBox>(SimpleBoundingBox.makeUnbounded());
   public readonly editableSpatialRange = new Accessor<BoundingBox>(SimpleBoundingBox.makeUnbounded());
   public readonly spatialRange = new Accessor<BoundingBox>(SimpleBoundingBox.makeUnbounded());
   public readonly mapBBox = new Accessor<BoundingBox>(SimpleBoundingBox.makeUnbounded());
+  public readonly zoomLevel = new Accessor<null | number>(null);
   public readonly pointOnlayerTriggered = new Subject<null | Map<string, Array<number> | string>>();
   public readonly featureOnlayerToggle = new Subject<null | Map<string, Array<number> | string | boolean>>();
   public readonly updateStatusHiddenMarker = new Subject<boolean>();
@@ -91,7 +93,6 @@ export class MapInteractionService {
   public resetAll(): void {
     const resetBbox = SimpleBoundingBox.makeUnbounded();
     this.startBBox.set(false);
-    this.centerOnInitial();
     this.editableSpatialRange.set(resetBbox);
     this.spatialRange.set(resetBbox);
     this.mapBBox.set(resetBbox);
@@ -118,6 +119,11 @@ export class MapInteractionService {
    */
   public centerMapOnBoundingBox(bbox: BoundingBox): void {
     this.centerMapBBox.set(bbox);
+  }
+
+  // to reset the zoom level of the map to initial value (see 'initialZoom' property of this service)
+  public resetZoomLevel(): void{
+    this.zoomLevel.set(MapInteractionService.initialZoom);
   }
 
   /**

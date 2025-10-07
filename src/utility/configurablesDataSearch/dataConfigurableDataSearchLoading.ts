@@ -46,15 +46,19 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
 
   public levels: Array<DistributionLevel>;
 
+  public layerBbox: Array<number>;
+
   public readonly actions: null | Array<DataConfigurableAction> = null;
   public readonly showSpatialObs = new BehaviorSubject<boolean>(false).asObservable();
 
   private readonly pinned = false;
   private readonly selected = true;
+
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public readonly pinnedObs = new BehaviorSubject<boolean>(this.pinned).asObservable();
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public readonly selectedObs = new BehaviorSubject<boolean>(this.selected).asObservable();
+
 
   private readonly styleSource = new BehaviorSubject<null | Style>(null);
   // eslint-disable-next-line @typescript-eslint/member-ordering
@@ -171,6 +175,15 @@ export class DataConfigurableDataSearchLoading implements DataConfigurableDataSe
 
   public setLevels(value: DistributionLevel[]): this {
     this.levels = value;
+    return this;
+  }
+
+  public getLayerBbox(): Array<number> | null{
+    return this.layerBbox;
+  }
+
+  public setLayerBbox(coords: Array<number>): this {
+    this.layerBbox = coords;
     return this;
   }
 

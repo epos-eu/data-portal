@@ -21,7 +21,7 @@
   <div class="list" data-cy="results-panel-item-visible-on">
     <ng-container *ngFor="let visibility of item.visibility" class='display-inline' [ngSwitch]="visibility">
       <ng-container *ngSwitchCase="VIEW_TYPE_ENUM.MAP">
-        <div class="hflex" matTooltip="Center on map" (click)="centerOnMap(item)">
+        <div class="hflex" matTooltip="Zoom on map" (click)="centerOnMapOBS(item)">
           <span class="link pointer">{{visibility}}</span>
         </div>
       </ng-container>
@@ -36,17 +36,3 @@
     </ng-container>
   </div>
 </div>
-<ng-container *ngIf="item.status === 1 || item.status === 2">
-  <div class="status">
-    <div class="label">Status:</div>
-    <div class="icon">
-      <mat-icon [class]="{
-          'status': true,
-          'green': item.status === 1,
-          'red': item.status === 2
-        }"
-        matTooltip="{{ item.status === 1 ? 'Service available' : (item.status === 2 ? 'Service not available' : '')}} {{ item.statusTimestamp !== '' ? ' during last test at ' + item.statusTimestamp : '' }}">
-        {{ item.status === 1 ? 'check_circle' : (item.status === 2 ? 'warning' : '') }}</mat-icon>
-    </div>
-  </div>
-</ng-container>

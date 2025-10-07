@@ -74,7 +74,7 @@ export class YAxis {
 
   public getPlotlyObject(displaytype: YAxisDisplayType, totalYAxes: number, trace: Trace): Partial<LayoutAxis> {
 
-    const tracktitle = this.unitLabel + ' (' + this.unit + ')';
+    const tracktitle = this.unitLabel;
 
     let returnObject: Partial<LayoutAxis> = {
     };

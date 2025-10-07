@@ -133,13 +133,46 @@ export class WMTSMapLayerFactory implements MapLayerFactory<string, WmtsTileLaye
           .then((url: string) => {
             const newUrl = url.replace(/\?.*$/, '');
             layer.setUrl(newUrl);
-            // populates the getCapabilites xml of the layer once we have a url
-            return this.populateGetCapabilities(layer);
+            // 1) expose a "ready" Promise that includes the GetCapabilities attempt
+            const ready = this.populateGetCapabilities(layer)
+              .catch(err => {
+                console.warn(`[WMS][${layer.id}] GetCapabilities failed:`, err);
+                // do not stop the flow, execution will continue anyway
+              })
+              .finally(() => {
+                // 2) ALWAYS attach the invoker, even if GetCapabilities failed
+                this.attachCheckInvoker(layer);
+
+              });
+
+            // 3) store the ready Promise on the layer
+            layer.crsCheckReady = ready;
+
+            // important: return the promise to comply with the preLayerAddFunction contract
+            return ready;
           })
-          .catch((error) => {
+          .catch(err => {
+            console.error(`[WMS][${id}] urlPromise/preLayerAdd error:`, err);
+            // still, try to attach the invoker to allow CRS checks
+            this.attachCheckInvoker(layer);
+            layer.crsCheckReady = Promise.resolve();
           });
       });
+
     return layer;
+  }
+
+  private attachCheckInvoker(layer: WmtsTileLayer): void {
+    const http = this.injector.get<HttpClient>(HttpClient);
+    layer.checkCrsCompatibility = (crs: string) =>
+      layer.checkSingleCrsCompatibility(http, crs, layer.name)
+        .then(results => {
+          layer.crsCompatibilityResults = results;
+          return results;
+        })
+        .catch(err => {
+          return [];
+        });
   }
 
 

@@ -1,0 +1,16 @@
+# Build Testing Docker Image
+FROM node:12.16.3
+MAINTAINER Wayne Shelley
+
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV DISPLAY=:99.0
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    wget \
+    rsync \
+    && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && dpkg -i google-chrome-stable_current_amd64.deb; apt-get -fy install \
+    && rm -rf /src/google-chrome-stable_current_amd64.deb \
+    && rm -rf /tmp/* \
+    && rm -rf /var/lib/apt/lists/*
+RUN bash -c "/usr/bin/Xvfb :99 -screen 0 1280x1024x24" &

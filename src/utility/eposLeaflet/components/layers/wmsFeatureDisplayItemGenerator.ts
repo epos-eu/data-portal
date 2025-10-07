@@ -137,6 +137,15 @@ export class WmsFeatureDisplayItemGenerator implements FeatureDisplayItemGenerat
           .map((key) => `${key}=${parameters.get(key)}`)
           .join('&');
 
+/*
+        const parametersBbox = parameters.get('bbox');
+
+        const parametersBboxArray: string [] = [];
+
+        parametersBboxArray.push(parametersBbox as string);
+        console.log(parametersBboxArray);
+
+ */
       return url.replace(/ /g, '');
     } else {
       return '';

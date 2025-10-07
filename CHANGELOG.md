@@ -2,6 +2,81 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.46] - 2025-09-11
+- FAIR Assessment Buttons: added new buttons, both in the main menu and in the Details dialog pertaining to each service, in order to open the related EPOS FAIR Assessment page.
+
+
+## [1.0.45] - 2025-09-02
+- Matomo statistics: added the possibility to define a time window when searching statistics.
+- Map View: added a reset zoom button to focus on Europe; modified the default initial zoom.
+- Graph Panel: improved logic so that the trace selector automatically expands when new distributions with new traces are selected, avoiding the impression of empty or unloaded data. (related issue https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19300)
+- UI Update: added the central label “This Platform is Powered By EPOS ERIC”.
+- Sharing: fixed sharing link functionality. (related issue https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19401)
+- **Arctic Polar Projection (EPSG:3995):** introduced as a new functionality, allowing the map to use the Arctic projection (EPSG:3995) via **Proj4Leaflet**. (related issue https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19404)
+- Codebase (not enabled):  
+  - **Measure distance tool:** implemented in the codebase but currently **NOT ENABLED**. (related issue https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/12881)
+
+## [1.0.43] - 2025-06-05
+-  DOI Citation: changed logic and new endpoint to retrieve citation informations inside of informations dialog. (related issue: https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/16537).
+- Updated Link Citation Guide (GUI dropdown menu).
+- Graph selecting at least one trace
+- Welcome Popup changes
+- Export the Map View as Image (related issue: https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/13074).
+- Matomo statistics dialog: removal of unused widget and addition of dialog title.
+- Disabling of Metadata Preview Area
+
+
+## [1.0.42] - 2025-03-11
+- Fix Graph Panel.
+- Fix 'Clear All' button (not recentering map and not resetting zoomLevel).
+- Update the layout to welcome Menu.
+- New welcome pop window added for a guide tour.
+
+## [1.0.41] - 2025-03-04
+- Feature: new dialog created in order to show the real cases of scientific examples (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19388).
+- Fix: Sharing link URL does not populate favorites if is already populated (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19401).
+- Fix: Graph panel view not updated when new services is selected (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19402).
+- Fix: Adjust ImageOverlay Blur when Zooming (crisp pixels) (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19409).
+- Fix: BeachBalls anchoring to center (related to: https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/3889#note_49745).
+- Fix: Analysis tab: "OpenInBrowser" button fix (enable as soon as 'Status' is 'Ready').
+- Fix: "Quality Assurance" property has to be always visible (when no value, shows 'Undefined').
+- Fix: Zoom for timeseries services ('Coverage' type)
+- Fix: fixed Layout for Overlapping Parameters Fields Text in Results Cards.
+
+## [1.0.40] - 2025-01-27
+- Fix: new Covjson format for 'only on Graph' visibility.
+- Feature: Scatter plots data visualization added on Graph ('Coverage' type, not 'CoverageCollection').
+
+## [1.0.39] - 2024-11-28
+- Fix: converted payload has wrong labels (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19294)
+- Fix: removing unwanted matomo tracking on closing card events
+- Fix: details query for keywords made case-insensitive, now returning all available definitions correctly (tmp solution for 502 error: splitting call into multiple calls)
+- Feature: added new Base Maps
+- Fix: making check case-insensitive when checking for 'covjson' type (marker was not showing for ORIGINAL (aka not converted) type). This fix      solves the issue on GUI side: lat and long in right range values need to be provided in order to show marker on map.
+- Fix: Details window - frame resizing allowed only for horizontal direction (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/19281).
+- Chore: Details window - categories layout modified to show all the available categories in the same line without need to click the button .
+- Chore: space added between information icon and item result name .
+- Fix: restructured Keywords query
+- Feature: modify the graph representation to accept parameterGroup data type inside current covJson data to show error bars (https://epos-ci.brgm.fr/epos-public/issuetracker/-/issues/149)
+- Feature: implementing CoverageCollection visualization on 'Graph' view.
+- Feature: implementing MultiStyle Markers.
+- Feature: Zoom on actual data
+- Feature: Matomo statistics
+- Feature: Update driver.js from 0.9.8 version to 1.3.1 version . 
+
+## [1.0.35] - 2024-09-02 - ICS-TCS Meeting Sep 2024
+- Feature: switch distribution dialog
+- Feature: zoom on spatial filter
+- Feature: hiding advanced search filters from results items when no filters available
+- Feature: appended country code to the Service Providers names
+- Chore: add new `npm run dev` to start the application with the correct baseHref
+- Feature: add notification when selecting a service showing the Service Provider
+- Test: add/fix cypress tests
+- Bug: fix clicking on marker not always working on big markers
+- Bug: fix deselecting a service not always working
+- Chore: changing text based on context when no data/equipment available
+- Chore: update link for Configuration and Visualization of services video
+
 ## [1.0.34-dev]
 
 - Feature: Shared Data Portal

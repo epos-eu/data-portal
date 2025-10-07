@@ -28,6 +28,11 @@ import { DistributionDetails } from '../../data/distributionDetails.interface';
 import { ParameterValue } from '../../data/parameterValue.interface';
 import { AaaiApi } from 'api/webApi/classes/aaaiApi.interface';
 import { DistributionFormat } from 'api/webApi/data/distributionFormat.interface';
+import { EnvironmentApi } from 'api/webApi/classes/environments/environmentApi.interface';
+import { Environment } from 'api/webApi/data/environments/environment.interface';
+import { EnvironmentTypeApi } from 'api/webApi/classes/environments/environmentTypeApi.interface';
+import { EnvironmentType } from 'api/webApi/data/environments/environmentType.interface';
+import { EnvironmentResource } from 'api/webApi/data/environments/environmentResource.interface';
 import { Organization } from 'api/webApi/data/organization.interface';
 import { Domain } from 'api/webApi/data/domain.interface';
 import { ShareApi } from 'api/webApi/classes/shareApi.interface';
@@ -42,6 +47,8 @@ export class DevCompositeApi implements Api {
     private readonly detailsApi: DetailsApi,
     private readonly executionApi: ExecutionApi,
     private readonly shareApi: ShareApi,
+    private readonly environmentApi: EnvironmentApi,
+    private readonly environmentTypeApi: EnvironmentTypeApi,
   ) { }
 
   // ---------------------------
@@ -152,6 +159,47 @@ export class DevCompositeApi implements Api {
    */
   retrieveConfigurables(key: string): Promise<string | null> {
     return this.shareApi.retrieveConfigurables(key);
+  }
+
+
+  // Environment
+  /**
+   * The function `getEnvironments` returns a promise that resolves to an array of `Environment` objects.
+   * @returns The function `getEnvironments()` is returning a Promise that resolves to an array of
+   * `Environment` objects.
+   */
+  getEnvironments(): Promise<Array<Environment>> {
+    return this.environmentApi.getEnvironments();
+  }
+  /**
+   * The function `getEnvironment` takes an `Environment` parameter and returns a promise that resolves
+   * to either the requested environment or `null`.
+   * @param {Environment} environment - The `environment` parameter is of type `Environment`. It
+   * represents the environment for which you want to retrieve information.
+   * @returns A Promise that resolves to either an Environment object or null.
+   */
+  getEnvironment(environment: Environment): Promise<Environment | null> {
+    return this.environmentApi.getEnvironment(environment);
+  }
+  updateEnvironment(environment: Environment, newName: string, newDescription: string): Promise<null | Environment> {
+    return this.environmentApi.updateEnvironment(environment, newName, newDescription);
+  }
+  createEnvironment(name: string, description: string, serviceid: string): Promise<null | Environment> {
+    return this.environmentApi.createEnvironment(name, description, serviceid);
+  }
+  removeEnvironment(environment: Environment): Promise<boolean> {
+    return this.environmentApi.removeEnvironment(environment);
+  }
+  runJobEnvironment(environment: Environment): Promise<boolean> {
+    return this.environmentApi.runJobEnvironment(environment);
+  }
+
+  updateResourcesToEnvironment(environment: Environment, resources: Array<EnvironmentResource>): Promise<null | Environment> {
+    return this.environmentApi.updateResourcesToEnvironment(environment, resources);
+  }
+
+  getEnvironmentTypes(): Promise<Array<EnvironmentType>> {
+    return this.environmentTypeApi.getEnvironmentTypes();
   }
 
 }

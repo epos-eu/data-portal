@@ -213,8 +213,11 @@
     </div>
     <div class="form-fields">
       <div *ngIf="dataConfigurable !== null && formType === DATA_CONFIGURATION_TYPE.DATA" class="form-actions">
+        <mat-icon *ngIf="environmentSelected !== null && showExpandButton" class="share" matTooltip="Add to environment {{ environmentSelected.name }}" (click)="openAddToEnvDialog()">
+          move_to_inbox
+        </mat-icon>
         <!-- download button -->
-        <button class="config-control" id="configDownloadID" (click)="openDownloadsDialog()" mat-flat-button [color]="'primary'" matTooltip="Download">
+        <button class="config-control" id="configDownloadID" (click)="openDownloadsDialog()" mat-flat-button [color]="'primary'" matTooltip="Download" data-cy="results-panel-download-button">
           <mat-icon aria-hidden="true">cloud_download</mat-icon>
           <span class="button-label">Download</span>
         </button>

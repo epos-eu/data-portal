@@ -78,4 +78,8 @@ export interface DataConfigurableDataSearchI extends DataConfigurableI {
   different levels of distribution for the data configurable object. The method returns `this`, which
   refers to the current instance of the object implementing the interface. */
   setLevels(value: Array<DistributionLevel>): this;
+
+  getLayerBbox(): Array<number> | null;
+
+  setLayerBbox(coords: Array<number>): this;
 }

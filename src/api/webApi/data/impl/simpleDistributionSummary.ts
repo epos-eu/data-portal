@@ -24,6 +24,9 @@ export class SimpleDistributionSummary implements DistributionSummary {
   public readonly isTabularable: boolean;
   public readonly isOnlyDownloadable: boolean;
   public readonly statusTimestampString: string;
+  public readonly metadataVersioningStatus: null | Array<string>;
+  public readonly metadataVersioningInfo: null | Record<string, { changeDate: string; editorFullName: string }[]> = {};
+
 
   protected constructor(
     protected readonly identifier: string, //
@@ -31,6 +34,8 @@ export class SimpleDistributionSummary implements DistributionSummary {
     protected readonly formats: Array<DistributionFormat>,
     protected readonly status: number,
     protected readonly statusTimestamp: string,
+    protected readonly versioningStatus: null | Array<string>,
+    protected readonly versioningStatusInfo: null | Record<string, { changeDate: string; editorFullName: string }[]> = {}
   ) {
     this.isMappable = (this.getMappableFormats().length > 0);
     this.isGraphable = (this.getGraphableFormats().length > 0);
@@ -38,6 +43,8 @@ export class SimpleDistributionSummary implements DistributionSummary {
     this.isTabularable = (this.getTabularableFormats().length > 0);
     this.isOnlyDownloadable = false;
     this.statusTimestampString = statusTimestamp;
+    this.metadataVersioningStatus = versioningStatus;
+    this.metadataVersioningInfo = versioningStatusInfo;
   }
 
   public static make(
@@ -46,11 +53,14 @@ export class SimpleDistributionSummary implements DistributionSummary {
     formats: Array<DistributionFormat>,
     status: number,
     statusTimestamp: string,
+    versioningStatus,
+    versioningStatusInfo
   ): DistributionSummary {
     Confirm.requiresValidString(identifier);
     Confirm.requiresValidString(name);
     Confirm.requiresValid(formats);
-    return new SimpleDistributionSummary(identifier, name, formats, status, statusTimestamp);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return new SimpleDistributionSummary(identifier, name, formats, status, statusTimestamp, versioningStatus, versioningStatusInfo);
   }
 
 
@@ -87,6 +97,14 @@ export class SimpleDistributionSummary implements DistributionSummary {
 
   getStatusTimestamp(): string {
     return this.statusTimestamp;
+  }
+ // for Metadata Preview mode
+  getVersioningStatus(): null | Array<string> {
+    return this.versioningStatus;
+  }
+  // for metadata preview mode informations like author, last edit etc.
+  getVersioningInfo(): null | Record<string, { changeDate: string; editorFullName: string }[]> {
+    return this.versioningStatusInfo;
   }
 
 }

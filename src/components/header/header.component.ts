@@ -31,6 +31,10 @@ import { MenuItem, MenuService } from 'components/menu/menu.service';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { DialogService } from 'components/dialog/dialog.service';
+import { LoadingService } from 'services/loading.service';
+import { Model } from 'services/model/model.service';
+import { DataSearchService } from 'services/dataSearch.service';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
 
 /**
  * The header component that is displayed in the app.
@@ -51,6 +55,25 @@ export class HeaderComponent implements OnInit {
   public initialMenuData: MenuItem[] = [];
   public shareMenu: MenuItem[] = [];
 
+  public environment = environment;
+
+  /* public metadataStatuses: Array<string> = ['Published', 'Submitted', 'Draft', 'Archived']; */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public metadataStatuses: Array<any> = [
+    { value: 'Published', label: 'Published', icon: 'trip_origin', color: 'published-color' },
+    { value: 'Submitted', label: 'Submitted', icon: 'trip_origin', color: 'submitted-color' },
+    { value: 'Draft', label: 'Draft', icon: 'trip_origin', color: 'draft-color' },
+    { value: 'Archived', label: 'Archived', icon: 'trip_origin', color: 'archived-color' }
+  ];
+
+  // Metadata Status feature
+  public metadataPreviewModeActive: boolean = false;
+  // Metadata Status select-option
+  public defaultSelectValue: string = 'Published';
+  public selectedStatus: string[] = [this.defaultSelectValue];
+
+  /** Timer used to ensure that the search isn't done too many times in quick succession. */
+  private searchTimer: NodeJS.Timeout;
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
@@ -61,8 +84,12 @@ export class HeaderComponent implements OnInit {
     private tourService: TourService,
     private panelsEvent: PanelsEmitterService,
     private menuService: MenuService,
+    private loadingService: LoadingService,
+    private readonly model: Model,
+    private readonly dataSearchService: DataSearchService,
     private readonly tracker: Tracker,
     private readonly dialogService: DialogService,
+    private readonly metadataStatusService: MetaDataStatusService
   ) {
     this.initialMenuData = this.menuService.rootLevelNodes;
 
@@ -95,7 +122,23 @@ export class HeaderComponent implements OnInit {
       this.panelsEvent.invokeLayerControlPanel.subscribe(() => {
         // closes the drop-down menu when the layer control panel opens
         this.dropdown = '';
+      }),
+
+      // on triggered from dialog(value===true) OR when LogOut(value===false) OR on page reload
+      this.model.metadataPreviewMode.valueObs.subscribe((active: boolean) => {
+        // value is not null when triggered from dialog(value===true) OR when LogOut(value===false) OR on page reload
+        if(active != null){
+          this.metadataPreviewModeActive = active;
+        }
+      }),
+      this.model.metadataPreviewModeStatuses.valueObs.subscribe((selectedStatuses: null | Array<string>)=>{
+        if(this.metadataPreviewModeActive && selectedStatuses != null){
+          this.selectedStatus = selectedStatuses;
+        }
       })
+
+      // ----------------------------------------------------------------------------------------------- ----------------------
+
     );
   }
 
@@ -110,6 +153,43 @@ export class HeaderComponent implements OnInit {
       this.dropdown = '';
     } else {
       this.dropdown = dropdownName;
+    }
+  }
+
+
+  public typesToggleSelected(selectedTypes: Array<string> = []): void {
+   this.metadataStatusService.metadataSelectedStatuses.next(selectedTypes);
+
+  }
+
+  public toggleMetadataPreviewMode(value?: boolean): void{
+    // if parameter is being passed (which is, it has been triggered from dialog OR by logOut OR page reload; in the last case)
+    if(value != null){
+      // if 'value' === true, set enabled to true and trigger 'search' call (only 'published' status by default)
+      if(value === true){
+        this.metadataPreviewModeActive = value;
+        this.metadataStatusService.metadataStatusModeActive.next(true);
+      }
+      else{
+        this.metadataStatusService.metadataStatusModeActive.next(false);
+        this.metadataStatusService.metadataSelectedStatuses.next([]);
+      }
+    }
+    // simply toggle
+    else{
+      this.metadataPreviewModeActive = !this.metadataPreviewModeActive;
+      // if activating (switching toggle On)
+      if(this.metadataPreviewModeActive){
+        this.metadataStatusService.metadataStatusModeActive.next(true);
+        this.metadataStatusService.metadataSelectedStatuses.next(this.selectedStatus);
+      }
+      // if deactivating (switching toggle Off)
+      else{
+        this.metadataStatusService.metadataStatusModeActive.next(false);
+        this.metadataStatusService.metadataSelectedStatuses.next([]);
+        // bringing selectedStatus variable of this component (Header) back to default ('Published')
+        this.selectedStatus = [this.defaultSelectValue];
+      }
     }
   }
 
@@ -186,6 +266,9 @@ export class HeaderComponent implements OnInit {
    */
   public share(): void {
     this.dialogService.openShareInformationBanner('createUrl', 'COPY URL ON CLIPBOARD');
+  }
+  public scientficExamples(): void {
+    this.dialogService.openScientificExamplesDialog('Activate Scientific Example' );
   }
 
 }

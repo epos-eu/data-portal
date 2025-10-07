@@ -34,6 +34,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
   public readonly isOnlyDownloadable: boolean;
   public readonly statusNumber: number;
   public readonly statusTimestamp: string;
+  public readonly metadataStatusVersion: null | Array<string>;
+  public readonly metadataStatusInfo: null | Record<string, { changeDate: string; editorFullName: string }[]>;
 
   private constructor( //
     private readonly summary: DistributionSummary, //
@@ -58,7 +60,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     private readonly contactPoints: Array<string>,
     private readonly keywords: Array<string>,
     private readonly frequencyUpdate: string,
-    private readonly hasQualityAnnotation: string,
+    private readonly qualityAssurance: string,
     private readonly level: Array<DistributionLevel>,
     private readonly domainCode: string,
     private readonly availableContactPoints: Array<DistributionContactPoint>,
@@ -72,6 +74,8 @@ export class SimpleDistributionDetails implements DistributionDetails {
     this.isOnlyDownloadable = this.getType() === DistributionType.DOWNLOADABLE_FILE ? true : false;
     this.statusNumber = this.summary.getStatus();
     this.statusTimestamp = this.summary.getStatusTimestamp();
+    this.metadataStatusVersion = this.summary.getVersioningStatus();
+    this.metadataStatusInfo = this.summary.getVersioningInfo();
   }
 
   public static makeUnsafeNullsAbound(
@@ -97,7 +101,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     contactPoints: Array<string>,
     keywords: Array<string>,
     frequencyUpdate: string,
-    hasQualityAnnotation: string,
+    qualityAssurance: string,
     level: Array<DistributionLevel>,
     domainCode: string,
     availableContactPoints: Array<DistributionContactPoint>,
@@ -132,7 +136,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
       contactPoints,
       keywords,
       frequencyUpdate,
-      hasQualityAnnotation,
+      qualityAssurance,
       level,
       domainCode,
       availableContactPoints,
@@ -165,7 +169,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     contactPoints: Array<string>,
     keywords: Array<string>,
     frequencyUpdate: string,
-    hasQualityAnnotation: string,
+    qualityAssurance: string,
     level: Array<DistributionLevel>,
     domainCode: string,
     availableContactPoints: Array<DistributionContactPoint>,
@@ -189,7 +193,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
     Confirm.requiresValidString(description, true);
     Confirm.requiresValidString(license, true);
     Confirm.requiresValidString(endpoint, true);
-    Confirm.requiresValidString(hasQualityAnnotation, true);
+    Confirm.requiresValidString(qualityAssurance, true);
     Confirm.requiresValidString(domainCode, true);
 
     return new SimpleDistributionDetails(
@@ -215,7 +219,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
       contactPoints,
       keywords,
       frequencyUpdate,
-      hasQualityAnnotation,
+      qualityAssurance,
       level,
       domainCode,
       availableContactPoints,
@@ -339,7 +343,7 @@ export class SimpleDistributionDetails implements DistributionDetails {
   }
 
   getQualityAssurance(): string {
-    return this.hasQualityAnnotation;
+    return this.qualityAssurance;
   }
 
   getLevel(): DistributionLevel[] {
@@ -389,6 +393,14 @@ export class SimpleDistributionDetails implements DistributionDetails {
 
   getPage(): Array<string> {
     return this.page;
+  }
+  // metadata versioning (published, archived...)
+  getVersioningStatus(): null | Array<string> {
+    return this.metadataStatusVersion;
+  }
+  // metadata versioning Info (author, last edit...)
+  getVersioningInfo(): null | Record<string, { changeDate: string; editorFullName: string }[]> {
+    return this.metadataStatusInfo;
   }
 
 }

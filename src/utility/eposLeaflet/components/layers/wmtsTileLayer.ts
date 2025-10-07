@@ -52,6 +52,10 @@ export class WmtsTileLayer extends TileLayer {
     WMTSParameter.TILEROW
   ];
 
+  public crsCheckReady?: Promise<void>;
+  public crsCompatibilityResults: Array<{ layerName: string; crs: string; status: boolean }> = [];
+  public checkCrsCompatibility?: (crs: string) => Promise<Array<{ layerName: string; crs: string; status: boolean }>>;
+
   protected getCapabilitiesXML: JQuery<XMLDocument>;
   protected getCapabilitiesPromise: null | Promise<JQuery<XMLDocument>>;
 
@@ -256,5 +260,80 @@ export class WmtsTileLayer extends TileLayer {
           return null;
         }),
     );
+  }
+
+
+  public checkSingleCrsCompatibility(
+    http: HttpClient,
+    crs: string,
+    layerName?: string
+  ): Promise<Array<{ layerName: string; crs: string; status: boolean }>> {
+    return this.getCapabilitiesXml(http).then(($xml: JQuery<XMLDocument>) => {
+      const results: Array<{ layerName: string; crs: string; status: boolean }> = [];
+
+      // Normalize CRS for case-insensitive comparison
+      const targetCrs = (crs || '').toUpperCase();
+
+      // Root layer (<Capability><Layer>)
+      const rootLayer = $xml.find('Capability > Layer').first();
+      const rootCrsList = rootLayer
+        .find('CRS, SRS')
+        .map((_, el) => ($(el).text() || '').toUpperCase())
+        .get();
+
+      // --- Determine which layers to check ---
+      // 1) if provided as a function argument
+      // 2) if present in options (WMS "layers" param, may contain multiple values)
+      // 3) fallback: take all layer names from GetCapabilities
+      const fromOptions = this.options.get('layers');
+      const optionNames =
+        typeof fromOptions === 'string'
+          ? fromOptions
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean)
+          : [];
+
+      const xmlNamesFallback = Array.from(
+        new Set(
+          $xml
+            .find('Layer > Name')
+            .map((_, el) => ($(el).text() || '').trim())
+            .get()
+            .filter(Boolean)
+        )
+      );
+
+      const targetLayerNames = layerName
+        ? [layerName]
+        : optionNames.length > 0
+          ? optionNames
+          : xmlNamesFallback;
+
+      // --- Check CRS for each target layer ---
+      targetLayerNames.forEach(name => {
+        let status = false;
+
+        // Find the <Layer> element with that <Name>
+        const $layerElement = this.getElementWithName($xml, name, 'Layer');
+
+        if ($layerElement && $layerElement.length > 0) {
+          const crsElements = $layerElement
+            .find('CRS, SRS')
+            .map((_, el) => ($(el).text() || '').toUpperCase())
+            .get();
+
+          // OK if declared on the layer or inherited from the root layer
+          status = crsElements.includes(targetCrs) || rootCrsList.includes(targetCrs);
+        } else {
+          // If not found in the document, still try inheritance from the root layer
+          status = rootCrsList.includes(targetCrs);
+        }
+
+        results.push({ layerName: name, crs: targetCrs, status });
+      });
+
+      return results;
+    });
   }
 }

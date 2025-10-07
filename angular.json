@@ -60,7 +60,8 @@
               "node_modules/esri-leaflet-geocoder/dist/esri-leaflet-geocoder.css",
               "node_modules/jquery-ui-dist/jquery-ui.min.css",
               "node_modules/daterangepicker/daterangepicker.css",
-              "node_modules/ngx-lightbox/lightbox.css"
+              "node_modules/ngx-lightbox/lightbox.css",
+              "node_modules/driver.js/dist/driver.css"
             ],
             "scripts": [
               "node_modules/jquery/dist/jquery.min.js",
@@ -114,6 +115,15 @@
                 }
               ],
               "baseHref": "/testpath/"
+            },
+            "development": {
+              "budgets": [
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
+                }
+              ],
+              "baseHref": "/testpath/"
             }
           },
           "defaultConfiguration": ""
@@ -134,6 +144,10 @@
             },
             "cypress-ci-testing": {
               "browserTarget": "epos:build:cypress-ci-testing",
+              "servePath": "/testpath"
+            },
+            "development": {
+              "browserTarget": "epos:build:development",
               "servePath": "/testpath"
             }
           }

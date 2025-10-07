@@ -42,7 +42,8 @@ import { Organization } from '../organization.interface';
 import { SimpleOrganization } from './simpleOrganization';
 
 export class JSONDistributionFactory {
-
+  // current versioningStatusInfo properties being received from Back-End
+  public static versioningStatusInfoProperties: Array<string> = ['changeDate', 'editorFullName'];
   /**
    * The function `jsonToOriginalUrl` takes a JSON object and extracts the 'url' property value,
    * returning it as a nullable string.
@@ -110,7 +111,7 @@ export class JSONDistributionFactory {
       // params
       const params = JSONDistributionFactory.jsonToParameters(distributionObj, 'serviceParameters');
 
-      const hasQualityAnnotation = ObjectAccessUtility.getObjectValueString(distributionObj, 'hasQualityAnnotation', false, '');
+      const qualityAssurance = ObjectAccessUtility.getObjectValueString(distributionObj, 'qualityAssurance', false, '');
 
       const level = [];
       const domainCode = '';
@@ -157,7 +158,7 @@ export class JSONDistributionFactory {
           contactPoints,
           keywords,
           frequencyUpdate,
-          hasQualityAnnotation,
+          qualityAssurance,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           level,
           domainCode,
@@ -458,7 +459,34 @@ export class JSONDistributionFactory {
     const availableFormatsJSONArray = ObjectAccessUtility.getObjectArray<Record<string, unknown>>(distJson, 'availableFormats', false);
     const status = ObjectAccessUtility.getObjectValueNumber(distJson, 'status', false);
     const statusTimestamp = ObjectAccessUtility.getObjectValueString(distJson, 'statusTimestamp', false);
+    const versioningStatus = ObjectAccessUtility.getObjectValueString(distJson, 'versioningStatus', false);
 
+    // retrieve Versioning Status Info (changeDate, editorFullName)
+    const versioningStatusInfo: Record<string, { changeDate: string; editorFullName: string }[]> = {};
+    // temporary object to hold versioning info
+    const tempVersioningInfo: { [key: string]: Partial<{ changeDate: string; editorFullName: string }> } = {};
+    const versioningStatusInfoKey = 'versioningStatusInfo';
+     // Initialize temp object for this key if it doesn't exist
+     if (!tempVersioningInfo[versioningStatusInfoKey]) {
+      tempVersioningInfo[versioningStatusInfoKey] = {};
+    }
+    JSONDistributionFactory.versioningStatusInfoProperties.forEach((property: string) => {
+      if(property in distJson && (distJson[property] != null && distJson[property] !== '')) {
+        const value = ObjectAccessUtility.getObjectValueString(distJson, property, false);
+        tempVersioningInfo[versioningStatusInfoKey][property as 'changeDate' | 'editorFullName'] = value;
+      }
+    });
+    Object.entries(tempVersioningInfo).forEach(([key, partial]) => {
+      if (partial.changeDate && partial.editorFullName) {
+        // finally assigning the actual versioning info to the versioningStatusInfo object with which the DistSummary will be created
+        versioningStatusInfo[key] = [{
+          changeDate: partial.changeDate,
+          editorFullName: partial.editorFullName
+        }];
+      }
+    });
+
+    // TEMPORARILY BACK TO 'const' - IF FOLLOWING 'TEMPORARILY DISABLED' PART IS KEPT AND REACTIVATED, RECHANGE IT TO 'let' <<< --- !!!
     const formatsAppendTo: Array<DistributionFormat> = [];
 
     // If there is a formats array iterate over it
@@ -473,9 +501,16 @@ export class JSONDistributionFactory {
       });
     }
 
+    // TEMPORARILY DISABLED - TO BE ADJUSTED AND REACTIVATED TO SHOW PROPER VISBLE ON RESULTS CARDS <<< --- !!!
+    // check in the available formats: if there are available formate with type 'CONVERTED', then include only them in the formatsAppendTo array
+    /* if(availableFormatsJSONArray.some(frmt => frmt.type === 'CONVERTED')){
+      const onlyConverted = formatsAppendTo.filter(frmt => frmt.getType().toLowerCase() === 'CONVERTED'.toLowerCase());
+      formatsAppendTo = onlyConverted;
+    } */
+
     if (Confirm.isValidString(id) && //
       Confirm.isValidString(title)) {
-      return Optional.ofNonNullable(SimpleDistributionSummary.make(id, title, formatsAppendTo, status, statusTimestamp));
+      return Optional.ofNonNullable(SimpleDistributionSummary.make(id, title, formatsAppendTo, status, statusTimestamp, versioningStatus, versioningStatusInfo));
     } else {
       return Optional.empty();
     }

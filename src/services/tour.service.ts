@@ -19,18 +19,82 @@
 import { ElementRef, EventEmitter, Injectable } from '@angular/core';
 import { MatDialogState } from '@angular/material/dialog';
 import { DialogService } from 'components/dialog/dialog.service';
-import * as Driver from 'driver.js';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { LocalStoragePersister } from './model/persisters/localStoragePersister';
 import { TourFilterCache } from './model/persisters/tourFilterCache.enum';
 import { LocalStorageVariables } from './model/persisters/localStorageVariables.enum';
 import { PanelsEmitterService } from './panelsEventEmitter.service';
+import { driver ,Config , Driver , DriveStep ,Popover} from 'driver.js';
+
 @Injectable()
 export class TourService {
   tourDriver: Driver;
-  tourSteps: Map<string, Map<number, Driver.Step>>;
+  tourSteps: Map<string, Map<number, DriveStep>>;
   tourCurrentStep = 0;
   tourCurrentName: string;
+  tourConfig: Config = {
+    allowKeyboardControl: false,
+    onHighlightStarted: (Element) => {
+      const position = (Element as HTMLElement).getBoundingClientRect();
+      const top = (position as unknown as Record<string, number>).top;
+
+      const parent = this.getScrollParent(Element as HTMLElement);
+      if (parent) {
+        const offset = parent.offsetTop;
+        const height = (Element as HTMLElement).getBoundingClientRect().height;
+        parent.scrollTo(0, top - offset - height);
+      }
+    },
+    overlayOpacity: 0.80,
+    onDestroyed: () => {
+      this.tourActive.next('false');
+      if (this.tourSteps.has(this.tourCurrentName)) {
+        this.triggerClearFiltersCall();
+        this.restoreConfigurables();
+
+        setTimeout(() => {
+          this.restoreCachedDataSearchConfigurables();
+        }, 1000);
+      }
+    },
+    onNextClick: (element) => {
+      // trigger the `tourForward` function in the tourDirective
+      const highlightedElementRef: ElementRef = new ElementRef(element);
+      this.tourStepForward.next(highlightedElementRef);
+      this.tourCurrentStep++;
+      // Delay the movement to the next step until after logic excuted
+      setTimeout(() => {
+        // Move to the next step
+        this.tourDriver.moveNext();
+      }, 0);
+    },
+    onPrevClick: (element) => {
+      // trigger the `tourBackward` function in the tourDirective
+      const highlightedElementRef: ElementRef = new ElementRef(element);
+      this.tourStepBackward.next(highlightedElementRef);
+      this.tourCurrentStep--;
+      // Delay the movement to the previous step until after logic excuted
+      setTimeout(() => {
+        // Move to the previous step
+        this.tourDriver.movePrevious();
+      }, 0);
+    },
+    onHighlighted: (element) => {
+      // trigger the `tourEnter` function in the tourDirective
+      const highlightedElementRef: ElementRef = new ElementRef(element);
+      this.tourStepEnter.next(highlightedElementRef);
+      setTimeout(() => {
+        this.triggerRefresh();
+      }, 100);
+      setTimeout(() => {
+        this.triggerRefresh();
+      }, 200);
+      setTimeout(() => {
+        this.triggerRefresh();
+      }, 300);
+    },
+
+  };
 
   private readonly tourActive = new BehaviorSubject<string | null>(null);
   public tourActiveObservable = this.tourActive.asObservable();
@@ -50,7 +114,7 @@ export class TourService {
   private readonly triggerInfoIconStep = new EventEmitter<void>();
   public triggerInfoIconStepObservable = this.triggerInfoIconStep.asObservable();
 
-  private readonly tourStepEnter = new Subject<ElementRef>();
+  public readonly tourStepEnter = new Subject<ElementRef>();
   public tourStepEnterObservable = this.tourStepEnter.asObservable();
 
   private readonly tourStepBackward = new Subject<ElementRef>();
@@ -58,6 +122,18 @@ export class TourService {
 
   private readonly tourStepForward = new Subject<ElementRef>();
   public tourStepForwardObservable = this.tourStepForward.asObservable();
+
+  private readonly advancedSerachItemSelected = new EventEmitter<void>();
+  public advancedSerachItemSelectedObservable = this.advancedSerachItemSelected.asObservable();
+
+  private readonly handleCloseNotification = new EventEmitter<void>();
+  public handleCloseNotificationObservable = this.handleCloseNotification.asObservable();
+
+  private readonly triggerCloseGraphtablePanelToggle = new EventEmitter<void>();
+  public triggerCloseGraphtablePanelToggleObservable = this.triggerCloseGraphtablePanelToggle;
+
+
+
 
   getScrollParent = (node: HTMLElement): HTMLElement => {
     if (null != node) {
@@ -71,66 +147,10 @@ export class TourService {
     }
   };
 
-  constructor(
-    private dialogsService: DialogService,
-    private localStoragePersistor: LocalStoragePersister,
-    private panelEventEmiterService: PanelsEmitterService,
-  ) {
-    this.tourSteps = new Map<string, Map<number, Driver.Step>>();
-    this.tourDriver = new Driver({
-      allowClose: false,
-      keyboardControl: false,
-      onHighlightStarted: (Element) => {
-        const position = Element.getCalculatedPosition();
-        const top = (position as unknown as Record<string, number>).top;
-
-        const parent = this.getScrollParent(Element.getNode() as HTMLElement);
-        if (parent) {
-          const offset = parent.offsetTop;
-          const height = Element.getSize().height;
-          parent.scrollTo(0, top - offset - height);
-        }
-      },
-      opacity: 0.32,
-      onReset: () => {
-        this.tourActive.next('false');
-        if (this.tourSteps.has(this.tourCurrentName)) {
-          this.triggerClearFiltersCall();
-          this.restoreConfigurables();
-
-          setTimeout(() => {
-            this.restoreCachedDataSearchConfigurables();
-          }, 1000);
-
-        }
-      },
-      onNext: (element) => {
-        // trigger the `tourForward` function in the tourDirective
-        const highlightedElementRef: ElementRef = new ElementRef(element.getNode());
-        this.tourStepForward.next(highlightedElementRef);
-        this.tourCurrentStep++;
-      },
-      onPrevious: (element) => {
-        // trigger the `tourBackward` function in the tourDirective
-        const highlightedElementRef: ElementRef = new ElementRef(element.getNode());
-        this.tourStepBackward.next(highlightedElementRef);
-        this.tourCurrentStep--;
-      },
-      onHighlighted: (element) => {
-        // trigger the `tourEnter` function in the tourDirective
-        const highlightedElementRef: ElementRef = new ElementRef(element.getNode());
-        this.tourStepEnter.next(highlightedElementRef);
-        setTimeout(() => {
-          this.triggerRefresh();
-        }, 100);
-        setTimeout(() => {
-          this.triggerRefresh();
-        }, 200);
-        setTimeout(() => {
-          this.triggerRefresh();
-        }, 300);
-      },
-    });
+  constructor(private dialogsService: DialogService, private localStoragePersistor: LocalStoragePersister, private panelEventEmiterService: PanelsEmitterService) {
+    this.tourSteps = new Map<string, Map<number, DriveStep>>();
+    this.tourDriver = driver();
+    this.tourDriver.setConfig(this.tourConfig);
   }
 
   public triggerDemoTemporalSelectionCall(): void {
@@ -159,6 +179,14 @@ export class TourService {
     this.triggerInfoIconStep.next();
   }
 
+  public triggeradvancedSerachItemSelected(): void{
+    this.advancedSerachItemSelected.next();
+  }
+
+  public triggerHandleCloseNotification(): void{
+    this.handleCloseNotification.next();
+  }
+
   /**
    * The `startTour` function starts a tour by setting the current tour name and step, updating the
    * tour runner steps, and starting the tour driver.
@@ -177,7 +205,7 @@ export class TourService {
     const startStep = typeof stage !== 'undefined' ? stage : this.tourCurrentStep > 0 ? this.tourCurrentStep : 0;
 
     if (this.tourCurrentName !== tourName) {
-      this.tourDriver.reset();
+      this.tourDriver.destroy();
     }
     this.tourActive.next('true');
     this.tourCurrentName = tourName;
@@ -185,32 +213,26 @@ export class TourService {
 
     if (this.tourSteps.has(tourName)) {
       this.updateTourRunnerSteps(tourName);
-      this.tourDriver.start(startStep);
+      this.tourDriver.drive(startStep);
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    // eslint-disable-next-line
     event ? event.stopPropagation() : null;
   }
 
-  public addStep(
-    tourName: string,
-    element: string | HTMLElement | Node,
-    popup: Driver.PopoverOptions,
-    position: number,
-    transparent = false,
-  ): void {
+  public addStep(tourName: string, element: string | Element, popup: Popover, position: number, transparent = false): void {
     let stepMap = this.tourSteps.get(tourName);
     if (!stepMap) {
-      stepMap = new Map<number, Driver.Step>();
+      stepMap = new Map<number, DriveStep>();
     }
 
     // append the tour name to the popup title so we can display and style it
-    // in the popup
     popup.title = `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>${popup.title}`;
+    popup.popoverClass = 'driverJs-theme';
 
     stepMap.set(position, {
       element: element,
       popover: popup,
-      stageBackground: transparent ? 'transparent' : '#fff',
+      // stageBackground: transparent ? 'transparent' : '#fff',
     });
     this.tourSteps.set(tourName, stepMap);
 
@@ -218,19 +240,19 @@ export class TourService {
       // Does the 'current' step exist?
       if (this.tourStepIsDefined(tourName, this.tourCurrentStep)) {
         this.updateTourRunnerSteps(tourName);
-        this.tourDriver.start(this.tourCurrentStep);
       }
     }
   }
 
   public startEposFiltersTour(evt: Event): void {
-
     // eventually open left panel
     this.panelEventEmiterService.dataPanelOpen();
 
     this.cacheFiltersAndFavourites();
 
     this.triggerClearFiltersCall();
+
+    this.triggerCloseGraphtablePanelToggle.next();
 
     setTimeout(() => {
       this.startTour('EPOS Overview', evt, 0);
@@ -239,10 +261,9 @@ export class TourService {
 
   public triggerRefresh(): void {
     /**
-    * Force refresh of highlight layer
-    */
-    // eslint-disable-next-line @typescript-eslint/dot-notation
-    this.tourDriver['overlay'].refresh();
+     * Force refresh of highlight layer
+     */
+    this.tourDriver.refresh();
   }
 
   public isActive(): boolean {
@@ -250,7 +271,6 @@ export class TourService {
   }
 
   private cacheFiltersAndFavourites(): void {
-
     // save on temp variable cache all configurables informations
     this.localStoragePersistor.get(LocalStorageVariables.LS_CONFIGURABLES).then((data) => {
       this.localStoragePersistor.set(TourFilterCache.CACHED_CONFIGURABLES, data);
@@ -276,12 +296,15 @@ export class TourService {
    * The function restores cached data for search configurables and reloads the page.
    */
   private restoreCachedDataSearchConfigurables(): void {
-    this.localStoragePersistor.get(TourFilterCache.CACHED_DATA_SEARCH_CONFIGURABLES).then((data) => {
-      this.localStoragePersistor.set(LocalStorageVariables.LS_DATA_SEARCH_CONFIGURABLES, data);
-    }).finally(() => {
-      this.localStoragePersistor.set(TourFilterCache.CACHED_DATA_SEARCH_CONFIGURABLES, '[]');
-      location.reload();
-    });
+    this.localStoragePersistor
+      .get(TourFilterCache.CACHED_DATA_SEARCH_CONFIGURABLES)
+      .then((data) => {
+        this.localStoragePersistor.set(LocalStorageVariables.LS_DATA_SEARCH_CONFIGURABLES, data);
+      })
+      .finally(() => {
+        this.localStoragePersistor.set(TourFilterCache.CACHED_DATA_SEARCH_CONFIGURABLES, '[]');
+        location.reload();
+      });
   }
 
   /**
@@ -294,7 +317,6 @@ export class TourService {
     if (this.tourSteps.has(tourName)) {
       const stepMap = this.tourSteps.get(tourName);
       if (null != stepMap) {
-
         // remove step without valid Element
         stepMap.forEach((_step, index) => {
           if (_step.element === null) {
@@ -309,8 +331,17 @@ export class TourService {
         const steps = stepArray.map((a) => {
           return a[1];
         });
-        this.tourDriver.defineSteps(steps);
+        this.updateConfigWithSteps(steps);
       }
     }
   }
+
+  private updateConfigWithSteps(steps: Array<DriveStep>): void {
+    this.tourConfig.steps = steps;
+    this.tourDriver.setConfig((this.tourConfig));
+  }
+
 }
+
+
+

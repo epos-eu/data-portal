@@ -33,6 +33,13 @@ import { HttpClient } from '@angular/common/http';
 
 export class GeoJSONMapLayer extends JsonMapLayer {
 
+  public north: number;
+  public west: number;
+  public south: number;
+  public east: number;
+
+  public dataAsFC: FeatureCollection;
+
   constructor(
     injector: Injector,
     id: string,
@@ -61,6 +68,7 @@ export class GeoJSONMapLayer extends JsonMapLayer {
                   JsonHelper.popupClick(ev, this.executionService, this.authenticatedClickService);
                 })
             );
+
 
             // remove image layers in display data
             this.setGeoJsonData(this.filterOutImageLayers(data));

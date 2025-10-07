@@ -21,9 +21,13 @@ export const environmentProd = {
     production: true,
     matomoEndpoint: 'EPOS_PROD_MATOMO_ENDPOINT', // populated during pipeline
     matomoSiteId: 'EPOS_PROD_MATOMO_SITE_ID', // populated during pipeline
+    matomoTokenAuth: 'EPOS_PROD_MATOMO_TOKEN_AUTH', // populated during pipeline
     matomoTrackEvent: true,
+    fairAssessmentUrl: 'https://www.ics-c.epos-eu.org/epos-fair-assessment/',
     modules: {
       data: true, // turns the data section on and off
+      analysis: false, // turns the analysis section on and off
+      registry: true // turns the registry section on and off
     },
   }
 };

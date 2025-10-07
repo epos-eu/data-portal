@@ -36,6 +36,8 @@ import { LocalStoragePersister } from 'services/model/persisters/localStoragePer
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
 import { NotificationService } from 'components/notification/notification.service';
 import { Style } from 'utility/styler/style';
+import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { CONTEXT_FACILITY } from 'api/api.service.factory';
 
 /** The above code is defining an interface called `TableExportObject` in TypeScript. This interface is
 used to define the structure and properties of an object that can be exported from a table. */
@@ -69,6 +71,9 @@ export class TableDisplayComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('containerTable') containerTable: ElementRef;
 
   public readonly DISPLAY_ITEM_TYPES = PopupPropertyType;
+
+  public CONTEXT_RESOURCE = CONTEXT_RESOURCE;
+  public CONTEXT_FACILITY = CONTEXT_FACILITY;
 
   public tableHeaders: Array<string>;
   public customHeaders: Array<string>;
@@ -548,7 +553,7 @@ export class TableDisplayComponent implements OnInit, AfterViewInit, OnDestroy {
 
     /** filter out null values */
     const tableFormatted: PopupProperty[][] = tableData.map((array: Array<PopupProperty>) =>
-      array.filter((val: PopupProperty) => val !== null));
+      array.filter((val: PopupProperty) => val != null));
 
     if (this.isMappable) {
       // add toggleOnMap on table header list (index 1)
@@ -694,7 +699,7 @@ export class TableDisplayComponent implements OnInit, AfterViewInit, OnDestroy {
     const tableMap = GeoJSONHelper.getTableObjectsFromProperties(this.dataConfigurable.id, data.features);
     this.tableHeaders = Array.from(tableMap.keys());
 
-    this.tableHeaders = this.tableHeaders.filter((el) => el !== this.imagesHeader);
+    this.tableHeaders = this.tableHeaders.filter((el) => !el.includes(this.imagesHeader));
 
     this.customHeaders = this.tableHeaders.slice(0, 8);
 

@@ -19,6 +19,8 @@ import { Component, OnInit, Input } from '@angular/core';
 import { Legend } from '../../controls/public_api';
 import { MapLayer } from '../../layers/mapLayer.abstract';
 
+
+
 /** The `LayerTabsControlComponent` class in TypeScript checks if a `MapLayer` has legend data to
 determine if a legend tab should be displayed. */
 @Component({
@@ -46,7 +48,7 @@ export class LayerTabsControlComponent implements OnInit {
    * parameter is used for making HTTP requests in Angular applications.
    */
   constructor(
-    private http: HttpClient
+    private http: HttpClient,
   ) {
   }
 

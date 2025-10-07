@@ -13,6 +13,13 @@
  License for the specific language governing permissions and limitations under
  the License.
  -->
-<app-epos-leaflet-map [initialLatLng]="initialLatLng" [initialZoom]="initialZoom" [maxZoom]="18" [minZoom]="2.5"
-  [crs]="crs" (onload)="leafletMapObjReady($event)" data-cy="epos-leaflet-map">
+<app-epos-leaflet-map 
+  [initialLatLng]="initialLatLng" 
+  [initialZoom]="initialZoom" 
+  [minZoom]="minZoom"
+  [maxZoom]="maxZoom" 
+  [crs]="crs" 
+  [restoreViewFromStorage]="shouldRestoreView"
+  (onload)="leafletMapObjReady($event)" 
+  data-cy="epos-leaflet-map">
 </app-epos-leaflet-map>

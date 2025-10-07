@@ -20,7 +20,7 @@
         <mat-spinner></mat-spinner>
       </ng-container>
       <ng-container *ngIf="!spinner">
-        <table mat-table [dataSource]="dataSource" matSort>
+        <table mat-table [dataSource]="dataSource" matSort data-cy="downloads-dialog-table">
           <!-- Checkbox Column -->
           <ng-container matColumnDef="select">
             <th mat-header-cell *matHeaderCellDef>
@@ -55,12 +55,23 @@
             <td mat-cell *matCellDef="let element">{{ element.format }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="environment" *ngIf="environmentOps && environmentSelected !== null">
+            <th mat-header-cell *matHeaderCellDef>Add to environment</th>
+            <td mat-cell *matCellDef="let element">
+              <div class="actions">
+                <button mat-icon-button (click)="addToEnv(element)" color="secondary">
+                  <mat-icon matTooltip="Add to env {{ environmentSelected.name }}" aria-hidden="true" class="share">move_to_inbox</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
           <!-- Download Column -->
           <ng-container matColumnDef="download">
             <th mat-header-cell *matHeaderCellDef>Download</th>
             <td mat-cell *matCellDef="let element">
               <div class="actions">
-                <button mat-icon-button (click)="download($event, element); openCitationDialog()">
+                <button mat-icon-button (click)="download($event, element); openCitationDialog()" data-cy="downloads-dialog-download-button">
                   <mat-icon matTooltip="Download" aria-hidden="true">download</mat-icon>
                 </button>
               </div>
@@ -92,18 +103,24 @@
       </mat-form-field>
       <mat-paginator #paginator matPaginator [pageSize]="10" [pageSizeOptions]="[5, 10, 25, 50, 100]"></mat-paginator>
     </div>
-    <div class="citation-wrapper">
-      <p>
-        <b>How to cite:</b>
-        {{ citation }}
-      </p>
-      <button mat-icon-button (click)="copyCitationToClipboard(citation)">
-        <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
-      </button>
+    <div>
+      <div *ngIf="isLoading" class="spinner-wrapper">
+        <mat-spinner diameter="60"></mat-spinner>
+      </div>
+      <div class="citation-wrapper" *ngIf="!isLoading">
+        <p>
+          <b>How to cite: </b><br/>
+          <span [innerHTML]="citation" ></span>
+        </p>
+        <button mat-icon-button (click)="copyCitationToClipboard(citation)">
+          <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
+        </button>
+      </div>
     </div>
     <div class="buttons" [hidden]="dataSource.data.length < 2">
       <button mat-flat-button [color]="'primary'" [disabled]="!selection.hasValue()" (click)="downloadSelected($event); openCitationDialog()">Download files</button>
       <button mat-flat-button [color]="'secondary'" [disabled]="!selection.hasValue()" (click)="downloadUrls()">Generate URLs</button>
+      <button mat-flat-button *ngIf="environmentOps" [color]="'secondary'" [disabled]="!selection.hasValue()" (click)="downloadUrls()">Add to Environment</button>
     </div>
   </ng-container>
 </app-base-dialog>

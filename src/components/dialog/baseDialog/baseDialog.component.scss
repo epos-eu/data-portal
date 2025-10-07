@@ -47,7 +47,7 @@
 ::ng-deep .epos-dialog {
   background: rgba(255, 255, 255, .3);
   padding: $padding-background-panel;
-  resize: both;
+  resize: horizontal;
   overflow: auto;
 }
 

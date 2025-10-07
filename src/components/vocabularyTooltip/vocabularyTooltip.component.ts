@@ -56,10 +56,24 @@ export class VocabularyTooltipComponent implements OnInit {
   /** The `private query` variable is a string that represents the SPARQL query used to fetch keyword
   definitions from a vocabulary endpoint. It is constructed by concatenating the
   `environment.vocabularyEndpoint` value with the query string. */
-  private query = environment.vocabularyEndpoint + '?query=prefix%20rdf%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0Aprefix%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0Aprefix%20owl%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0Aprefix%20xsd%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0Aprefix%20dct%3A%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0Aprefix%20foaf%3A%20%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0Aprefix%20skos%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2004%2F02%2Fskos%2Fcore%23%3E%0Aprefix%20version%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fversion%23%3E%0Aprefix%20ldp%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fldp%23%3E%0Aprefix%20time%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2006%2Ftime%23%3E%0Aprefix%20reg%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fregistry%23%3E%0Aprefix%20ui%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fregistry-ui%23%3E%0Aprefix%20qb%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fcube%23%3E%0Aprefix%20org%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Forg%23%3E%0A%0A%0ASELECT%20DISTINCT%20%3Flabel%20%3Fdefinition%20WHERE%20%7B%20%3Fterm%20rdfs%3Alabel%20%3Flabel%20.%20OPTIONAL%20%7B%20%3Fterm%20dct%3Adescription%20%3Fdefinition%20.%20%7D%20FILTER%20(str(%3Flabel)%20IN%20(listOfTerm))%20%7D&output=json';
+
+  // Original Query - If you want to make some test with this original one, remember to replace the occurences of the 'normalizedLabel' variable with 'label'.
+  /* private query = environment.vocabularyEndpoint + '?query=prefix%20rdf%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0Aprefix%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0Aprefix%20owl%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0Aprefix%20xsd%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0Aprefix%20dct%3A%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0Aprefix%20foaf%3A%20%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0Aprefix%20skos%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2004%2F02%2Fskos%2Fcore%23%3E%0Aprefix%20version%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fversion%23%3E%0Aprefix%20ldp%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fldp%23%3E%0Aprefix%20time%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2006%2Ftime%23%3E%0Aprefix%20reg%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fregistry%23%3E%0Aprefix%20ui%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fregistry-ui%23%3E%0Aprefix%20qb%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fcube%23%3E%0Aprefix%20org%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Forg%23%3E%0A%0A%0ASELECT%20DISTINCT%20%3Flabel%20%3Fdefinition%20WHERE%20%7B%20%3Fterm%20rdfs%3Alabel%20%3Flabel%20.%20OPTIONAL%20%7B%20%3Fterm%20dct%3Adescription%20%3Fdefinition%20.%20%7D%20FILTER%20(str(%3Flabel)%20IN%20(listOfTerm))%20%7D&output=json'; */
+
+  // Current Query Being Used
+  private query = environment.vocabularyEndpoint + '?query=PREFIX%20rdf%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23%3E%0APREFIX%20rdfs%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2000%2F01%2Frdf-schema%23%3E%0APREFIX%20owl%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23%3E%0APREFIX%20xsd%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23%3E%0APREFIX%20dct%3A%20%3Chttp%3A%2F%2Fpurl.org%2Fdc%2Fterms%2F%3E%0APREFIX%20foaf%3A%20%3Chttp%3A%2F%2Fxmlns.com%2Ffoaf%2F0.1%2F%3E%0APREFIX%20skos%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2004%2F02%2Fskos%2Fcore%23%3E%0APREFIX%20version%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fversion%23%3E%0APREFIX%20ldp%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Fldp%23%3E%0APREFIX%20time%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2F2006%2Ftime%23%3E%0APREFIX%20reg%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fregistry%23%3E%0APREFIX%20ui%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fregistry-ui%23%3E%0APREFIX%20qb%3A%20%3Chttp%3A%2F%2Fpurl.org%2Flinked-data%2Fcube%23%3E%0APREFIX%20org%3A%20%3Chttp%3A%2F%2Fwww.w3.org%2Fns%2Forg%23%3E%0A%0ASELECT%20DISTINCT%20%28SAMPLE%28%3Flabel%29%20AS%20%3FnormalizedLabel%29%20%28SAMPLE%28%3FdefinitionInner%29%20AS%20%3Fdefinition%29%20WHERE%20%7B%0A%20%20%7B%0A%20%20%20%20SELECT%20%3Flabel%20%3FdefinitionInner%20WHERE%20%7B%0A%20%20%20%20%20%20%3Fterm%20rdfs%3Alabel%20%3Flabel.%0A%20%20%20%20%20%20OPTIONAL%20%7B%20%3Fterm%20dct%3Adescription%20%3FdefinitionInner.%20%7D%0A%20%20%20%20%20%20FILTER%20%28LCASE%28str%28%3Flabel%29%29%20IN%20%28listOfTerm%29%29%0A%20%20%20%20%7D%0A%20%20%7D%0A%7D%20GROUP%20BY%20LCASE%28%3Flabel%29%0A&output=json';
 
   constructor(private readonly http: HttpClient) {
   }
+
+  // groupKeywords() function to group keywords in arrays of MAX length 3
+  public groupKeywords = (termsArray: string[], groupSize: number): string[][] => {
+    const groupedArray: string[][] = [];
+    for (let i = 0; i < termsArray.length; i += groupSize) {
+      groupedArray.push(termsArray.slice(i, i + groupSize));
+    }
+    return groupedArray;
+  };
 
   /**
    * The ngOnInit function takes a string of keywords, splits them using a separator, and then performs
@@ -81,27 +95,45 @@ export class VocabularyTooltipComponent implements OnInit {
       }
     });
 
+    // splitting the string containing all keywords in individual keywords and removing heading and trailing spaces
+    const termsArray: string[] = this._queryKeywords.split(',').map(term => term.trim());
+
+    // grouping individual keywords in array of MAX length 3
+    const groupedKeywords = this.groupKeywords(termsArray, 3);
+
+
+    let listOfTerm: string = '';
+
     // call SparkQL query ex: SELECT DISTINCT ?label ?definition
     // WHERE { ?term rdfs:label ?label . OPTIONAL { ?term dct:description ?definition . }
     // FILTER (str(?label) IN ("earthquake", "seismic waveform")) }
 
-    void firstValueFrom(this.http.get(this.query.replace(/listOfTerm/g, this._queryKeywords)))
-      .then((value: JsonResponse) => {
-        if (value.results.bindings.length > 0) {
-          value.results.bindings.forEach((_key: KeyWordObject) => {
-            if (_key.definition !== undefined) {
-
-              this.results.map((_v: Keyword) => {
-                if (_v.keyword === _key.label.value) {
-                  _v.definition = _key.definition.value;
-                }
-              });
-            }
-          });
+    groupedKeywords.forEach((item: string[], outerIndex: number)=>{
+      item.forEach((keyword: string, innerIndex: number)=>{
+        listOfTerm += keyword;
+        if (innerIndex < item.length -1) {
+          listOfTerm += ', ';
         }
-      }).catch(e => {
-        console.log(e, 'API vocabulary error');
       });
+      // making a request each 3 keywords
+      void firstValueFrom(this.http.get(this.query.replace(/listOfTerm/g, listOfTerm)))
+        .then((value: JsonResponse) => {
+          if (value.results.bindings.length > 0) {
+            value.results.bindings.forEach((_key: KeyWordObject) => {
+              if (_key.definition !== undefined) {
+                this.results.map((_v: Keyword) => {
+                  if (_v.keyword.toLowerCase() === _key.normalizedLabel.value.toLowerCase()) {
+                    _v.definition = _key.definition.value;
+                  }
+                });
+              }
+            });
+          }
+        }).catch(e => {
+          console.log(e, 'API vocabulary error');
+        });
+        listOfTerm = '';
+    });
   }
 }
 
@@ -136,7 +168,7 @@ represents the actual value of the keyword or definition. This interface is used
 information and ensure that the keyword objects in the JSON response are correctly structured when
 accessing their properties in the code. */
 interface KeyWordObject {
-  label: ResponseObject;
+  normalizedLabel: ResponseObject;
   definition: ResponseObject;
 }
 

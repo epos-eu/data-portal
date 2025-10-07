@@ -61,7 +61,7 @@
   "downloadURL": "",
   "endpoint": "https://gnssproducts.epos.ubi.pt/GlassFramework/webresources/stations/v2/station/bbox/{minLon}/{minLat}/{maxLon}/{maxLat}?with=2",
   "frequencyUpdate": "http://purl.org/cld/freq/continuous",
-  "hasQualityAnnotation": "https://gnss-epos.eu/quality-assurance/",
+  "qualityAssurance": "https://gnss-epos.eu/quality-assurance/",
   "href": "https://ics-c.epos-ip.org/development/k8s-epos-deploy/latest/api/v1/resources/details/6b4f5899-edfa-4739-a20b-55be5088a825",
   "hrefExtended": "https://ics-c.epos-ip.org/development/k8s-epos-deploy/latest/api/v1/resources/details/6b4f5899-edfa-4739-a20b-55be5088a825?extended=true",
   "id": "6b4f5899-edfa-4739-a20b-55be5088a825",

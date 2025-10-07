@@ -44,6 +44,7 @@ import { ServicesModule } from 'services/services.module';
 import { DataConfigurationModule } from '../dataConfiguration/dataConfiguration.module';
 import { DataSearchConfigurablesServiceResource } from './services/dataSearchConfigurables.service';
 import { LandingService } from './services/landing.service';
+import { MatChipsModule } from '@angular/material/chips';
 
 @NgModule({
   declarations: [
@@ -77,6 +78,7 @@ import { LandingService } from './services/landing.service';
     DirectivesModule,
     ServicesModule.forRoot(),
     DataConfigurationModule,
+    MatChipsModule,
   ],
   exports: [
     DataPanelComponent,

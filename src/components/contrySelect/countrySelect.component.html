@@ -9,7 +9,7 @@
     [formControl]="autoCompleteCountryFormControl"
     placeholder="{{ countryLabel ? countryLabel.name : 'Select Country' }}" />
   <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayCountry" class="nice-scrollbar">
-    <mat-option *ngFor="let country of filteredCountries | async" [value]="country">
+    <mat-option *ngFor="let country of filteredCountries | async" [value]="country" data-cy="country-select-option">
       {{ country.name }}
     </mat-option>
   </mat-autocomplete>

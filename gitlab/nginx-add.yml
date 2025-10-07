@@ -1,0 +1,60 @@
+- name: Install Nginx Config
+  hosts: localhost
+  sudo: yes
+  connection: local
+
+  tasks:
+
+  - name: Add nginx reverse proxy to app
+    blockinfile:
+      dest: /etc/nginx/sites-available/default
+      state: present
+      insertafter: "server_name _;"
+      marker: "### {mark} {{ project_name }} ###"
+      content: |
+            location /{{ project_name }}/ {
+                try_files $uri$args $uri$args/ /{{ project_name }}/index.html;
+            }
+    register: nginx
+
+  - name: Add nginx reverse proxy to live non-auth API
+    blockinfile:
+      dest: /etc/nginx/sites-available/default
+      state: present
+      insertafter: "server_name _;"
+      marker: "### {mark} {{ project_name }} live non-auth API ###"
+      content: |
+            location /{{ project_name }}/api-non-auth {
+                proxy_pass https://epos.cineca.it/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+            }
+    register: nginx
+
+  - name: Add nginx reverse proxy to live auth API
+    blockinfile:
+      dest: /etc/nginx/sites-available/default
+      state: present
+      insertafter: "server_name _;"
+      marker: "### {mark} {{ project_name }} live auth API ###"
+      content: |
+            location /{{ project_name }}/api {
+                proxy_pass https://epos.cineca.it/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+            }
+    register: nginx
+
+  - name: Reload nginx
+    service: name=nginx state=reloaded
+    when: nginx.changed
+
+  - name: Restart nginx
+    service: name=nginx state=restarted
+    when: nginx.changed

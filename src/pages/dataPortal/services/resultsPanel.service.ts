@@ -26,6 +26,14 @@ export class ResultsPanelService {
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public counterDataObs = this.counterData.asObservable();
 
+  private counterRegistry = new BehaviorSubject<number>(0);
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  public counterRegistryObs = this.counterRegistry.asObservable();
+
+  private counterEnvironment = new BehaviorSubject<number>(0);
+  // eslint-disable-next-line @typescript-eslint/member-ordering
+  public counterEnvironmentObs = this.counterEnvironment.asObservable();
+
   private counterTable = new BehaviorSubject<number>(0);
   // eslint-disable-next-line @typescript-eslint/member-ordering
   public counterTableObs = this.counterTable.asObservable();
@@ -52,6 +60,14 @@ export class ResultsPanelService {
 
   public setCounterData(value: number): void {
     this.counterData.next(value);
+  }
+
+  public setCounterRegistry(value: number): void {
+    this.counterRegistry.next(value);
+  }
+
+  public setCounterEnvironment(value: number): void {
+    this.counterEnvironment.next(value);
   }
 
   public setCounterTable(value: number): void {

@@ -25,6 +25,8 @@ export class DistributionFormatType {
   public static readonly APP_OGC_WMS = 'application/vnd.ogc.wms_xml';
   public static readonly APP_OGC_WMTS = 'application/vnd.ogc.wmts_xml';
   public static readonly APP_COV_JSON = 'covjson';
+  public static readonly APP_EPOS_COV_JSON = 'application/epos.covjson';
+  public static readonly APP_EPOS_GRAPH_COV_JSON = 'application/epos.graph.covjson';
 
   // download formats so already data-search downloadable by way of type DOWNLOADABLE_FILE
   // public static readonly ZIP = 'zip';
@@ -38,10 +40,13 @@ export class DistributionFormatType {
     DistributionFormatType.APP_OGC_WMTS,
     DistributionFormatType.APP_EPOS_MAP_GEOJSON,
     DistributionFormatType.APP_COV_JSON,
+    DistributionFormatType.APP_EPOS_COV_JSON,
     // ...
   ];
   private static graphableFormats = [
     DistributionFormatType.APP_COV_JSON,
+    DistributionFormatType.APP_EPOS_GRAPH_COV_JSON,
+    DistributionFormatType.APP_EPOS_COV_JSON,
     // ...
   ];
 

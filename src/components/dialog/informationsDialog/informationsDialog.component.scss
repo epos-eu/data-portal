@@ -95,6 +95,7 @@
       margin-right: 0px;
       padding-top: 15px;
       padding-bottom: 15px;
+      height: 40px;
       flex: 1;
 
       &.confirm {
@@ -125,6 +126,7 @@
 
 mat-error {
   text-align: right;
+  margin-top: 10px;
 }
 
 mat-checkbox {

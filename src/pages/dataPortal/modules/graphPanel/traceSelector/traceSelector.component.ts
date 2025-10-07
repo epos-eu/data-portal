@@ -14,7 +14,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, Input, Output, EventEmitter, OnInit, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { DataConfigurable } from 'utility/configurables/dataConfigurable.abstract';
 import { Trace } from '../objects/trace';
 import { Styler, graphDefaultStyles } from 'utility/styler/styler';
@@ -26,6 +26,9 @@ import { TraceSelectorService } from './traceSelector.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { DataSearchConfigurablesServiceResource } from '../../dataPanel/services/dataSearchConfigurables.service';
+
+
 
 /**
  * Allows a user to select which traces to display on the associated graph.
@@ -36,7 +39,7 @@ import { LocalStorageVariables } from 'services/model/persisters/localStorageVar
   templateUrl: './traceSelector.component.html',
   styleUrls: ['./traceSelector.component.scss']
 })
-export class TraceSelectorComponent implements OnInit, AfterViewInit {
+export class TraceSelectorComponent implements OnInit {
   /** An EventEmitter that allows changes in the selected items to be passed to the parent */
   @Output() selectedTraces = new EventEmitter<Array<Trace>>();
 
@@ -60,6 +63,9 @@ export class TraceSelectorComponent implements OnInit, AfterViewInit {
 
   /** Array of the currently selected {@link Trace} objects. */
   public _selectedTraces: Record<string, Trace> = {};
+
+  // Pending IDs to restore once traces are available
+  private pendingRestoreIds = new Set<string>();
 
   /**
    * Setter that sets {@link #traceMap} then calls {@link #updateDistributionPlotList}.
@@ -89,36 +95,22 @@ export class TraceSelectorComponent implements OnInit, AfterViewInit {
     private readonly panelsEvent: PanelsEmitterService,
     private readonly traceSelector: TraceSelectorService,
     private readonly localStoragePersister: LocalStoragePersister,
+    private readonly dataSearchConfService: DataSearchConfigurablesServiceResource,
   ) {
     this.traceSelectorExpanded = false;
+
+    try {
+      const saved = this.localStoragePersister.getValue(
+        LocalStorageVariables.LS_CONFIGURABLES,
+        LocalStorageVariables.LS_DATA_TRACES_SELECTED
+      ) as string;
+      const ids = JSON.parse(saved ?? '[]') as string[];
+      this.pendingRestoreIds = new Set(ids);
+    } catch {
+      this.pendingRestoreIds.clear();
+    }
   }
 
-  public ngAfterViewInit(): void {
-    this.loading.emit(true);
-    setTimeout(() => {
-
-      const tracesSelected = JSON.parse(this.localStoragePersister.getValue(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_DATA_TRACES_SELECTED) as string ?? '[]') as Array<string>;
-
-      const allTraces = this.getAllTraces(this.traceRecord);
-      const traceToSelect: Array<Trace> = [];
-
-      tracesSelected.forEach((traceId: string) => {
-
-        allTraces.forEach(_t => {
-          if (_t.id === traceId) {
-            // set yaxis
-            _t.yAxis = _t.generateYAxis();
-            this.styler.assignStyle(_t, Object.values(traceToSelect));
-            traceToSelect.push(_t);
-          }
-        });
-
-      });
-
-      this.setSelectedTraces(traceToSelect);
-      this.loading.emit(false);
-    }, 5000);
-  }
 
   public ngOnInit(): void {
     this.subscriptions.push(
@@ -134,12 +126,19 @@ export class TraceSelectorComponent implements OnInit, AfterViewInit {
         const traceId = traceSelector[1] ?? '';
         const selected = traceSelector[2] ?? true;
         const trace = this.traceRecord[layerId]?.filter(traceObj => (traceObj.id === traceId));
-
         if (trace !== undefined && trace.length > 0) {
           this.setSelected(trace[0], selected);
         }
 
-      })
+      }),
+
+      // Re-persist when configurables (and pinned state) change — but only if there's at least one pinned
+      this.dataSearchConfService.watchAll().subscribe(() => {
+        if (this.isRightSidenavOpen()) {
+          this.persistSelectedTracesByFavourites();
+        }
+      }),
+
     );
   }
 
@@ -164,84 +163,217 @@ export class TraceSelectorComponent implements OnInit, AfterViewInit {
     this.traceSelector.setTraceSelector(layerId, trace.id, selected);
   }
 
+
   /**
+   * Selects or deselects a {@link Trace} from the current selection.
    *
-   * Called by the display to select or deselect a {@link Trace}.
-   * @param trace The Trace object.
-   * @param selected Whether selecting or deselecting.
-   * @param yAxis The Y-axis that this selection will share.
+   * UI selection is always updated immediately. Persistence to localStorage
+   * is performed by filtering the current selection so that only traces whose
+   * `originatingConfigurableId` is among the favourite (pinned) configurables
+   * stored in LS_DATA_SEARCH_CONFIGURABLES are saved.
+   *
+   * @param trace    The Trace object.
+   * @param selected true to select (add), false to remove (deselect).
+   * @param yAxis    Optional Y-axis to share with the selection.
    */
   public setSelected(trace: Trace, selected: boolean, yAxis?: YAxis): void {
     if (selected && this.addIsDisabled) {
-      // do nothing
-    } else {
-      // always try to remove the trace if exists
-      const traceToRemove = this._selectedTraces[trace.id];
-      if (null != traceToRemove) {
-        delete this._selectedTraces[trace.id];
-        traceToRemove.setStyle(null);
-        traceToRemove.yAxis = null;
-      }
-
-      if (selected) {
-        // add the trace
-        this._selectedTraces[trace.id] = trace;
-        // set styling
-        this.styler.assignStyle(trace, Object.values(this._selectedTraces));
-        // set yaxis
-        trace.yAxis = (null == yAxis) ? trace.generateYAxis() : yAxis;
-      }
-
-      this.localStoragePersister.set(
-        LocalStorageVariables.LS_CONFIGURABLES,
-        JSON.stringify(Object.keys(this._selectedTraces)),
-        false,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        LocalStorageVariables.LS_DATA_TRACES_SELECTED
-      );
-
-      this.setSelectedTraces(Object.values(this._selectedTraces));
+      return;
     }
+
+    // Remove if it already exists (so re-select replaces cleanly)
+    const existing = this._selectedTraces[trace.id];
+    if (existing) {
+      delete this._selectedTraces[trace.id];
+      existing.setStyle(null);
+      existing.yAxis = null;
+    }
+
+    // Add if requested
+    if (selected) {
+      // add the trace
+      this._selectedTraces[trace.id] = trace;
+      // set styling
+      this.styler.assignStyle(trace, Object.values(this._selectedTraces));
+      // set yaxis
+      trace.yAxis = (null == yAxis) ? trace.generateYAxis() : yAxis;
+    }
+    // Update UI outputs
+    this.setSelectedTraces(Object.values(this._selectedTraces));
+
+    // Persist filtered by favourites (pinned configurables)
+    this.persistSelectedTracesByFavourites();
   }
 
-  /** Called after the {@link #traceRecord} vraiable changes to update component. */
-  private updateDistributionPlotList(traceMap: Map<DataConfigurableDataSearch, null | Array<Trace>>): void {
+
+  /**
+   * Re-persist the currently selected traces to localStorage, keeping only those
+   * whose `originatingConfigurableId` belongs to the favourite (pinned) configurables
+   * stored in LS_DATA_SEARCH_CONFIGURABLES.
+   *
+   * IMPORTANT: Do NOT overwrite LS_DATA_TRACES_SELECTED if favourites aren't loaded yet.
+   */
+  private persistSelectedTracesByFavourites(): void {
+    void this.localStoragePersister
+      .get(LocalStorageVariables.LS_DATA_SEARCH_CONFIGURABLES)
+      .then((raw: string) => {
+        // If favourites are not available yet, don't touch persistence
+        if (!raw || raw.trim() === '' || raw === 'null' || raw === 'undefined') {
+          return;
+        }
+
+        let favouriteIds: string[] = [];
+        try {
+          const parsed = JSON.parse(raw) as Array<{ id: string; pinned?: boolean }>;
+          favouriteIds = parsed.filter(c => c?.pinned === true).map(c => c.id);
+        } catch {
+          return; // parsing failed → do nothing
+        }
+
+        // Optional safety: if there are no favourites, avoid clearing on boot
+        if (favouriteIds.length === 0) {
+          return;
+        }
+
+        const filteredTraceIds = Object.values(this._selectedTraces)
+          .filter(t => favouriteIds.includes(t.originatingConfigurableId))
+          .map(t => t.id);
+
+        this.localStoragePersister.set(
+          LocalStorageVariables.LS_CONFIGURABLES,
+          JSON.stringify(filteredTraceIds),
+          false,
+          LocalStorageVariables.LS_DATA_TRACES_SELECTED
+        );
+      })
+      .catch(() => {
+        // No-op
+      });
+  }
+
+
+  /** Called after the {@link #traceRecord} variable changes to update the component. */
+  /** Called after the {@link #traceRecord} variable changes to update the component. */
+  private updateDistributionPlotList(
+    traceMap: Map<DataConfigurableDataSearch, null | Array<Trace>>
+  ): void {
+
+    // 1) Snapshot previous state (used to detect new data additions)
+    const prevTraceRecord = this.traceRecord ? { ...this.traceRecord } : {};
+
+    // 2) Rebuild current state (configurableId -> traces/null)
     this.traceRecord = {};
     traceMap.forEach((traces: null | Array<Trace>, config: DataConfigurable) => {
       this.traceRecord[config.id] = traces;
     });
 
+    // List of configurables in the new state
     const newConfigurables = Array.from(traceMap.keys());
-
     const allTraces = this.getAllTraces(this.traceRecord);
 
-    // refresh selectedTraces
-    const newSelectedTraces = Object.values(this._selectedTraces).map((previouslySelectedtrace: Trace) => {
-      // find new version of traces
-      let traceToKeep = allTraces.find((thisTrace: Trace) => {
-        const isUpdateOfTrace = ((thisTrace.originatingConfigurableId === previouslySelectedtrace.originatingConfigurableId)
-          && (thisTrace.id === previouslySelectedtrace.id));
+    // 3) Refresh selected traces:
+    //    - If a new instance with the same IDs exists, transfer Y-axis and style.
+    //    - If the configurable is still loading (traces == null), keep the old version temporarily.
+    const newSelectedTraces = Object.values(this._selectedTraces)
+      .map((prevSelected: Trace) => {
+        let traceToKeep = allTraces.find((t: Trace) => {
+          const sameTrace =
+            t.originatingConfigurableId === prevSelected.originatingConfigurableId &&
+            t.id === prevSelected.id;
 
-        if (isUpdateOfTrace) {
-          // transfer Y-axis and style across
-          thisTrace.yAxis = previouslySelectedtrace.yAxis;
-          thisTrace.setStyle(previouslySelectedtrace.getStyle());
+          if (sameTrace) {
+            t.yAxis = prevSelected.yAxis;
+            t.setStyle(prevSelected.getStyle());
+          }
+          return sameTrace;
+        });
+
+        if (!traceToKeep) {
+          const confExists = this.dataSearchConfService
+            .getAll()
+            .some(conf => conf.id === prevSelected.originatingConfigurableId);
+
+          if (
+            prevSelected != null &&
+            this.traceRecord[prevSelected.originatingConfigurableId] == null &&
+            confExists
+          ) {
+            traceToKeep = prevSelected;
+          }
         }
-        return (isUpdateOfTrace);
-      });
-      // if not found, check if currently updating
-      if (null == traceToKeep) {
-        // if configurable value is null we're updating it, so keep the previous version of traces
-        if ((null != previouslySelectedtrace) && (null == this.traceRecord[previouslySelectedtrace.originatingConfigurableId])) {
-          traceToKeep = previouslySelectedtrace;
-        }
-      }
-      return traceToKeep;
-    }).filter(trace => (null != trace)); // filter nulls
+
+        return traceToKeep;
+      })
+      .filter((t): t is Trace => t != null);
 
     this.setSelectedTraces(newSelectedTraces as Array<Trace>);
-
     this.configurables = newConfigurables;
+
+    // 5) Auto-expand the trace selector if sidenav is open and new data arrived
+    if (this.isRightSidenavOpen() && this.hasNewDataAdded(prevTraceRecord, this.traceRecord)) {
+      setTimeout(() => { this.traceSelectorExpanded = true; }, 500);
+    }
+
+    // 6) Restore previously persisted selections when their traces become available
+    this.restorePendingSelections();
+
+    // 7) Spinner: show ONLY if there are still traces being loaded (null entries)
+    const stillHasNull = Object.values(this.traceRecord).some(v => v === null);
+    this.loading.emit(stillHasNull);
+  }
+
+  /**
+   * Checks whether the right-bottom sidenav is currently open.
+   */
+  private isRightSidenavOpen(): boolean {
+    return this.localStoragePersister.getValue(
+      LocalStorageVariables.LS_CONFIGURABLES,
+      LocalStorageVariables.LS_RIGHT_BOTTOM_SIDENAV
+    ) === 'true';
+  }
+
+  /**
+   * Restores pending trace selections as soon as their data is available.
+   */
+  private restorePendingSelections(): void {
+    if (this.pendingRestoreIds.size === 0) { return; }
+
+    const restorable = this.getAllTraces(this.traceRecord)
+      .filter(t => this.pendingRestoreIds.has(t.id));
+
+    if (restorable.length > 0) {
+      restorable.forEach(t => {
+        if (!this._selectedTraces[t.id]) {
+          t.yAxis = t.yAxis ?? t.generateYAxis();
+          this.styler.assignStyle(t, Object.values(this._selectedTraces));
+          this._selectedTraces[t.id] = t;
+        }
+        this.pendingRestoreIds.delete(t.id);
+      });
+      this.setSelectedTraces(Object.values(this._selectedTraces));
+    }
+  }
+
+  /**
+   * Checks if new trace data has been added compared to the previous state.
+   * A "new addition" means:
+   * - A previously null/undefined configurable now has > 0 traces.
+   * - A configurable has more traces than before.
+   */
+  private hasNewDataAdded(
+    prevTraceRecord: Record<string, null | Array<Trace>>,
+    currTraceRecord: Record<string, null | Array<Trace>>
+  ): boolean {
+    for (const [id, curr] of Object.entries(currTraceRecord)) {
+      const prev = prevTraceRecord[id];
+      const prevLen = Array.isArray(prev) ? prev.length : 0;
+      const currLen = Array.isArray(curr) ? curr.length : 0;
+
+      if ((prev == null && currLen > 0) || (currLen > prevLen)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** Emits the updated list of selected {@link Trace}s, via {@link #selectedTraces}. */

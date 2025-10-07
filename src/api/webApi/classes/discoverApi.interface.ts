@@ -53,6 +53,10 @@ export interface DiscoverRequest {
   getBBox(): BoundingBox;
   getKeywordIds(): null | Array<string>;
   getOrganisationIds(): null | Array<string>;
+  getFacilityTypeIds(): null | Array<string>;
+  getEquipmentTypeIds(): null | Array<string>;
+  // used in search calls for 'Metadata Status' feature
+  getVersioningStatus(): null | Array<string>;
 
   hasTemporalRange(): boolean;
 }

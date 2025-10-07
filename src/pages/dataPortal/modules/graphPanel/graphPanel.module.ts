@@ -32,6 +32,8 @@ import { GraphPanelComponent } from './graphPanel.component';
 import { GraphDisplayComponent } from './graphDisplay/graphDisplay.component';
 import { MatIconModule } from '@angular/material/icon';
 import { TraceSelectorService } from './traceSelector/traceSelector.service';
+// Check if this import is needed (probably NOT)!
+import { DataSearchConfigurablesServiceResource } from '../dataPanel/services/dataSearchConfigurables.service';
 
 @NgModule({
   declarations: [
@@ -57,7 +59,9 @@ import { TraceSelectorService } from './traceSelector/traceSelector.service';
     GraphPanelComponent,
   ],
   providers: [
-    TraceSelectorService
+    TraceSelectorService,
+    // Check if this import is needed (probably NOT)!
+    DataSearchConfigurablesServiceResource
   ]
 })
 

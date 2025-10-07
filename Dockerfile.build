@@ -1,0 +1,14 @@
+# Replace CI_REGISTRY_IMAGE with Hostname
+FROM CI_REGISTRY_IMAGE/tester:latest
+MAINTAINER Wayne Shelley
+# Build time arguments required to pull npm/git dependancies
+ARG GIT_DEPLOY_USER
+ARG GIT_DEPLOY_PASS
+ARG GIT_SERVER
+COPY . /opt/epos-gui/
+WORKDIR /opt/epos-gui/
+RUN ./gitlab/pre-build.sh
+# To explore the build environment before building.
+# comment out the line below, re-build the image then run: docker run -it epos-gui-builder /bin/bash
+RUN node_modules/.bin/ng build --configuration production
+# see also gitlab-ci and package.json

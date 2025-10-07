@@ -34,7 +34,6 @@ import { MatOption } from '@angular/material/core';
 import { MatSelect } from '@angular/material/select';
 import { TemporalControlsComponent } from 'pages/dataPortal/modules/temporalSpatialControls/temporalControls/temporalControls.component';
 import { TourService } from 'services/tour.service';
-import * as Driver from 'driver.js';
 import { ViewType } from 'api/webApi/data/viewType.enum';
 import { SearchService } from '../services/search.service';
 import { DataSearchService } from 'services/dataSearch.service';
@@ -43,6 +42,7 @@ import { FacetLeafItemMI } from 'services/model/modelItems/facetLeafItemMI';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
+import { Popover } from 'driver.js';
 
 /**
  * This component displays the facet panel and when a user changes their selection,
@@ -170,8 +170,6 @@ export class SearchFacetsComponent implements OnInit {
         }
       }),
       this.tourService.triggerClearFiltersObservable.subscribe(() => this.clearAll()),
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       this.model.dataSearchTypeData.valueObs.subscribe((arrayType: Array<string> | null) => {
         if (arrayType !== null) {
           this.selectedTypes = arrayType;
@@ -222,7 +220,6 @@ export class SearchFacetsComponent implements OnInit {
 
       this.numberTypeSelected = items.length;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       this.model.dataSearchTypeData.set(items);
 
       if (items.length > 0) {
@@ -313,7 +310,6 @@ export class SearchFacetsComponent implements OnInit {
     this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true, false);
     this.model.dataSearchGeolocation.set(null);
     this.model.dataSearchFacetLeafItems.set([]);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     this.model.dataSearchTypeData.set([]);
     this.selectedTypes = [];
     this.clearEmit.next();
@@ -343,15 +339,12 @@ export class SearchFacetsComponent implements OnInit {
     const holdingdiv = document.createElement('div') as HTMLElement;
     const boundingBox = document.getElementsByClassName('leaflet-interactive').item(0) as HTMLElement;
     const tourName = 'EPOS Overview';
-
-
     // add overlay Pane
     this.mapInteractionService.setOverlayPane(true);
-
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Bounding Box`,
       description: 'This is the bounding box.',
-      position: 'right',
+      side: 'right',
     };
     if (null != boundingBox) {
       this.tourService.addStep(tourName, boundingBox, options, 3, true);

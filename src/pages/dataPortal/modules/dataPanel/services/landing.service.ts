@@ -70,9 +70,23 @@ export class LandingService extends BaseLandingService {
           domain: false,
           color: '#fff',
         });
-
-        // order by id
-        r.sort((a, b) => (a.id !== undefined && Number(a.id)) > (b.id !== undefined && Number(b.id)) ? 1 : -1);
+          // new sorting way
+           r.sort((a, b) => {
+            if (a.code === 'ALL') {
+              return -1; // ALL comes first
+            }
+            if (b.code === 'ALL') {
+              return 1;
+            }
+            if (a.code === 'FAV') {
+              return -1; // FAV comes after ALL
+            }
+            if (b.code === 'FAV') {
+              return 1;
+            }
+            // Sort remaining by id
+            return Number(a.id) - Number(b.id);
+          });
 
         this.domainsSrc.next(r);
       }

@@ -36,6 +36,8 @@ import { ParametersDialogService } from 'components/dialog/parametersDialog/para
 import { ParameterProperty } from 'api/webApi/data/parameterProperty.enum';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { Environment } from 'api/webApi/data/environments/environment.interface';
+import { AnalysisConfigurablesService } from 'pages/dataPortal/services/analysisConfigurables.service';
 import { DataConfigurationType } from 'utility/configurables/dataConfigurationType.enum';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
@@ -80,6 +82,8 @@ export class DataConfigurationComponent implements OnInit, AfterViewInit {
   public totParValue: number;
   public showApplyButton = false;
 
+  public environmentSelected: Environment | null = null;
+
   public serviceDocumentation: string;
 
   public formType: DataConfigurationType = DataConfigurationType.DATA;
@@ -95,6 +99,7 @@ export class DataConfigurationComponent implements OnInit, AfterViewInit {
     protected readonly dialogService: DialogService,
     protected readonly paramsDialogService: ParametersDialogService,
     protected readonly localStoragePersister: LocalStoragePersister,
+    protected readonly analysisConfigurables: AnalysisConfigurablesService,
     protected readonly tracker: Tracker,
   ) {
   }
@@ -105,6 +110,9 @@ export class DataConfigurationComponent implements OnInit, AfterViewInit {
       this.dataConfigurableSource.subscribe(() => {
         this.resetInputs();
       }),
+      this.analysisConfigurables.triggerEnvironmentSelectionObs.subscribe((environment: Environment | null) => {
+        this.environmentSelected = environment;
+      })
     );
   }
 

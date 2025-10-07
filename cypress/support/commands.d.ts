@@ -18,6 +18,8 @@ declare namespace Cypress {
 
     getLeafletPane(id: string): Chainable<JQuery<HTMLElement>>;
 
+    getServiceMapFeatures(service: Service): Chainable<JQuery<HTMLElement>>;
+
     searchForService(service: Service): void;
 
     interceptService(service: Service): void;

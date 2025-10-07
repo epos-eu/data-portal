@@ -24,6 +24,8 @@ export const environmentDevel = {
     matomoTrackEvent: true,
     modules: {
       data: true, // turns the data section on and off
+      analysis: true, // turns the analysis section on and off
+      registry: true // turns the registry section on and off
     },
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     mainMenu: environmentBase.mainMenu.concat({ name: 'Reset All', action: 'resetall', icon: 'clear' })

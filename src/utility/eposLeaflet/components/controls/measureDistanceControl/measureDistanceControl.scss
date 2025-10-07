@@ -1,0 +1,58 @@
+:host ::ng-deep {
+    .leaflet-ruler {
+        height: 30px;
+        width: 30px;
+        background-image: url("../../../../../../node_modules/leaflet-ruler/dist/icon-colored.png"); 
+        background-repeat: no-repeat;
+        background-position: center;
+        background-color: #0000004D;
+        mix-blend-mode: difference;
+      }
+      
+      .leaflet-ruler:hover {
+        background-image: url("../../../../../../node_modules/leaflet-ruler/dist/icon-colored.png"); 
+        cursor: pointer;
+      }
+      
+      .leaflet-ruler-clicked {
+        height: 35px;
+        width: 35px;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-image: url("../../../../../../node_modules/leaflet-ruler/dist/icon-colored.png");
+      
+      }
+    
+      .leaflet-control {
+        cursor: pointer;
+      }
+      .result-tooltip{
+        background-color: white;
+        border-width: smaller;
+        border-color: black;
+        font-size: smaller;
+      }
+      .moving-tooltip{
+        background-color: rgba(255, 255, 255, .7);
+        background-clip: padding-box;
+        opacity: 0.5;
+        border: dotted;
+        border-color:red;
+        font-size: smaller;
+      }
+      .plus-length{
+        padding-left: 45px;
+      }
+      .lineStyle {
+        color: red;
+      }
+    
+    .leaflet-ruler-tooltip {
+      position: absolute;
+      background: red;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    
+    }

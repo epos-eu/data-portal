@@ -177,6 +177,14 @@ span.counter {
   max-width: fit-content;
 }
 
+::ng-deep .mat-checkbox-layout{
+  white-space: normal;
+
+  .mat-checkbox-label{
+    line-height: 16px;
+  }
+}
+
 ::ng-deep .mat-checkbox-inner-container {
   margin-right: 4px;
 }

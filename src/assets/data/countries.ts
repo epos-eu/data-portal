@@ -407,7 +407,7 @@ export const Countries: Array<Country> = [
     isoCode: 'CY'
   },
   {
-    name: 'Czechia',
+    name: 'Czech Republic',
     bboxCoordinates: [
       12.24,
       48.56,
@@ -1367,7 +1367,7 @@ export const Countries: Array<Country> = [
     isoCode: 'SL'
   },
   {
-    name: 'Slovakia',
+    name: 'Slovak Republic',
     bboxCoordinates: [
       16.88,
       47.76,
@@ -1587,7 +1587,7 @@ export const Countries: Array<Country> = [
     isoCode: 'TN'
   },
   {
-    name: 'Türkiye',
+    name: 'Republic of Türkiye',
     bboxCoordinates: [
       26.04,
       35.82,

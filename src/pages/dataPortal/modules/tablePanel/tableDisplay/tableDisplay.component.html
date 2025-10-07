@@ -29,8 +29,8 @@
         <span>Select Columns</span>
         <span class="column-count">{{ activeColumnCount | async }}/{{ totalColumnCount }}</span>
       </mat-label>
-      <mat-select [(value)]="customHeaders" multiple (valueChange)="updateTable($event)" (selectionChange)="handleSelectionChange($event)">
-        <mat-option *ngFor="let header of tableHeaders" [value]="header" [class]="{ hide: header === pointsOnMapHeader || header === propertyIdHeader || header === imagesHeader }">
+      <mat-select [(value)]="customHeaders" multiple (valueChange)="updateTable($event)" (selectionChange)="handleSelectionChange($event)" data-cy="table-component-select-columns">
+        <mat-option *ngFor="let header of tableHeaders" [value]="header" [class]="{ hide: header === pointsOnMapHeader || header === propertyIdHeader || header === imagesHeader }" data-cy="table-component-select-columns-option">
           {{ header }}
         </mat-option>
       </mat-select>
@@ -42,7 +42,8 @@
       <mat-label>Page number:</mat-label>
       <input matInput type="number" placeholder="Enter page number" [(ngModel)]="pageNumber" (ngModelChange)="goToPage()" min="1" max="{{ maxPageNumber ? maxPageNumber : 0 }}" />
     </mat-form-field>
-    <mat-paginator #paginator matPaginator [pageSize]="rowInPage" [pageSizeOptions]="[5, 10, 25, 50, 100]" (page)="checkingPageData()"></mat-paginator>
+    <mat-paginator #paginator matPaginator [pageSize]="rowInPage" [pageSizeOptions]="[5, 10, 25, 50, 100]" (page)="checkingPageData()" data-cy="table-component-paginator"></mat-paginator>
+
 
     <span class="total">Total Results: {{ dataSource.data.length }}</span>
 
@@ -50,7 +51,7 @@
   </div>
 
   <div class="table-container">
-    <table *ngIf="showTable" mat-table matSort [dataSource]="dataSource">
+    <table *ngIf="showTable" mat-table matSort [dataSource]="dataSource" data-cy="table-component-table">
       <caption>{{ dataConfigurable.name }} - Data</caption>
 
       <ng-container [matColumnDef]="label" *ngFor="let label of customHeaders; let columnIndex = index">
@@ -83,7 +84,7 @@
           <ng-container *ngIf="(rowData[columnIndex] ?? null) !== null" [ngSwitch]="rowData[columnIndex].name">
             <!-- show on map action -->
             <ng-container *ngSwitchCase="showOnMapHeader">
-              <i *ngIf="isMappable" class="fa-solid fa-location-crosshairs action" matTooltip="Show on map" (click)="showOnMap(rowData, rowData[columnIndex].valuesConcatString)"></i>
+              <i *ngIf="isMappable" class="fa-solid fa-location-crosshairs action" matTooltip="Show on map" (click)="showOnMap(rowData, rowData[columnIndex].valuesConcatString)" data-cy="table-component-show-on-map"></i>
             </ng-container>
 
             <!-- toggle on map action -->
@@ -93,7 +94,8 @@
                 class="fas fa-eye{{ !toggleOnMapSelected[rowData[columnIndex].valuesConcatString] && !toggleOnMapDisabled ? '-slash' : '' }} action {{ toggleOnMapDisabled ? 'disabled' : '' }}"
                 aria-hidden="true"
                 [matTooltip]="'Toggle data on map' + toggleOnMapDisabledMessage"
-                (click)="!toggleOnMapDisabled ? toggleMapFeature(rowData, !toggleOnMapSelected[rowData[columnIndex].valuesConcatString]) : false"></i>
+                (click)="!toggleOnMapDisabled ? toggleMapFeature(rowData, !toggleOnMapSelected[rowData[columnIndex].valuesConcatString]) : false"
+                data-cy="table-component-toggle-data-on-map"></i>
             </ng-container>
 
             <!--default case when there are no matches -->
@@ -122,7 +124,8 @@
           <span class="italic">{{ filterInput.value }}</span>
           "
         </td>
-        <td class="no-data" *ngIf="dataSource.data.length === 0" colspan="4">No data available for this service.</td>
+        <td class="no-data" *ngIf="dataSource.data.length === 0 && dataConfigurable.context === CONTEXT_RESOURCE" colspan="4">No data available for this service.</td>
+        <td class="no-data" *ngIf="dataSource.data.length === 0 && dataConfigurable.context === CONTEXT_FACILITY" colspan="4">No equipment available for this service.</td>
       </tr>
     </table>
   </div>

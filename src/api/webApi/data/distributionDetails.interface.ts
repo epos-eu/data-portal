@@ -57,4 +57,8 @@ export interface DistributionDetails extends DistributionSummary {
   getCategories(): DistributionCategories | null;
   getAvailableContactPoints(): Array<DistributionContactPoint>;
   getPage(): Array<string>;
+  // for search calls in MetadataPreview mode
+  getVersioningStatus(): null | Array<string>;
+  // for MetadataPreview mode informations on author of the version, last update etc.
+  getVersioningInfo(): null | Record<string, { changeDate: string; editorFullName: string }[]>;
 }

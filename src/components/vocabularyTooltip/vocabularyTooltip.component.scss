@@ -14,6 +14,9 @@
  the License.
  */
 
+ @import '/src/sassFramework/variables.scss';
+
+ 
 .list {
   display: flex;
   flex-direction: row;
@@ -23,6 +26,9 @@
 }
 
 span.keyword {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   white-space: nowrap;
 }
 
@@ -31,6 +37,7 @@ span.keyword {
   height: 15px;
   width: 15px;
   cursor: pointer;
+  color: $color-primary;
 }
 
 ::ng-deep .vocabulary-tooltip-definition {

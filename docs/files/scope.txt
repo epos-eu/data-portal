@@ -1,0 +1,15 @@
+@startuml
+[GUI]
+cloud HTTP {
+}
+package ICS-C {
+[API] 
+[ ]
+[  ]
+}
+
+
+GUI <-> HTTP
+HTTP <-> API
+ 
+@enduml

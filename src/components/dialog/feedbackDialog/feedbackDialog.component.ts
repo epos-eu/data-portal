@@ -17,7 +17,6 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup, UntypedFormControl, Validators, ValidatorFn, AbstractControl } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { NotificationService } from 'services/notification.service';
-import { environment } from 'environments/environment';
 import { LiveDeploymentService } from 'services/liveDeployment.service';
 import { DialogData } from '../baseDialogService.abstract';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -54,8 +53,7 @@ export class FeedbackDialogComponent implements OnInit {
   };
 
   // Live credentials obtained during build, from gitlab variables.
-  private readonly FEEDBACK_API_URL = environment.gitlabApiFeedbackProjectUrl;
-  private readonly FEEDBACK_TOKEN = environment.gitlabApiFeedbackToken;
+  private readonly FEEDBACK_API_URL = window.location.href + (window.location.href.endsWith('/') ? '' : '/') + 'api/v1/submit_feedback';
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: DialogData,
@@ -153,7 +151,7 @@ export class FeedbackDialogComponent implements OnInit {
     this.submitDisabled = true;
 
     // if not live, post locally to allow browser inspection
-    const postUrl = (!this.isLive) ? '/issues' : `${this.FEEDBACK_API_URL}/issues`;
+    const postUrl = (!this.isLive) ? '' : `${this.FEEDBACK_API_URL}`;
     return this.http.post(postUrl,
       {
         title: post.subject,
@@ -163,12 +161,7 @@ export class FeedbackDialogComponent implements OnInit {
           `affiliation: ${post.affiliation}  \n` +
           `email: ${post.email}  \n` +
           `message: ${post.message}`
-      }, {
-      headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        'PRIVATE-TOKEN': this.FEEDBACK_TOKEN,
-      }
-    }).toPromise()
+      }).toPromise()
       .catch((err) => {
         if (!this.isLive) {
           // fake a successful response

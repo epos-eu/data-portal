@@ -21,6 +21,8 @@ import { LastPageRedirectService } from 'services/lastPageRedirect.service';
 import { Model } from 'services/model/model.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { Tracker } from 'utility/tracker/tracker.service';
+import { DialogService } from 'components/dialog/dialog.service';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
 
 /** The `LastPageRedirectComponent` class implements the `OnInit` interface and redirects to the last
 page using the `LastPageRedirectService`. */
@@ -47,6 +49,8 @@ export class LastPageRedirectComponent implements OnInit {
     private readonly lastPageRedirectService: LastPageRedirectService,
     private readonly model: Model,
     private readonly tracker: Tracker,
+    private readonly dialogService: DialogService,
+    private readonly metadataStatusService: MetaDataStatusService
   ) {
   }
 
@@ -59,6 +63,23 @@ export class LastPageRedirectComponent implements OnInit {
     this.subscriptions.push(
       this.model.user.valueObs.subscribe((user: AAAIUser) => {
         this.user = user;
+
+        if(user !== null){
+          this.dialogService.openMetaDataStatusDialog()
+          .then(confirmed=>{
+            if(confirmed){
+              console.log('Dialog confirmed:', confirmed);
+              // CHECK IF TO USE METADATA SERVICE OR SETTING METADATA MODEL DIRECTLY!
+              // this.metadataStatusService.metadataStatusModeActive.next(true);
+              this.model.metadataPreviewMode.set(true);
+            }
+            else{
+              console.log('Dialog confirmed:', confirmed);
+            }
+          })
+          .catch(err=>console.log(err));
+        }
+
       })
     );
 

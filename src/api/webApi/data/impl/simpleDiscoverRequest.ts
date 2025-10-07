@@ -29,6 +29,9 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
     private readonly bbox: BoundingBox,
     private readonly keywordIds: null | Array<string>,
     private readonly organisationIds: null | Array<string>,
+    private readonly facilityIds: null | Array<string>,
+    private readonly equipmentIds: null | Array<string>,
+    private readonly versioningStatus: null | Array<string>
   ) { }
 
   public static makeEmptyQuery(): DiscoverRequest {
@@ -46,8 +49,11 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
     bbox: BoundingBox = SimpleBoundingBox.makeUnbounded(),
     keywordIds: null | Array<string> = null,
     organisationIds: null | Array<string> = null,
+    facilityIds: null | Array<string> = null,
+    equipmentIds: null | Array<string> = null,
+    versioningStatus: null | Array<string> = null,
   ): DiscoverRequest {
-    return new SimpleDiscoverRequest(context, query, temporalRange, bbox, keywordIds, organisationIds);
+    return new SimpleDiscoverRequest(context, query, temporalRange, bbox, keywordIds, organisationIds, facilityIds, equipmentIds, versioningStatus);
   }
 
   getContext(): null | string {
@@ -72,6 +78,17 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
   getOrganisationIds(): null | Array<string> {
     return this.organisationIds;
   }
+  getFacilityTypeIds(): null | Array<string> {
+    return this.facilityIds;
+  }
+  getEquipmentTypeIds(): null | Array<string> {
+    return this.equipmentIds;
+  }
+  // used for the 'search' call in 'Metadata Status' feature
+  getVersioningStatus(): null | Array<string> {
+    return this.versioningStatus;
+  }
+
   hasTemporalRange(): boolean {
     return true;
   }

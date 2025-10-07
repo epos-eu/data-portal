@@ -15,7 +15,7 @@
  */
 
 import * as L from 'leaflet';
-import { GeoJsonObject, Feature, GeometryObject, Point } from 'geojson';
+import { GeoJsonObject, Feature, GeometryObject, Point } from 'geojson'; //  CoverageCollection
 import { MapLayer } from '../mapLayer.abstract';
 import { MarkerClusterOptions, MarkerLayer } from '../markerLayer';
 import { FaMarker } from '../../marker/faMarker/faMarker';
@@ -303,6 +303,7 @@ export class GeoJsonLayer extends MapLayer implements LayerWithMarkers {
     this.geoLayer = null;
     if (geoJsonData != null) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         this.geoLayer = L.geoJSON(geoJsonData, {
           ...this.options.getAll(),
           style: {

@@ -163,6 +163,8 @@ export class CovJSONMapLayer extends JsonMapLayer {
     return data;
   }
 
+  // TEST CHANGE <--------
+
   private initData(): void {
     // Color comes from Style obj
     // e.g. style.getColor1String()    (background/main)
@@ -180,6 +182,7 @@ export class CovJSONMapLayer extends JsonMapLayer {
     const root: Record<string, unknown> = {};
     root.root = [this.geoJsonData];
 
+
     // ----------------------------------------------------------------------------------
     // Styling Algorithm:
     // 1. look for Coverage
@@ -196,14 +199,90 @@ export class CovJSONMapLayer extends JsonMapLayer {
     let styleTypeToId = new Map<null | string, number>();
 
     // start from FeatureCollection
-    let jsonRoot = JP.query(root, '$..*[?(@.type=="Coverage")]');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let jsonRoot: any[];
+
+    const jsonRootCC = JP.query(root, '$..*[?(@.type=="CoverageCollection")]');
+
+    const jsonRootC = JP.query(root, '$..*[?(@.type=="Coverage")]');
+
+    let isCoverageCollection = false;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if(jsonRootCC.length > 0){
+      isCoverageCollection = true;
+      jsonRoot = jsonRootCC;
+    }
+    else{
+      jsonRoot = jsonRootC;
+    }
+
+
 
     if (jsonRoot.length > 0) {
+      // Refactoring needed: for how the code is set, jsonRoot always contain a single element, so no need for a '.forEach' iteration, instead might be accessing jsonRoot[0] directly
+      jsonRoot.forEach((item, index: number)=>{
+
+        let lat;
+        let long;
+
+        if(isCoverageCollection){
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          lat = jsonRoot[index].coverages[index].domain.axes.y.values[0];
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          long = jsonRoot[index].coverages[index].domain.axes.x.values[0];
+        }
+        else{
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          lat = jsonRoot[index].domain.axes.y.values[0];
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          long = jsonRoot[index].domain.axes.x.values[0];
+
+        }
+
+        const point = {
+          geometry: {
+            coordinates: [long, lat],
+            type: 'Point'
+          },
+          properties: {
+            [GeoJSONHelper.STYLE_ID_ATTR]: 'event',
+            [GeoJSONHelper.TYPE_ATTR]: 'event',
+            [GeoJSONHelper.MAP_KEYS_ATTR]: ['Latitude', 'Longitude'],
+            ['Latitude']: lat as string,
+            ['Longitude']: long as string,
+          },
+          type: 'Feature',
+        };
+
+        // [TO FIX: code for CoverageCollection is returning a single point on map. Access properties correctly to show all available points.]
+        // [NULL value for CoverageCollection coords: back-end should pass NULL values for services for which no Map visualization is needed (ex.: WFCatalog)]
+        if(isCoverageCollection){
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          jsonRoot[0].features = jsonRoot[0].features ? jsonRoot[0].features : [];
+
+          // Add the point to the `features` array
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          jsonRoot[0].features.push(point);
+        }
+        else{
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          jsonRoot[0].features = [point];
+        }
+
+
+      });
+      /* // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const lat = jsonRoot[0].domain.axes.y.values[0];
+      // For Future Reference: value should arrive in the right range from Json
+      // check for lat: if not in -90, 90 range -> const lat = '0'; and then check that everything else works fine
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      const lat = jsonRoot[0].domain.axes.y.values[0];
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const long = jsonRoot[0].domain.axes.x.values[0];
+      // For Future Reference: value should arrive in the right range from Json
+      // check for long: if not in -180, 180 range -> const lng = '0'; and then check that everything else works fine
 
       const point = {
         geometry: {
@@ -220,10 +299,8 @@ export class CovJSONMapLayer extends JsonMapLayer {
         type: 'Feature',
       };
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      jsonRoot[0].features = [point];
+      jsonRoot[0].features = [point]; */
     }
-
-
 
     // See if there is an GeoJSONHelper.STYLE_ATTR object (if there isn't any point continuing)
     const externalStyle = ObjectHelper.getObjectValue<Record<string, unknown>>(jsonRoot[0] as Record<string, unknown>, GeoJSONHelper.STYLE_ATTR);

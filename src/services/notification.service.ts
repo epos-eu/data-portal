@@ -96,6 +96,13 @@ export class NotificationService {
    */
   public static LOADING_DISTRIBUTION = 'loading-distribution';
 
+  /** The line `public static TYPE_CUSTOM = 'custom';` is declaring a public static property named
+   * `TYPE_CUSTOM` with the value `'custom'`. This property is a constant that represents the type of a
+   * custom notification in the `NotificationService` class. It can be used to specify the type of a
+   * notification when calling the `sendNotification` method.
+   */
+  public static AVAILABLE_GUIDED_TOUR = 'available-guided-tour';
+
   /** The line `private distributionNotification = new BehaviorSubject<NotificationMessage | null>(null);`
   is declaring a private property named `distributionNotification` and initializing it with a new
   instance of the `BehaviorSubject` class. */
@@ -191,4 +198,10 @@ export class NotificationService {
   public sendLoadingNotification(message: string, customIconUrl: string | null): MatSnackBarRef<NotificationSnackComponent> {
     return this.sendNotification(message, 'x', NotificationService.LOADING_DISTRIBUTION, undefined, true, customIconUrl);
   }
+
+  public sendAvailableGuidedTourNotification(message: string, customIconUrl: string | null): MatSnackBarRef<NotificationSnackComponent> {
+    return this.sendNotification(message, 'x', NotificationService.AVAILABLE_GUIDED_TOUR, 7000, false, customIconUrl);
+  }
+
+
 }

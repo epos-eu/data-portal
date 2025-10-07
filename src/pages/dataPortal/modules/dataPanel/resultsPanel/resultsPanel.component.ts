@@ -24,11 +24,12 @@ import { PanelsEmitterService } from 'services/panelsEventEmitter.service';
 import { ResultsPanelService } from 'pages/dataPortal/services/resultsPanel.service';
 import { LandingService } from '../services/landing.service';
 import { TourService } from 'services/tour.service';
-import * as Driver from 'driver.js';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { NotificationService } from 'services/notification.service';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { Environment } from 'api/webApi/data/environments/environment.interface';
+import { AnalysisConfigurablesService } from 'pages/dataPortal/services/analysisConfigurables.service';
 import { DistributionItem } from 'api/webApi/data/distributionItem.interface';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { BaseResultsPanelComponent } from 'components/baseResultsPanel/baseResultsPanel.component';
@@ -36,6 +37,10 @@ import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { SearchService } from '../../../../../services/search.service';
 import { LeafletLoadingService } from '../../../../../utility/eposLeaflet/services/leafletLoading.service';
+import { Popover } from 'driver.js';
+import { ShareService } from 'services/share.service';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
+import { AaaiService } from 'api/aaai.service';
 
 @Unsubscriber(['domainSubscription', 'subscriptions'])
 @Component({
@@ -45,9 +50,11 @@ import { LeafletLoadingService } from '../../../../../utility/eposLeaflet/servic
 })
 export class ResultsPanelComponent extends BaseResultsPanelComponent implements OnInit, AfterContentInit {
 
+  public environmentSelected: Environment | null = null;
+
   private serviceParent: HTMLTableElement;
 
-  constructor(protected readonly model: Model,
+  constructor(readonly model: Model,
     public readonly configurables: DataSearchConfigurablesServiceResource,
     protected readonly dialogService: DialogService,
     protected readonly loadingService: LoadingService,
@@ -57,11 +64,15 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
     protected readonly tourService: TourService,
     protected readonly localStoragePersister: LocalStoragePersister,
     protected readonly notification: NotificationService,
+    private readonly analysisConfigurables: AnalysisConfigurablesService,
     protected readonly searchService: SearchService,
+    private readonly shareService: ShareService,
     private readonly tracker: Tracker,
     protected readonly leafletLoadingService: LeafletLoadingService,
+    protected readonly metadataStatusService: MetaDataStatusService,
+    protected readonly aaaiService: AaaiService
   ) {
-    super(configurables, dialogService, loadingService, landingService, panelsEvent, resultPanelService, localStoragePersister, notification, searchService, leafletLoadingService);
+    super(configurables, dialogService, loadingService, landingService, panelsEvent, resultPanelService, localStoragePersister, notification, searchService, leafletLoadingService, metadataStatusService, model, aaaiService);
 
     this.context = CONTEXT_RESOURCE;
   }
@@ -86,12 +97,22 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
               this.resultPanelService.setCounterData(this.data.length);
             }),
 
+            this.analysisConfigurables.triggerEnvironmentSelectionObs.subscribe((environment: Environment | null) => {
+              this.environmentSelected = environment;
+            }),
+
             this.tourService.triggerInformationDialogForTourObservable.subscribe(() => {
               this.openDetailsDialogForTour();
             }),
 
             this.tourService.triggerInfoIconStepObservable.subscribe(() => {
               this.addServiceInfoIconStep(this.serviceParent);
+            }),
+            this.tourService.advancedSerachItemSelectedObservable.subscribe(() => {
+              this.triggerAdvancedSearchFilterButton();
+            }),
+            this.shareService.triggerRemoveAllFavoritesObservable.subscribe(() => {
+              this.removeAllFavourites(true);
             }),
           );
         }
@@ -110,11 +131,11 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
   public addServiceItemTourStep(): void {
     const serviceItem = document.getElementById('distributionListTable')?.children[1].children[3] as HTMLTableElement;
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Service Item`,
       // eslint-disable-next-line max-len
       description: 'This is a service item, found within the applied filters above. You can select the service by clicking on the service title.',
-      position: 'right',
+      side: 'right',
     };
     this.serviceParent = serviceItem;
     this.tourService.addStep(tourName, serviceItem, options, 9, true);
@@ -132,15 +153,13 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
       this.serviceParent.children.item(0)?.children.item(0)?.children.item(1) as HTMLElement;
     serviceInformationsElement.id = 'serviceInformationsElementID';
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Service Information`,
       // eslint-disable-next-line max-len
       description: '<strong>Categories:</strong> These are the associated categories of an item. Click the category link to filter by that specific category. <p>&nbsp;</p>' +
         // eslint-disable-next-line max-len
-        '<strong>Visible on:</strong> The service can be visualized in Map, Table or Graph depending on the associated data formats. If no visualisation of the service is available then the data can only be downloaded. <p>&nbsp;</p>' +
-        // eslint-disable-next-line max-len
-        '<strong>Status:</strong> Availability of the services is checked regularly by a monitoring system. The status of a service, if avaliable is displayed.',
-      position: 'right',
+        '<strong>Visible on:</strong> The service can be visualized in Map, Table or Graph depending on the associated data formats. If no visualisation of the service is available then the data can only be downloaded. <p>&nbsp;</p>',
+      side: 'right',
     };
     this.tourService.addStep(tourName, serviceInformationsElement, options, 10);
     this.subscriptions.push(
@@ -150,6 +169,7 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
           // Selects and expands item
           this.select(itemSelected as DistributionItem);
         }
+        this.tourService.triggerHandleCloseNotification();
       }),
       this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
         if (value.nativeElement.id === 'serviceInformationsElementID') {
@@ -165,10 +185,10 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
       this.serviceParent.children.item(0)?.children.item(0)?.children.item(2)?.children.item(0)?.children.item(1) as HTMLElement;
     serviceStatusElement.id = 'serviceAdvacnedFiltersId';
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Advanced Search Filters`,
       description: 'The service can be configured here. Click here to open a larger service configuration window.',
-      position: 'right',
+      side: 'right',
     };
     this.tourService.addStep(tourName, serviceStatusElement, options, 11);
 
@@ -184,16 +204,16 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
   public addAdvancedFiltersDownloadStep(): void {
     const serviceStatusElement = document.getElementById('configDownloadID') as HTMLElement;
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Download`,
       description: 'Click here to see all avaliable formats that can be downloaded.',
-      position: 'right',
+      side: 'right',
     };
     this.tourService.addStep(tourName, serviceStatusElement, options, 12);
     this.subscriptions.push(
       this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
         if (value.nativeElement.id === 'configDownloadID') {
-          this.addServiceInfoIconStep(this.serviceParent);
+          this.addServiceStatusStep(this.serviceParent);
         }
       }),
       this.tourService.tourStepBackwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
@@ -204,30 +224,52 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
     );
   }
 
+  public addServiceStatusStep(serviceChild: HTMLElement): void {
+    this.serviceParent.scrollIntoView();
+    const serviceStatusIcon =
+      serviceChild.children.item(0)?.children.item(0)?.children.item(0)?.children.item(1)?.children.item(0) as HTMLElement;
+    serviceStatusIcon.id = 'serviceStatusIconId';
+    const tourName = 'EPOS Overview';
+    const options: Popover = {
+      title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span> Status`,
+      description: 'Availability of the services is checked regularly by a monitoring system. The status of a service, if available is displayed.',
+      side: 'right',
+    };
+    this.tourService.addStep(tourName, serviceStatusIcon, options, 13);
+    this.subscriptions.push(
+      this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
+        if (value.nativeElement.id === 'serviceStatusIconId') {
+          this.addServiceInfoIconStep(this.serviceParent);
+          this.tourService.triggerInformationDialogForTourCall();
+        }
+      })
+    );
+  }
+
   public addServiceInfoIconStep(serviceChild: HTMLElement): void {
     this.serviceParent.scrollIntoView();
     const serviceInfoIcon =
-      serviceChild.children.item(0)?.children.item(0)?.children.item(0)?.children.item(1)?.children.item(0) as HTMLElement;
+      serviceChild.children.item(0)?.children.item(0)?.children.item(0)?.children.item(1)?.children.item(1) as HTMLElement;
     serviceInfoIcon.id = 'serviceInfoIconId';
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Service Information`,
       description: 'Click the \'i\' for details about a dataset',
-      position: 'right',
+      side: 'right',
     };
-    this.tourService.addStep(tourName, serviceInfoIcon, options, 13);
+    this.tourService.addStep(tourName, serviceInfoIcon, options, 14);
     this.subscriptions.push(
       this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
         if (value.nativeElement.id === 'serviceInfoIconId') {
-          this.tourService.triggerInformationDialogForTourCall();
           this.addServiceFavoriteIconStep(this.serviceParent);
         }
       }),
       this.tourService.tourStepEnterObservable.subscribe((value: ElementRef<HTMLElement>) => {
         if (value.nativeElement.id === 'serviceInfoIconId') {
-          const itemSelected = this.data.find((item: DistributionItem) => item.distId === this.serviceParent.id);
-          // Selects and expands item
-          this.select(itemSelected as DistributionItem);
+          // const itemSelected = this.data.find((item: DistributionItem) => item.distId === this.serviceParent.id);
+          // // Selects and expands item
+          // this.select(itemSelected as DistributionItem);
+          this.addServiceStatusStep(this.serviceParent);
         }
       }),
       this.tourService.tourStepBackwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
@@ -240,19 +282,22 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
 
   public addServiceFavoriteIconStep(serviceChild: HTMLElement): void {
     const serviceFavoriteIcon =
-      serviceChild.children.item(0)?.children.item(0)?.children.item(0)?.children.item(1)?.children.item(1) as HTMLElement;
+      serviceChild.children.item(0)?.children.item(0)?.children.item(0)?.children.item(1)?.children.item(2) as HTMLElement;
     serviceFavoriteIcon.id = 'serviceFavoriteIconId';
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Favourites`,
       description: 'Click the star icon to add a dataset to your favourites.',
-      position: 'right',
+      side: 'right',
     };
-    this.tourService.addStep(tourName, serviceFavoriteIcon, options, 15);
+    this.tourService.addStep(tourName, serviceFavoriteIcon, options, 16);
     this.subscriptions.push(
       this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
         if (value.nativeElement.id === 'serviceFavoriteIconId') {
           this.addMultipleFavouritesStep();
+          const itemSelected = this.data.find((item: DistributionItem) => item.distId === this.serviceParent.id);
+          // Selects and expands item
+          this.select(itemSelected as DistributionItem);
         }
       }),
       this.tourService.tourStepBackwardObservable.subscribe((element: ElementRef<HTMLElement>) => {
@@ -267,12 +312,12 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
     const elem = document.getElementsByClassName('domain-results').item(0) as HTMLElement;
     elem.id = 'domainResultsId';
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Favourites`,
       description: 'When added to favourites, multiple datasets are visible at once.',
-      position: 'right',
+      side: 'right',
     };
-    this.tourService.addStep(tourName, elem, options, 16);
+    this.tourService.addStep(tourName, elem, options, 17);
 
     clearTimeout(this.favTimeout);
 
@@ -307,12 +352,12 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
     const tourName = 'EPOS Overview';
     const elem = document.getElementById('custom-layer-control') as HTMLElement;
 
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Customise layers`,
       description: 'Customise layers in map view, change the basemap, toggle layers on/off and view legend.',
-      position: 'left',
+      side: 'left',
     };
-    this.tourService.addStep(tourName, elem, options, 17);
+    this.tourService.addStep(tourName, elem, options, 18);
 
     this.subscriptions.push(
       this.tourService.tourStepForwardObservable.subscribe((element: ElementRef<HTMLElement>) => {
@@ -326,12 +371,12 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
   public addTableVisStep(): void {
     const tableToggle = document.getElementById('table-vis-toggle') as HTMLElement;
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Table View`,
       description: 'Tabular data can be viewed by clicking on this tab.',
-      position: 'left',
+      side: 'left',
     };
-    this.tourService.addStep(tourName, tableToggle, options, 18);
+    this.tourService.addStep(tourName, tableToggle, options, 19);
     this.subscriptions.push(
       this.tourService.tourStepForwardObservable.subscribe((value: ElementRef<HTMLElement>) => {
         if (value.nativeElement.id === 'table-vis-toggle') {
@@ -344,12 +389,12 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
   public addGraphVisStep(): void {
     const tableToggle = document.getElementById('graph-vis-toggle') as HTMLElement;
     const tourName = 'EPOS Overview';
-    const options: Driver.PopoverOptions = {
+    const options: Popover = {
       title: `<span class="tour-title"><strong>Tour:</strong> ${tourName}</span>Graph View`,
       description: 'Graph or time series data can be viewed by clicking on this tab.',
-      position: 'left',
+      side: 'left',
     };
-    this.tourService.addStep(tourName, tableToggle, options, 19);
+    this.tourService.addStep(tourName, tableToggle, options, 20);
   }
 
   public openDetailsDialogForTour(): void {
@@ -368,9 +413,10 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
    * the method checks if the `event` parameter is not null to perform certain actions, such as
    * tracking an event and resetting a version. If
    */
-  public select(itemSelected: DistributionItem | null, event: Event | null = null): void {
+  public select(itemSelected: DistributionItem, event: Event | null = null): void {
 
-    if (event !== null && itemSelected !== null) {
+    // if (nothing expanded OR (event not null AND item not null AND selected item is not the currently expanded one))
+    if (this.expandedElement === null || (event !== null && itemSelected !== null && itemSelected !== this.expandedElement)) {
       // click
       this.tracker.trackEvent(TrackerCategory.DISTRIBUTION, TrackerAction.SELECT_DISTRIBUTION, this.formatTrackerDistributionName(itemSelected!));
 
@@ -417,6 +463,14 @@ export class ResultsPanelComponent extends BaseResultsPanelComponent implements 
     }
 
     super.openDialog(element);
+  }
+
+  public triggerAdvancedSearchFilterButton() {
+    const iconElements = document.getElementsByClassName('expand-item');
+    if (iconElements.length > 0) {
+      const iconElement = iconElements[3] as HTMLElement; // Access the first matching element
+      iconElement.click(); // Simulate the click on the element
+    }
   }
 
   protected updateConfigs(): void {

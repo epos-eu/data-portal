@@ -23,6 +23,8 @@ import { ParameterDefinitions } from 'api/webApi/data/parameterDefinitions.inter
 import { WMSFeatureIdentifier } from './wmsFeatureIdentifier';
 import { HttpClient } from '@angular/common/http';
 import { Injector } from '@angular/core';
+import { DataSearchConfigurablesServiceResource } from 'pages/dataPortal/modules/dataPanel/services/dataSearchConfigurables.service';
+import { DataSearchConfigurablesServiceRegistry } from 'pages/dataPortal/modules/registryPanel/services/dataSearchConfigurables.service';
 
 /** The WMSMapLayerFactory class is responsible for creating and configuring WMS tile layers for a
 mapping application. */
@@ -98,6 +100,11 @@ export class WMSMapLayerFactory implements MapLayerFactory<string, WmsTileLayer>
 
   }
 
+  protected retrieveBboxFromXml(layer: WmsTileLayer) {
+
+    return layer.getLayerBboxFromGetCapabilitiesXml(layer, this.injector.get<HttpClient>(HttpClient), this.injector.get<DataSearchConfigurablesServiceResource>(DataSearchConfigurablesServiceResource), this.injector.get<DataSearchConfigurablesServiceRegistry>(DataSearchConfigurablesServiceRegistry));
+  }
+
 
   /**
    * The function converts a bounding box object into a Leaflet LatLngBounds object if the bounding box
@@ -124,8 +131,11 @@ export class WMSMapLayerFactory implements MapLayerFactory<string, WmsTileLayer>
    * the URL of the WMS (Web Map Service) layer.
    * @returns an instance of the WmsTileLayer class.
    */
-  private createWmsLayer(id: string, name: string, urlPromise: Promise<string>): WmsTileLayer {
-    // strip any query params off
+  private createWmsLayer(
+    id: string,
+    name: string,
+    urlPromise: Promise<string>,
+  ): WmsTileLayer {
     const layer = new WmsTileLayer(id, name)
       .options.set('transparent', true)
       .setPreLayerAddFunction(() => {
@@ -133,13 +143,50 @@ export class WMSMapLayerFactory implements MapLayerFactory<string, WmsTileLayer>
           .then((url: string) => {
             const newUrl = url.replace(/\?.*$/, '');
             layer.setUrl(newUrl);
-            // populates the getCapabilites xml of the layer once we have a url
-            return this.populateGetCapabilities(layer);
+
+            // 1) expose a "ready" Promise that includes the GetCapabilities attempt
+            const ready = this.populateGetCapabilities(layer)
+              .catch(err => {
+                console.warn(`[WMS][${layer.id}] GetCapabilities failed:`, err);
+                // do not stop the flow, execution will continue anyway
+              })
+              .finally(() => {
+                // 2) ALWAYS attach the invoker, even if GetCapabilities failed
+                this.attachCheckInvoker(layer);
+
+                // bbox: if GetCapabilities failed this might also fail,
+                // but it is not blocking for the invoker
+                void this.retrieveBboxFromXml(layer);
+              });
+
+            // 3) store the ready Promise on the layer
+            layer.crsCheckReady = ready;
+
+            // important: return the promise to comply with the preLayerAddFunction contract
+            return ready;
           })
-          .catch((error) => {
+          .catch(err => {
+            console.error(`[WMS][${id}] urlPromise/preLayerAdd error:`, err);
+            // still, try to attach the invoker to allow CRS checks
+            this.attachCheckInvoker(layer);
+            layer.crsCheckReady = Promise.resolve();
           });
       });
+
     return layer;
+  }
+
+  private attachCheckInvoker(layer: WmsTileLayer): void {
+    const http = this.injector.get<HttpClient>(HttpClient);
+    layer.checkCrsCompatibility = (crs: string) =>
+      layer.checkSingleCrsCompatibility(http, crs, layer.name)
+        .then(results => {
+          layer.crsCompatibilityResults = results;
+          return results;
+        })
+        .catch(err => {
+          return [];
+        });
   }
 
 

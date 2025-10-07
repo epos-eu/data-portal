@@ -41,28 +41,37 @@
                   {{ getErrorEmail() }}
                 </mat-error>
               </mat-form-field>
-              <mat-checkbox required formControlName="consent" [checked]="false">
-                I understand and acknowledge the
-                <a href=" https://www.epos-eu.org/sites/default/files/Privacy_Policy.pdf" target="_blank">
-                  PRIVACY POLICY document
-                </a>
-              </mat-checkbox>
-              <mat-error *ngIf="!consent.valid && consent.touched">
-                {{ defaultAlert }}
-              </mat-error>
+              <ng-container *ngIf="email.value && firstName.value">
+                <mat-checkbox
+                  required
+                  formControlName="consent"
+                  [checked]="false">
+                  I understand and acknowledge the
+                  <a href="https://www.epos-eu.org/sites/default/files/Privacy_Policy.pdf" target="_blank">
+                    PRIVACY POLICY document
+                  </a>
+                </mat-checkbox>
+                <mat-error *ngIf="(!consent.valid && consent.touched)">
+                  {{ defaultAlert }}
+                </mat-error>
+              </ng-container>
               <div class="button-row">
-                <button mat-flat-button type="submit" color="secondary">
+                <!-- <button mat-flat-button type="submit" color="secondary">
                   KEEP ME UPDATED
-                </button>
-                <button type="submit" [ngClass]="data.dataIn.confirmButtonCssClass" mat-flat-button color="primary"
-                  (click)="confirm()" [innerHTML]="data.dataIn.confirmButtonHtml">
+                </button> -->
+                <button type="submit" 
+                        [ngClass]="data.dataIn.confirmButtonCssClass" 
+                         mat-flat-button color="primary"
+                         (click)="confirm()"
+                         [disabled]="!(firstName.value || email.value) ? false : (!formGroup.valid)"
+                         [innerHTML]="data.dataIn.confirmButtonHtml">
                 </button>
               </div>
-              <div class="button-row">
+              <!-- <div class="button-row">
                 <button class="guide-button" mat-flat-button color="primary" [mat-dialog-close]="true" (click)="handleTourStart($event)">
                   START GUIDED TOUR
                 </button>
-              </div>
+              </div> -->
             </form>
           </div>
           <div *ngIf="null !== feedback" class="feedback">

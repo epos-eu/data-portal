@@ -47,5 +47,7 @@ export class BaseLayerOption {
     `getThumnailSource` with a type of function. This property is a getter function that returns a
     string representing the source of the thumbnail image for the map. */
     public getThumnailSource: () => string,
+
+    public supportedCRS: string[] = ['EPSG:3857'],
   ) { }
 }

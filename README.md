@@ -92,10 +92,10 @@ Some vs code plugins that will make life easier:
 ### Running Development Version:
 
 ```
-npm start
+npm run dev
 ```
 
-Test on web browser on host machine: http://localhost:4200
+Test on web browser on host machine: http://localhost:4200/testpath/
 
 Changes are detected by the angular-cli and the site is recompiled and auto refreshed.
 
@@ -117,7 +117,7 @@ To run interactive (opens browser etc.) cypress e2e tests locally use:
 `ng e2e`
 
 To run them through from the command line use:
-`npm run e2e-run`
+`npm run ci-pipeline-e2e`
 
 ### Switching Data Source Provider From Local Mock JSON to Live API:
 
@@ -199,3 +199,4 @@ node_modules/.bin/compodoc -p src/tsconfig.doc.json --includes=docs -w -s
 
 The pipelines are set up to generate and serve these docs, so if you navigate to your deployed branch root, then add "/documentation/index.html" to the the url, you can interact with the documentation for your branch. e.g. for master branch:
 https://ics-c.epos-ip.org/testing/epos-epos-gui/master/documentation/
+

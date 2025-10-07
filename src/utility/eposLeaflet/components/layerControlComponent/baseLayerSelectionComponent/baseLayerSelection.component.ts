@@ -14,7 +14,7 @@
  the License.
  */
 
-import { Component, Output } from '@angular/core';
+import { Component, Output, Input, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { baseLayerOptions } from '../../controls/baseLayerControl/baseLayerOptions';
 import { LayersService } from 'utility/eposLeaflet/services/layers.service';
 import { MatRadioChange } from '@angular/material/radio';
@@ -30,7 +30,20 @@ communicates with the `LayersService` to update the selected base layer. */
   templateUrl: './baseLayerSelection.component.html',
   styleUrls: ['./baseLayerSelection.component.scss']
 })
-export class BaseLayerSelectionComponent {
+export class BaseLayerSelectionComponent implements OnChanges {
+
+  /**
+   * The code of the currently active Coordinate Reference System (CRS),
+   * such as 'EPSG:3857' or 'EPSG:3995'. This value is passed from the parent
+   * component and is used to dynamically filter the list of available base
+   * layers (`basemaps`) that are compatible with the selected CRS.
+   *
+   * When this input changes, the component automatically refreshes the
+   * list of base layers and ensures that the currently selected one is still
+   * valid. If not, it selects a valid fallback from local storage preferences.
+   */
+  @Input() crsCode: string = 'EPSG:3857';
+
   /** The `@Output() selectedLayer = new
   BehaviorSubject<string>(baseLayerOptions[LayersService.INDEX_DEFAULT_BASEMAP].name);` line in the
   `BaseLayerSelectionComponent` class is creating an output property named `selectedLayer` using
@@ -68,16 +81,54 @@ export class BaseLayerSelectionComponent {
    * layers in a mapping application, such as changing base layers and retrieving base layers from
    * storage
    */
-  constructor(private layersService: LayersService) {
+  constructor(private layersService: LayersService, private cdRef: ChangeDetectorRef) {
     this.subscriptions.push(
       this.layersService.baseLayerChangeSourceObs.subscribe((basemap: BaseLayerOption) => {
-        if (null != basemap) {
+        if (basemap !== null) {
           this.currentSelected = basemap;
         }
       })
     );
+  }
 
-    this.currentSelected = this.layersService.getBaseLayerFromStorage();
+
+  /**
+   * Lifecycle hook triggered whenever any `@Input()` property changes.
+   * In this case, it reacts to changes in the `crsCode` input.
+   *
+   * When the CRS changes, this method ensures that the list of available
+   * base layers is updated to reflect only those compatible with the new CRS.
+   *
+   * @param changes - An object containing the changed input properties and their previous/current values.
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    if (changes['crsCode']) {
+      this.updateBasemaps();
+    }
+  }
+
+  /**
+   * Updates the list of base layers (`basemaps`) to include only those
+   * that support the currently selected CRS (`crsCode`).
+   *
+   * If the currently selected base layer is no longer valid under the new CRS,
+   * it is replaced with a compatible one retrieved from local storage.
+   *
+   * This method also triggers change detection to ensure that the view reflects
+   * the updated state of available and selected base layers.
+   */
+  private updateBasemaps(): void {
+    this.basemaps = baseLayerOptions.filter(layer =>
+      layer.supportedCRS.includes(this.crsCode)
+    );
+
+    // If current selected layer is no longer compatible, update from storage
+    if (!this.basemaps.some(l => l.name === this.currentSelected?.name)) {
+      this.currentSelected = this.layersService.getBaseLayerFromStorage(this.crsCode);
+      this.selectedLayer.next(this.currentSelected.name);
+    }
+    this.cdRef.markForCheck();
   }
 
   /**
@@ -86,9 +137,10 @@ export class BaseLayerSelectionComponent {
    * `MatRadioChange`, which is an event emitted when the selected radio button changes in a Material
    * Design radio button group.
    */
+  // eslint-disable-next-line @typescript-eslint/member-ordering
   public setLayer(event: MatRadioChange): void {
-    this.selectedLayer.next((event.value as BaseLayerOption).name);
-    this.layersService.baseLayerChange(event.value as BaseLayerOption);
+    const selected = event.value as BaseLayerOption;
+    this.selectedLayer.next(selected.name);
+    this.layersService.baseLayerChange(selected, this.crsCode);
   }
-
 }

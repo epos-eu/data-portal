@@ -1,0 +1,36 @@
+- name: Remove Nginx Config
+  hosts: localhost
+  sudo: yes
+  connection: local
+
+  tasks:
+  - name: Add nginx reverse proxy to node app
+    blockinfile:
+    
+      dest: /etc/nginx/sites-available/default
+      state: absent
+      marker: "### {mark} {{ project_name }} ###"
+      content: |
+            location /{{ project_name }}/ {
+                try_files $uri$args $uri$args/ /{{ project_name }}/index.html;
+            }
+
+  - name: Add nginx reverse proxy to node app API
+    blockinfile:
+      dest: /etc/nginx/sites-available/default
+      state: absent
+      insertafter: "server_name _;"
+      marker: "### {mark} {{ project_name }} API ###"
+      content: |
+            location /{{ project_name }}/api/ {
+                proxy_pass https://epos.cineca.it/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+            }
+
+  - name: Restart nginx
+    service: name=nginx state=reloaded
+    service: name=nginx state=restarted

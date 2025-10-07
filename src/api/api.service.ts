@@ -23,6 +23,9 @@ import { DistributionDetails } from './webApi/data/distributionDetails.interface
 import { ParameterValue } from './webApi/data/parameterValue.interface';
 import { DiscoverResponse, DiscoverRequest } from './webApi/classes/discoverApi.interface';
 import { DistributionFormat } from './webApi/data/distributionFormat.interface';
+import { Environment } from './webApi/data/environments/environment.interface';
+import { EnvironmentType } from './webApi/data/environments/environmentType.interface';
+import { EnvironmentResource } from './webApi/data/environments/environmentResource.interface';
 import { Organization } from './webApi/data/organization.interface';
 import { Domain } from './webApi/data/domain.interface';
 
@@ -218,6 +221,56 @@ export class ApiService implements Api {
   public retrieveConfigurables(key: string): Promise<string | null> {
     this.checkApiBeforeCall();
     return this.delegate!.retrieveConfigurables(key);
+  }
+
+  // Environments
+  /**
+   * The function `getEnvironments` returns a promise that resolves to an array of `Environment` objects
+   * after checking the API before making the call.
+   * @returns The method `getEnvironments()` is returning a Promise that resolves to an array of
+   * `Environment` objects.
+   */
+  public getEnvironments(): Promise<Array<Environment>> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getEnvironments();
+  }
+
+  /**
+   * The function `getEnvironment` retrieves an environment object based on the provided environment
+   * parameter.
+   * @param {Environment} environment - The `environment` parameter is of type `Environment`. It
+   * represents the environment for which you want to retrieve information.
+   * @returns The method is returning a Promise that resolves to either an instance of the Environment
+   * class or null.
+   */
+  public getEnvironment(environment: Environment): Promise<Environment | null> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getEnvironment(environment);
+  }
+  public updateEnvironment(environment: Environment, newName: string, newDescription: string): Promise<null | Environment> {
+    this.checkApiBeforeCall();
+    return this.delegate!.updateEnvironment(environment, newName, newDescription);
+  }
+  public createEnvironment(name: string, description: string, serviceid: string): Promise<null | Environment> {
+    this.checkApiBeforeCall();
+    return this.delegate!.createEnvironment(name, description, serviceid);
+  }
+  public removeEnvironment(environment: Environment): Promise<boolean> {
+    this.checkApiBeforeCall();
+    return this.delegate!.removeEnvironment(environment);
+  }
+  public runJobEnvironment(environment: Environment): Promise<boolean> {
+    this.checkApiBeforeCall();
+    return this.delegate!.runJobEnvironment(environment);
+  }
+  public updateResourcesToEnvironment(environment: Environment, resources: Array<EnvironmentResource>): Promise<null | Environment> {
+    this.checkApiBeforeCall();
+    return this.delegate!.updateResourcesToEnvironment(environment, resources);
+  }
+
+  public getEnvironmentTypes(): Promise<Array<EnvironmentType>> {
+    this.checkApiBeforeCall();
+    return this.delegate!.getEnvironmentTypes();
   }
 
   private checkApiBeforeCall() {

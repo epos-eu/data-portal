@@ -258,6 +258,8 @@ export class GraphPanelComponent implements OnInit {
       let traces = new Array<Trace>();
 
       switch (true) {
+        case (DistributionFormatType.is(distributionFormat.getFormat(), DistributionFormatType.APP_EPOS_COV_JSON)):
+        case (DistributionFormatType.is(distributionFormat.getFormat(), DistributionFormatType.APP_EPOS_GRAPH_COV_JSON)):
         case (DistributionFormatType.is(distributionFormat.getFormat(), DistributionFormatType.APP_COV_JSON)):
           traces = new CovJsonData(dataConfigurable.id).createTraces(data as Record<string, unknown>);
 

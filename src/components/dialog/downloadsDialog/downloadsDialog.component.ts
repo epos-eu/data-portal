@@ -13,7 +13,7 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { AfterViewInit, Component, Inject, Injector, OnInit, ViewChild } from '@angular/core';
+import { AfterContentInit, AfterViewInit, Component, Inject, Injector, OnInit, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { DialogData } from '../baseDialogService.abstract';
 import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
@@ -36,8 +36,13 @@ import { GeoJSONHelper } from 'utility/maplayers/geoJSONHelper';
 import { AuthenticatedClickService } from 'services/authenticatedClick.service';
 import { NotificationService } from 'services/notification.service';
 import { JsonHelper } from 'utility/maplayers/jsonHelper';
+import { Environment } from 'api/webApi/data/environments/environment.interface';
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { Subscription } from 'rxjs';
+import { AnalysisConfigurablesService } from 'pages/dataPortal/services/analysisConfigurables.service';
+import { EnvironmentService } from 'services/environment.service';
+import { SimpleEnvironment } from 'api/webApi/data/environments/impl/simpleEnvironment';
+import { SimpleEnvironmentResource } from 'api/webApi/data/environments/impl/simpleEnvironmentResource';
 import { DialogService } from '../dialog.service';
 import { CitationsService } from '../../../services/citations.service';
 import { Tracker } from 'utility/tracker/tracker.service';
@@ -45,6 +50,7 @@ import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 
 export interface ConfigurableDataIn {
   dataConfigurable: DataConfigurableDataSearch;
+  environmentOps: boolean;
 }
 
 interface FormatElement {
@@ -66,7 +72,7 @@ interface FormatElement {
   templateUrl: './downloadsDialog.component.html',
   styleUrls: ['./downloadsDialog.component.scss']
 })
-export class DownloadsDialogComponent implements OnInit, AfterViewInit {
+export class DownloadsDialogComponent implements OnInit, AfterViewInit, AfterContentInit {
 
   @ViewChild(MatPaginator, { static: true }) matPaginator: MatPaginator;
   @ViewChild(MatSort) matSort: MatSort;
@@ -82,7 +88,11 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
   public properties: Array<PopupProperty> = [];
 
   public onlyDownload = false;
+  public isLoading = true;
   public subTitle = 'Files available for download';
+
+  public environmentOps = false;
+  public environmentSelected: SimpleEnvironment | null = null;
 
   public citation: string;
 
@@ -98,15 +108,22 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
     private readonly http: HttpClient,
     private readonly authentificationClickService: AuthenticatedClickService,
     private readonly notifier: NotificationService,
+    private readonly analysisConfigurables: AnalysisConfigurablesService,
+    private readonly environmentService: EnvironmentService,
     private readonly injector: Injector,
     private readonly citationService: CitationsService,
     private readonly tracker: Tracker,
   ) {
   }
 
-  public ngOnInit(): void {
+  public async ngOnInit(): Promise<void> {
 
     this.dataConfigurable = this.data.dataIn.dataConfigurable;
+    this.environmentOps = this.data.dataIn.environmentOps;
+
+    if (this.environmentOps) {
+      this.displayedColumns.push('environment');
+    }
 
     this.distributionDetails = this.dataConfigurable.getDistributionDetails();
     this.distributionFormat = this.distributionDetails.getDownloadableFormats();
@@ -117,6 +134,12 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
     this.serviceName = this.dataConfigurable.name;
 
     this.hasFeatureTable = this.distributionDetails.isTabularable;
+
+    this.subscriptions.push(
+      this.analysisConfigurables.triggerEnvironmentSelectionObs.subscribe((environment: SimpleEnvironment | null) => {
+        this.environmentSelected = environment;
+      })
+    );
 
     this.getServiceTableData();
 
@@ -170,13 +193,21 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
     }
 
     // Get the citation for this dataset
-    this.citation = this.citationService.getDatasetCitation(this.distributionDetails).citation;
+    this.citation = (await this.citationService.getDatasetCitation(this.distributionDetails)).citation;
+
+    this.isLoading = false;
   }
 
   public ngAfterViewInit(): void {
     this.dataSource.sort = this.matSort;
     this.dataSource.sortData = (data: Array<FormatElement>, sort: Sort) => this.sortPredicate(data, sort);
     this.dataSource.paginator = this.matPaginator;
+  }
+
+  public ngAfterContentInit(): void {
+    if (this.environmentOps && this.environmentSelected !== null) {
+      this.subTitle = 'Files available to add to Environment ' + this.environmentSelected.name;
+    }
   }
 
   public close(): void {
@@ -236,6 +267,65 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
       this.tracker.trackEvent(TrackerCategory.DISTRIBUTION, TrackerAction.COPY_URL, this.formatTrackerDistributionName(this.distributionDetails) + Tracker.TARCKER_DATA_SEPARATION + elem.name + Tracker.TARCKER_DATA_SEPARATION + elem.originalFormat);
 
     }
+  }
+
+  /**
+   * The function `addToEnv` adds a new resource to the selected environment and updates it with the
+   * provided data.
+   * @param {FormatElement} elem - The `elem` parameter is of type `FormatElement`.
+   */
+  public addToEnv(elem: FormatElement): void {
+
+    this.spinner = true;
+
+    void new Promise((resolve) => {
+      if (this.isElemFeature(elem)) {
+        resolve(elem.url);
+      } else {
+
+        const paramOutput = this.getOutputFormatParam();
+
+        // set new format
+        if (paramOutput !== undefined) {
+          paramOutput.value = elem.originalFormat;
+        }
+
+        void this.dataConfigurable.getOriginatorUrl().then((url) => {
+          resolve(url);
+        });
+      }
+    }).then((urlToAdd: string) => {
+
+      if (this.environmentSelected !== null) {
+        const resources = this.environmentSelected?.getResources();
+        if (resources !== undefined) {
+          resources.push(
+            SimpleEnvironmentResource.make(
+              this.dataConfigurable.id,
+              this.dataConfigurable.name + ' - ' + elem.name,
+              'Dataset in format ' + elem.format + ' for ' + this.dataConfigurable.name,
+              elem.format,
+              urlToAdd,
+            )
+          );
+
+          void this.environmentService.updateResourcesToEnvironment(this.environmentSelected, resources)
+            .then((updatedSummary: Environment) => {
+              this.environmentService.refreshEnvs.emit();
+              this.spinner = false;
+              this.data.close();
+            }).catch(() => {
+              this.notifier.sendErrorNotification('An error occured updating the environment, please try again.');
+              this.spinner = false;
+
+            });
+        }
+      }
+    }).catch(() => {
+      this.notifier.sendErrorNotification('An error occured updating the environment, please try again.');
+      this.spinner = false;
+      this.data.close();
+    });
   }
 
   public downloadUrls(): void {
@@ -302,24 +392,42 @@ export class DownloadsDialogComponent implements OnInit, AfterViewInit {
   public openCitationDialog(): void {
     // We have to inject here instead of the constructor to avoid circular dependencies
     const dialogService = this.injector.get(DialogService);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const elemPosition = document.getElementById('sidenavleft')!.getBoundingClientRect();
 
     // Open the dialog
     void dialogService.openDownloadCitationDialog(
       this.distributionDetails,
       [0],  // Show only the first citation
       '50vw',
+      String(elemPosition.right) + 'px',
     );
   }
 
   /**
-   * The function `copyCitationToClipboard` copies a citation to the clipboard using the
-   * `citationService` and `distributionDetails`.
-   * @param {string} citation - The `citation` parameter in the `copyCitationToClipboard` function is a
-   * string that represents the citation text that you want to copy to the clipboard.
+   * Copies the plain text content of a citation to the clipboard.
+   * This method parses the provided HTML string, extracts its visible text content,
+   * and copies it using the Clipboard API, excluding any HTML tags or formatting.
+   *
+   * @param {string} htmlString - The citation content as an HTML string.
+   *                              The method will strip tags and copy only the visible text.
    */
-  public copyCitationToClipboard(citation: string): void {
-    this.citationService.copyCitationToClipboard(citation, this.distributionDetails);
+  public copyCitationToClipboard(htmlString: string): void {
+    const tempDiv = document.createElement('div');
+    // Sostituisci <br> con \n PRIMA di assegnare innerHTML
+    tempDiv.innerHTML = htmlString.replace(/<br\s*\/?>/gi, '\n');
+
+    const plainText = (tempDiv.textContent || tempDiv.innerText || '').trim();
+
+    navigator.clipboard.writeText(plainText).then(() => {
+      console.log('Citation copied to clipboard.');
+    }).catch(err => {
+      console.error('Failed to copy citation:', err);
+    });
   }
+
+
+
 
   /**
    * This function retrieves a distribution format based on certain conditions and returns the format.

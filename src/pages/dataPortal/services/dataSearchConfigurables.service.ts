@@ -138,6 +138,16 @@ export class DataSearchConfigurablesService {
         }
       });
   }
+
+  public updateLayerBbox(id: string, layerBbox: Array<number>, doRefresh = true): Promise<void> {
+    return this.getConfig(id)
+      .then((conf: DataConfigurableDataSearchI) => {
+        if (conf != null) {
+          conf.setLayerBbox(layerBbox);
+            this.refresh();
+        }
+      });
+  }
   /**
    * The function `togglePinned` toggles the pinned status of a data configuration and returns a promise
    * that resolves to a boolean indicating whether the configuration is pinned or not.
@@ -275,6 +285,13 @@ export class DataSearchConfigurablesService {
     const conf: DataConfigurableDataSearchI | null = this.get(id);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     conf?.setLevels(levels);
+    this.tryDoRefresh(true);
+  }
+
+  public addLayerBbox(id: string, coords: Array<number>): void {
+    const conf: DataConfigurableDataSearchI | null = this.get(id);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    conf?.setLayerBbox(coords);
     this.tryDoRefresh(true);
   }
 
@@ -479,9 +496,11 @@ export class DataSearchConfigurablesService {
       false,
       [levels],
       dist.getStatus() as number,
-      dist.getStatusTimestamp() as string,);
+      dist.getStatusTimestamp() as string,
+      dist.getVersioningStatus(),
+      dist.getVersioningInfo() != null ? dist.getVersioningInfo() : null);
 
-    return basicItem;
+      return basicItem;
   }
 
   private recursiveCreateItemsDisplay(

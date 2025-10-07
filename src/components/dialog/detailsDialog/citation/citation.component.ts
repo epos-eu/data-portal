@@ -26,26 +26,41 @@ export class CitationComponent implements OnInit {
   ) {
   }
 
-  ngOnInit(): void {
-    const citations = this.citationService.getAllCitations(this.detailsData);
+  async ngOnInit(): Promise<void> {
+    const citations = await this.citationService.getAllCitations(this.detailsData);
 
-    // If the citations to show are not set, show all
     if (!this.citationsToShow) {
-      // Set the citations to the table
       this.citations = new MatTableDataSource(citations);
     } else {
-      // Else filter the citations to show
-      this.citations = new MatTableDataSource(citations.filter((_, index) => this.citationsToShow.includes(index)));
+      this.citations = new MatTableDataSource(
+        citations.filter((_, index) => this.citationsToShow.includes(index))
+      );
     }
   }
 
-  /**
-   * This function copies a citation to the clipboard using a citation service and details data.
-   * @param {string} citation - The `citation` parameter in the `copyCitationToClipboard` function is a
-   * string that represents the citation text that you want to copy to the clipboard. It is the actual
-   * content of the citation that you want to be copied.
-   */
-  public copyCitationToClipboard(citation: string): void {
-    this.citationService.copyCitationToClipboard(citation, this.detailsData);
-  }
+
+/**
+ * Copies the plain text content of a citation to the clipboard.
+ * This method parses the provided HTML string, extracts its visible text content,
+ * and copies it using the Clipboard API, excluding any HTML tags or formatting.
+ *
+ * @param {string} htmlString - The citation content as an HTML string.
+ *                              The method will strip tags and copy only the visible text.
+ */
+public copyCitationToClipboard(htmlString: string): void {
+  const tempDiv = document.createElement('div');
+  // Sostituisci <br> con \n PRIMA di assegnare innerHTML
+  tempDiv.innerHTML = htmlString.replace(/<br\s*\/?>/gi, '\n');
+
+  const plainText = (tempDiv.textContent || tempDiv.innerText || '').trim();
+
+  navigator.clipboard.writeText(plainText).then(() => {
+    console.log('Citation copied to clipboard.');
+  }).catch(err => {
+    console.error('Failed to copy citation:', err);
+  });
+}
+
+
+
 }

@@ -3,7 +3,7 @@
 
  Licensed under the Apache License, Version 2.0 (the License); you may not
  use this file except in compliance with the License.  You may obtain a copy
- of the License at
+ of the License atx
 
    http://www.apache.org/licenses/LICENSE-2.0
 
@@ -15,7 +15,7 @@
  */
 
 // driver.scss
-div#driver-popover-item {
+.driver-popover.driverJs-theme {
   display: none;
   position: absolute;
   background: #fff;
@@ -28,63 +28,63 @@ div#driver-popover-item {
   box-shadow: 0 1px 10px rgba(0, 0, 0, 0.4);
   z-index: 1000000000;
 }
-div#driver-popover-item .driver-popover-tip {
+.driver-popover.driverJs-theme .driver-popover-tip {
   border: 5px solid #fff;
   content: '';
   position: absolute;
 }
-div#driver-popover-item .driver-popover-tip.bottom {
+.driver-popover.driverJs-theme .driver-popover-tip.bottom {
   bottom: -10px;
   border-color: #fff transparent transparent;
 }
-div#driver-popover-item .driver-popover-tip.bottom.position-center {
+.driver-popover.driverJs-theme .driver-popover-tip.bottom.position-center {
   left: 49%;
 }
-div#driver-popover-item .driver-popover-tip.bottom.position-right {
+.driver-popover.driverJs-theme .driver-popover-tip.bottom.position-right {
   right: 20px;
 }
-div#driver-popover-item .driver-popover-tip.left {
+.driver-popover.driverJs-theme .driver-popover-tip.left {
   left: -10px;
   top: 10px;
   border-color: transparent #fff transparent transparent;
 }
-div#driver-popover-item .driver-popover-tip.left.position-center {
+.driver-popover.driverJs-theme .driver-popover-tip.left.position-center {
   top: 46%;
 }
-div#driver-popover-item .driver-popover-tip.left.position-bottom {
+.driver-popover.driverJs-theme .driver-popover-tip.left.position-bottom {
   top: auto;
   bottom: 20px;
 }
-div#driver-popover-item .driver-popover-tip.right {
+.driver-popover.driverJs-theme .driver-popover-tip.right {
   right: -10px;
   top: 10px;
   border-color: transparent transparent transparent #fff;
 }
-div#driver-popover-item .driver-popover-tip.right.position-center {
+.driver-popover.driverJs-theme .driver-popover-tip.right.position-center {
   top: 46%;
 }
-div#driver-popover-item .driver-popover-tip.right.position-bottom {
+.driver-popover.driverJs-theme .driver-popover-tip.right.position-bottom {
   top: auto;
   bottom: 20px;
 }
-div#driver-popover-item .driver-popover-tip.top {
+.driver-popover.driverJs-theme .driver-popover-tip.top {
   top: -10px;
   border-color: transparent transparent #fff;
 }
-div#driver-popover-item .driver-popover-tip.top.position-center {
+.driver-popover.driverJs-theme .driver-popover-tip.top.position-center {
   left: 49%;
 }
-div#driver-popover-item .driver-popover-tip.top.position-right {
+.driver-popover.driverJs-theme.driver-popover-tip.top.position-right {
   right: 20px;
 }
-div#driver-popover-item .driver-popover-tip.mid-center {
+.driver-popover.driverJs-theme .driver-popover-tip.mid-center {
   display: none;
 }
-div#driver-popover-item .driver-popover-footer {
+.driver-popover.driverJs-theme .driver-popover-footer {
   display: block;
   margin-top: 10px;
 }
-div#driver-popover-item .driver-popover-footer button {
+.driver-popover.driverJs-theme .driver-popover-footer button {
   display: inline-block;
   padding: 3px 10px;
   border: 1px solid #d4d4d4;
@@ -99,19 +99,19 @@ div#driver-popover-item .driver-popover-footer button {
   zoom: 1;
   line-height: 1.3;
 }
-div#driver-popover-item .driver-popover-footer button.driver-disabled {
+.driver-popover.driverJs-theme .driver-popover-footer button.driver-disabled {
   color: grey;
   cursor: default;
   pointer-events: none;
 }
-div#driver-popover-item .driver-popover-footer .driver-close-btn {
+.driver-popover.driverJs-theme .driver-popover-footer .driver-close-btn {
   float: left;
 }
-div#driver-popover-item .driver-popover-footer .driver-btn-group,
-div#driver-popover-item .driver-popover-footer .driver-close-only-btn {
+.driver-popover.driverJs-theme .driver-popover-footer .driver-btn-group,
+.driver-popover.driverJs-theme .driver-popover-footer .driver-close-only-btn {
   float: right;
 }
-div#driver-popover-item .driver-popover-title {
+.driver-popover.driverJs-theme .driver-popover-title {
   font: 19px / normal sans-serif;
   margin: 0 0 5px;
   font-weight: 700;
@@ -120,7 +120,7 @@ div#driver-popover-item .driver-popover-title {
   line-height: 1.5;
   zoom: 1;
 }
-div#driver-popover-item .driver-popover-description {
+.driver-popover.driverJs-theme .driver-popover-description {
   margin-bottom: 0;
   font: 14px / normal sans-serif;
   line-height: 1.5;
@@ -145,7 +145,7 @@ div#driver-popover-item .driver-popover-description {
   background: transparent !important;
   outline: 5000px solid rgba(0, 0, 0, 0.75);
 }
-div#driver-page-overlay {
+.driver-popover.driver-page-overlay {
   background: #000;
   position: fixed;
   bottom: 0;
@@ -158,8 +158,8 @@ div#driver-page-overlay {
   opacity: 0.75;
   z-index: 100002 !important;
 }
-div#driver-highlighted-element-stage,
-div#driver-page-overlay {
+.driver-popover.driver-highlighted-element-stage,
+.driver-popover.driver-page-overlay {
   top: 0;
   left: 0;
   -webkit-transition: all 0.3s;
@@ -168,7 +168,7 @@ div#driver-page-overlay {
   -o-transition: all 0.3s;
   transition: all 0.3s;
 }
-div#driver-highlighted-element-stage {
+.driver-popover.driver-highlighted-element-stage {
   position: absolute;
   height: 50px;
   width: 300px;
@@ -177,10 +177,10 @@ div#driver-highlighted-element-stage {
   display: none;
   border-radius: 2px;
 }
-.driver-highlighted-element {
+.driver-popover.driver-highlighted-element {
   z-index: 100004 !important;
 }
-.driver-position-relative {
+.driver-popover.driver-position-relative {
   position: relative !important;
 }
 
@@ -218,11 +218,11 @@ div#driver-highlighted-element-stage {
 }
 
 .driver-fix-stacking:not(gridster-item) {
-  // -webkit-transform: none !important;
-  // -moz-transform: none !important;
-  // -ms-transform: none !important;
-  // -o-transform: none !important;
-  // transform: none !important;
+  -webkit-transform: none !important;
+  -moz-transform: none !important;
+  -ms-transform: none !important;
+  -o-transform: none !important;
+  transform: none !important;
 }
 
 gridster-item.driver-fix-stacking {
@@ -253,11 +253,16 @@ gridster-item.driver-fix-stacking {
   margin: 5px;
   cursor: pointer;
   background-color: #004926;
+  &:disabled {
+    background-color:grey; 
+    color: black;
+  }
   color: white;
   text-shadow: none;
+  text-align: center;
 }
 
-div#driver-popover-item {
+.driver-popover.driverJs-theme {
   & .driver-popover-footer button {
     @extend .driver-button;
   }
@@ -315,11 +320,11 @@ div#driver-popover-item {
     display: flex;
   }
 }
-#driver-page-overlay {
+.driver-popover.driver-page-overlay {
   opacity: 0.32 !important;
 }
 
-#driver-highlighted-element-stage {
+.driver-popover.driver-highlighted-element-stage {
   max-height: 100vh;
   max-width: 100vw;
 }

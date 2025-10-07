@@ -14,7 +14,7 @@
  the License.
  */
 import { Injectable } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { LoginMessageObject, PleaseLoginContentComponent } from './pleaseLoginDialog/pleaseLoginContent.component';
 import { FeedbackDialogComponent } from './feedbackDialog/feedbackDialog.component';
 import { BaseDialogService, DialogData } from './baseDialogService.abstract';
@@ -28,6 +28,8 @@ import { DataConfigurableI } from 'utility/configurables/dataConfigurableI.inter
 import { VideoGuidesDialogComponent } from './videoGuidesDialog/videoGuidesDialog.component';
 import { MobileDisclaimerDialogComponent } from './mobileDisclaimerDialog/mobileDisclaimerDialog.component';
 import { ContactFormDialogComponent } from './contactFormDialog/contactFormDialog.component';
+import { AddEditEnvironmentDialogDataIn, CreateEnvironmentFormDialogComponent } from './analysisDialogs/createEnvironmentFormDialog/createEnvironmentFormDialog.component';
+import { Environment } from 'api/webApi/data/environments/environment.interface';
 import { PoliciesComponent } from './policiesDialog/policies.component';
 import { DataConfigurationType } from 'utility/configurables/dataConfigurationType.enum';
 import { DataProviderFilterDialogComponent } from './dataProviderFilterDialog/dataProviderFilterDialog.component';
@@ -38,6 +40,14 @@ import { TablePanelDialogComponent } from './tablePanelDialog/tablePanelDialog.c
 import { CitationDialogComponent, CitationsDataIn } from './citationDialog/citationDialog.component';
 import { DistributionDetails } from '../../api/webApi/data/distributionDetails.interface';
 import { ShareInformationsDialogComponent } from './shareInformationsDialog/shareInformationsDialog.component';
+import { SwitchItemConfirmationDialogComponent } from './switchItemConfirmationDialog/switchItemConfirmationDialog.component';
+import { Subject } from 'rxjs';
+import { MatomoStatsDialogComponent } from 'components/dialog/matomoStatsDialog/matomoStatsDialog.component';
+import { ScientificExamplesDialogComponent } from './scientificExamplesDialog/scientificExamplesDialog.component';
+import { scientificExamplesDataType } from './scientificExamplesDialog/scientificExamplesDialog.component';
+
+import { MetaDataStatusDialogComponent } from './metaDataStatusDialog/metaDataStatusDialog.component';
+import { CrsIncompatDataIn, CrsIncompatDialogComponent, WmsCrsIncompat } from './crsIncompatDialog/crsIncompatDialog.component';
 
 
 /**
@@ -52,6 +62,10 @@ import { ShareInformationsDialogComponent } from './shareInformationsDialog/shar
  */
 @Injectable()
 export class DialogService extends BaseDialogService {
+
+  // to hold/emit value of the openSwtichItemConfirmationDialog
+  private switchItemDialogConfirmed = new Subject<boolean>();
+
   constructor(public dialog: MatDialog) {
     super(dialog);
   }
@@ -123,6 +137,83 @@ export class DialogService extends BaseDialogService {
     ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
   }
 
+  public openSwitchItemConfirmationDialog(
+    options: {
+      dialogTitle?: string;
+      closable?: boolean;
+      expandedElementName?: string;
+      addTofavouriteAndContinueButtonCssClass?: string;
+      continueButtonHtml?: string;
+    } = {}
+  ): Promise<boolean> {
+    const {
+      dialogTitle = 'Keep your data',
+      closable = false,
+      expandedElementName = '',
+      addTofavouriteAndContinueButtonCssClass = 'confirm',
+      continueButtonHtml = 'Continue'
+    } = options;
+
+    return this.openDialog<ConfirmationDataIn>(
+      'switchingItem',
+      SwitchItemConfirmationDialogComponent,
+      'no-resize',
+      closable,
+      {
+        dialogTitle: dialogTitle,
+        expandedElementName: expandedElementName,
+        addTofavouriteAndContinueButtonCssClass: addTofavouriteAndContinueButtonCssClass,
+        continueButtonHtml: continueButtonHtml,
+      },
+      {
+        width: '50vw'
+      }
+    ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
+  }
+
+  // to emit choice of the user
+  public setSwitchItemDialogConfirmation(confirmed: boolean) {
+    this.switchItemDialogConfirmed.next(confirmed);
+  }
+
+  public getSwitchItemDialogConfirmation() {
+    return this.switchItemDialogConfirmed.asObservable();
+  }
+
+  public openMetaDataStatusDialog(
+    options: {
+      dialogTitle?: string;
+      closable?: boolean;
+      userRole?: string;
+      activateMetadataStatusModeCssClass?: string;
+      cancelButtonHtml?: string;
+    } = {}
+  ): Promise<boolean> {
+    const {
+      dialogTitle = 'Activate Metadata Preview Mode?',
+      closable = false,
+      userRole = '',
+      activateMetadataStatusModeCssClass = 'confirm',
+      cancelButtonHtml = 'Cancel'
+    } = options;
+
+    return this.openDialog<ConfirmationDataIn>(
+      'metaDataStatus',
+      MetaDataStatusDialogComponent,
+      'no-resize',
+      closable,
+      {
+        dialogTitle: dialogTitle,
+        userRole: userRole,
+        activateMetadataStatusModeCssClass: activateMetadataStatusModeCssClass,
+        cancelButtonHtml: cancelButtonHtml,
+      },
+      {
+        width: '30vw'
+      }
+    ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
+  }
+
   /**
    * The function `openDetailsDialog` opens a dialog box with details data, positioned relative to a
    * specific element on the page.
@@ -140,7 +231,10 @@ export class DialogService extends BaseDialogService {
     width = '50vw',
   ): Promise<null | DialogData> {
 
-    const elemPosition = document.getElementById('sidenavleft')!.getBoundingClientRect();
+    let elemPosition = document.getElementById('sidenavleft')!.getBoundingClientRect();
+    if (elemPosition.right <= 0) {
+      elemPosition = document.getElementById('sidenavleftregistry')!.getBoundingClientRect();
+    }
 
     return this.openDialog<DetailsDataIn>(
       'detailsDialog',
@@ -175,6 +269,7 @@ export class DialogService extends BaseDialogService {
       true,
       {
         dataConfigurable,
+        environmentOps: false,
       },
       {
         width: width,
@@ -190,6 +285,7 @@ export class DialogService extends BaseDialogService {
     distributionDetails: DistributionDetails | null,
     citationsToShow: number[],
     width: string,
+    left: string
   ): Promise<null | DialogData> {
     return this.openDialog<CitationsDataIn>(
       'citationsDialog',
@@ -202,6 +298,9 @@ export class DialogService extends BaseDialogService {
       },
       {
         width: width,
+        position: {
+          left: left
+        }
       }
     );
   }
@@ -219,6 +318,7 @@ export class DialogService extends BaseDialogService {
       true,
       {
         dataConfigurable,
+        environmentOps: true,
       },
       {
         width: width,
@@ -262,6 +362,23 @@ export class DialogService extends BaseDialogService {
           top: top,
           left: left
         }
+      }
+    );
+  }
+
+  public environmentManagerDialog(
+    environmentSummary?: Environment,
+  ): Promise<null | DialogData> {
+    return this.openDialog<AddEditEnvironmentDialogDataIn>(
+      'AddEditAnalysis',
+      CreateEnvironmentFormDialogComponent,
+      'epos-dialog',
+      false,
+      {
+        environmentSummary: environmentSummary,
+      },
+      {
+        width: '500px'
       }
     );
   }
@@ -459,6 +576,73 @@ export class DialogService extends BaseDialogService {
       }
     ).then((data: DialogData<ConfirmationDataIn, boolean>) => (null != data) && (data.dataOut));
   }
+  public openScientificExamplesDialog(
+    confirmButtonHtml = 'Activate Scientific example',
+  ): Promise<null | DialogData> {
+    return this.openDialog<scientificExamplesDataType>(
+      'scientificExamples',
+      ScientificExamplesDialogComponent,
+      'no-resize',
+      true,
+      {
+        confirmButtonHtml: confirmButtonHtml,
+      },
+      {
+        width: '1090px',
+        position: {
+          top: '200px',
+          right: '50px',
+        },
+      }
+    );
+  }
+
+  /** This function opens up the statistics dialog */
+  public openStatsDialog() {
+    return this.openDialog(
+      'statsDialog',
+      MatomoStatsDialogComponent,
+      'no-resize',
+      true,
+      {},
+      {
+        width: '90vw',
+        height: '90vh'
+      }
+    );
+  }
+
+  public openCrsIncompatDialog(
+    items: WmsCrsIncompat[],
+    opts?: { width?: string; closable?: boolean; title?: string; noResize?: boolean }
+  ): Promise<boolean> {
+    const { width = '600px', closable = true, title, noResize = false } = opts ?? {};
+    return this.openDialog<CrsIncompatDataIn>(
+      'crsIncompat',
+      CrsIncompatDialogComponent,
+      noResize ? 'no-resize' : 'epos-dialog',
+      closable,
+      { items, title, closable },
+      { width }
+    ).then(data => data != null);
+  }
+
+  /**
+   * Opens the CRS incompatibility dialog and returns its MatDialogRef so that
+   * callers can interact with the component instance (e.g., append layers live).
+   * The dialog is opened via BaseDialogService.openDialog to preserve the
+   * DialogData contract used by BaseDialogComponent.
+   */
+  public openCrsIncompatDialogRef(
+    items: WmsCrsIncompat[],
+    opts?: { width?: string; closable?: boolean; title?: string; noResize?: boolean }
+  ): MatDialogRef<CrsIncompatDialogComponent, boolean> | null {
+    // Reuse the existing open method to ensure consistent DialogData structure
+    void this.openCrsIncompatDialog(items, opts);
+
+    // The dialog opens synchronously; retrieve its ref by id
+    return this.dialog.getDialogById('crsIncompat') as MatDialogRef<CrsIncompatDialogComponent, boolean> | null;
+  }
 
   private closeDialogById(dialogId: string): void {
     const dialog = this.dialog.getDialogById(dialogId);
@@ -466,5 +650,6 @@ export class DialogService extends BaseDialogService {
       dialog.close();
     }
   }
+
 
 }

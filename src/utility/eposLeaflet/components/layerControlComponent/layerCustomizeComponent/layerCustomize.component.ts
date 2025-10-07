@@ -25,6 +25,8 @@ import { defaultMarkerIcons, FaMarkerOption } from 'utility/styler/styler';
 import { MapLayer } from '../../layers/mapLayer.abstract';
 import { GeoJsonLayer } from '../../layers/public_api';
 import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteraction.service';
+import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
+import { CONTEXT_FACILITY, CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 @Component({
   selector: 'app-layer-customize',
@@ -161,6 +163,16 @@ export class LayerCustomizeComponent implements OnInit {
     this.markerType = this.layer.options.customLayerOptionMarkerType.get() ?? null;
     this.markerIconSize = this.layer.options.customLayerOptionMarkerIconSize.get() ?? this.stylable?.getStyle()?.getMarkerIconSize();
     this.markerValue = this.layer.options.customLayerOptionMarkerValue.get() ?? '';
+
+    // remove facility from defaultMarkerIcons if context resources
+    let context = CONTEXT_RESOURCE;
+    if (this.layer.getStylable() !== undefined && (this.layer.getStylable() as DataConfigurableDataSearch).context !== undefined) {
+      context = (this.layer.getStylable() as DataConfigurableDataSearch).context;
+    }
+    if (context === CONTEXT_RESOURCE) {
+      // remove facility by list
+      this.markerIcons = defaultMarkerIcons.filter((_markerOpt: FaMarkerOption) => _markerOpt.context !== CONTEXT_FACILITY);
+    }
 
     this.markerIconFa = this.markerIcons.find(e =>
       e.value.join(' ') === this.markerValue
@@ -390,6 +402,18 @@ export class LayerCustomizeComponent implements OnInit {
           changeMarker: 'image',
           size: true,
           cluster: true,
+        };
+        break;
+      // RAW ICON
+      case MapLayer.MARKERTYPE_RAW:
+        this.tools = {
+          opacity: true,
+          colorOpacity: false,
+          fillColorOpacity: false,
+          weight: false,
+          changeMarker: 'raw',
+          size: false,
+          cluster: false,
         };
         break;
 

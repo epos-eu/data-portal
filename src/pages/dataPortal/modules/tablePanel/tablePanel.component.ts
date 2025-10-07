@@ -29,8 +29,9 @@ import { LocalStorageVariables } from 'services/model/persisters/localStorageVar
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { DataConfigurableDataSearchI } from 'utility/configurablesDataSearch/dataConfigurableDataSearchI.interface';
 import { DataConfigurableDataSearch } from 'utility/configurablesDataSearch/dataConfigurableDataSearch';
+import { DataSearchConfigurablesServiceRegistry } from '../registryPanel/services/dataSearchConfigurables.service';
 import { DataSearchConfigurablesService } from 'pages/dataPortal/services/dataSearchConfigurables.service';
-import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { CONTEXT_FACILITY, CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 @Unsubscriber('subscriptions')
 @Component({
@@ -54,12 +55,14 @@ export class TablePanelComponent implements OnInit {
 
   public favouritesList: { [key: string]: boolean } = {};
   public resourcesList: { [key: string]: boolean } = {};
+  public facilitiesList: { [key: string]: boolean } = {};
   public hiddenMarkerOnMapList: { [key: string]: boolean } = {};
 
   private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
     private readonly configurables: DataSearchConfigurablesServiceResource,
+    private readonly configurablesRegistry: DataSearchConfigurablesServiceRegistry,
     private readonly resultPanelService: ResultsPanelService,
     private readonly panelsEvent: PanelsEmitterService,
     private readonly notificationService: NotificationService,
@@ -109,6 +112,10 @@ export class TablePanelComponent implements OnInit {
 
       this.configurables.watchAll().subscribe(() => {
         this.configurablesExecute(this.configurables, CONTEXT_RESOURCE);
+      }),
+
+      this.configurablesRegistry.watchAll().subscribe(() => {
+        this.configurablesExecute(this.configurablesRegistry, CONTEXT_FACILITY);
       }),
 
       this.mapInteractionService.featureOnlayerToggle.subscribe((featureOnLayer: Map<string, Array<number> | string | boolean>) => {
@@ -168,6 +175,7 @@ export class TablePanelComponent implements OnInit {
 
         if (conf !== null && conf.context === context) {
 
+          this.facilitiesList[tempId] = conf.context === CONTEXT_FACILITY;
           this.resourcesList[tempId] = conf.context === CONTEXT_RESOURCE;
 
           if (conf.isPinned()) {
@@ -206,6 +214,8 @@ export class TablePanelComponent implements OnInit {
         configurable.setTriggerReloadFunc((configurableToUpdate: DataConfigurableDataSearch) => {
           if (context === CONTEXT_RESOURCE) {
             this.configurables.replaceOrAdd(configurableToUpdate, true);
+          } else if (context === CONTEXT_FACILITY) {
+            this.configurablesRegistry.replaceOrAdd(configurableToUpdate, true);
           }
         });
       }

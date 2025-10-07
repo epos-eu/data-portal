@@ -31,9 +31,22 @@
       <ng-container *ngIf="data.type === typeLoadingDistribution">
         <img *ngIf="data.customIcon" [src]="data.customIcon" class="custom-icon">
       </ng-container>
+      <ng-container *ngIf="data.type === typeAvailableGuidedTour">
+        <img *ngIf="data.customIcon" [src]="data.customIcon" (click)="startGuidedTourFromSnackBar($event)" class="custom-icon">
+      </ng-container>
     </div>
-    <p class="body-1" [innerHtml]="data.title | safeHtml"></p>
-  </div>
+    <ng-container *ngIf="data.type === typeAvailableGuidedTour; else default">
+      <div class="guided-tour-content">
+        <p class="body-1" [innerHtml]="data.title | safeHtml" (click)="startGuidedTourFromSnackBar($event)"></p>
+        <mat-checkbox (change)="setDontShowAgain($event)">
+          Don't show again
+        </mat-checkbox>
+      </div>
+    </ng-container>
+    <ng-template #default>
+      <p class="body-1" [innerHtml]="data.title | safeHtml"></p>
+    </ng-template>
+  </div> 
   <button mat-button (click)="handleClose()">
     {{ data.action }}
   </button>

@@ -29,6 +29,7 @@ import { PoliciesService } from './policiesService.service';
 import { InformationsService } from './informationsService.service';
 import { LocalStoragePersister } from './model/persisters/localStoragePersister';
 import { PanelsEmitterService } from './panelsEventEmitter.service';
+import { EnvironmentService } from './environment.service';
 import { TourService } from './tour.service';
 import { ShareService } from './share.service';
 /**
@@ -58,6 +59,7 @@ export class ServicesModule {
         InformationsService,
         LocalStoragePersister,
         PanelsEmitterService,
+        EnvironmentService,
         TourService,
         ShareService,
       ]

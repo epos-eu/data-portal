@@ -84,4 +84,12 @@ export class TileLayer extends MapLayer {
   public getLeafletLayer(): Promise<null | L.Layer> {
     return Promise.resolve(new L.TileLayer(this.url, this.options.getAll()));
   }
+
+  public setOptions(options: L.TileLayerOptions): this {
+    const current = this.options.getAll();
+    this.options.setOptions({ ...current, ...options });
+    return this;
+  }
+
+
 }

@@ -70,6 +70,7 @@ export class GraphDisplayComponent {
   set selectedDisplayType(displayType: YAxisDisplayType) {
     this._selectedDisplayType = displayType;
     this.refreshGraph();
+
   }
 
   /**
@@ -102,6 +103,7 @@ export class GraphDisplayComponent {
       ) {
         this.currentTraces = traces;
         this.refreshGraph();
+
       }
     }
   }
@@ -230,13 +232,11 @@ export class GraphDisplayComponent {
 
   /** Updates the {@link #data} and {@link #layout} variables to change the display. */
   private refreshGraph(): void {
-    this.resolveYAxisChanges();
-
-    this.data = this.currentTraces
-      .map(trace => trace.getPlotlyTrace())
-      .filter(trace => (null != trace)) as Array<Trace>;
-    this.layout = this.getLayoutObject();
-  }
-
+      this.resolveYAxisChanges();
+      this.data = this.currentTraces
+        .map(trace => trace.getPlotlyTrace())
+        .filter(trace => (null != trace)) as Array<Trace>;
+      this.layout = this.getLayoutObject();
+    }
 }
 

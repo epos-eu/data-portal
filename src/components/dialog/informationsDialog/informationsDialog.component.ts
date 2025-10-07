@@ -47,8 +47,13 @@ export class InformationsDialogComponent implements OnInit, OnDestroy {
   private readonly SUBMIT_FORM_ID = 'data_portal_informations';
 
   // Live credentials obtained during build, from gitlab variables.
-  private readonly EPOS_SITE_API_URL = environment.eposSiteApiRestUrl;
-  private readonly EPOS_SITE_API_REST_KEY = environment.eposSiteApiRestKey;
+  private readonly EPOS_SITE_API_URL = (this.LOCAL_TESTING)
+    ? 'https://stage.epos-eu.org/webform_rest/submit'
+    : environment.eposSiteApiRestUrl;
+
+  private readonly EPOS_SITE_API_REST_KEY = (this.LOCAL_TESTING)
+    ? '81974f7fe993a7c16aeea5aa8bbbdf37'
+    : environment.eposSiteApiRestKey;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: DialogData<ConfirmationDataIn, boolean>,

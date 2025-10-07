@@ -59,7 +59,9 @@
     }
   }
 
-  .left-sidenav-data-toggle {
+  .left-sidenav-data-toggle,
+  .left-sidenav-analysis-toggle,
+  .left-sidenav-registry-toggle {
     position: absolute;
     z-index: 3;
     top: $sidenav-left-top;
@@ -81,6 +83,14 @@
 
   .sidenav-left-close {
     left: -40px;
+  }
+
+  .left-sidenav-analysis-toggle {
+    height: 9.5vh !important;
+  }
+
+  .left-sidenav-registry-toggle {
+    height: 10.5vh !important;
   }
 
   .sidnav-opener-right {
@@ -111,6 +121,10 @@
     }
   }
 
+  .left-sidenav-analysis-toggle {
+    top: $sidenav-bottom-top;
+  }
+
   .bottom-sidenav-toggle {
     position: absolute;
     z-index: 3;
@@ -121,6 +135,8 @@
   }
 
   .left-sidenav-data-toggle,
+  .left-sidenav-analysis-toggle,
+  .left-sidenav-registry-toggle,
   .right-sidenav-toggle,
   .bottom-sidenav-toggle {
     background-color: $header-background-color;
@@ -141,7 +157,8 @@
     }
   }
 
-  .mat-drawer.sidenav {
+  .mat-drawer.sidenav,
+  .mat-drawer.sidenavregistry {
     background-color: #00000000;
     border: 0;
 
@@ -181,6 +198,24 @@
     .h1 {
       position: absolute;
     }
+  }
+
+  .sidenavanalysis {
+    z-index: 1;
+  }
+
+  .analysis-panel-button-wrapper,
+  .registry-panel-button-wrapper {
+    position: absolute;
+    transition-property: top;
+    transition-duration: 0.2s;
+  }
+
+  .analysisPanel {
+    position: absolute;
+    min-width: 40vw;
+    transition-property: top, left;
+    transition-duration: 0.2s;
   }
 
   .right-sidenav-header {

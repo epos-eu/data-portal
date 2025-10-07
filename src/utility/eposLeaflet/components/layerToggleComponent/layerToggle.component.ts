@@ -14,20 +14,21 @@
  the License.
  */
 
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { LayersService } from 'utility/eposLeaflet/services/layers.service';
 import { Stylable } from 'utility/styler/stylable.interface';
 import { MapLayer } from '../layers/mapLayer.abstract';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
 import { LocalStorageVariables } from 'services/model/persisters/localStorageVariables.enum';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-layer-toggle',
   templateUrl: './layerToggle.component.html',
   styleUrls: ['./layerToggle.component.scss']
 })
-export class LayerToggleComponent implements OnInit {
+export class LayerToggleComponent implements OnInit, OnDestroy {
 
   /** The `@Input() layer: MapLayer;` is a decorator that marks the `layer` property as an input property.
   This means that the value of `layer` can be passed into the `LayerToggleComponent` component from
@@ -47,6 +48,10 @@ export class LayerToggleComponent implements OnInit {
   interface defines the methods and properties for applying styles to a layer. By storing a reference
   to the stylable object, the component can access and modify the style settings for the layer. */
   public stylable: Stylable | null;
+
+
+  private hiddenStateSubscription: Subscription;
+
 
   /**
    * The constructor function initializes private variables for the LayersService and
@@ -70,6 +75,14 @@ export class LayerToggleComponent implements OnInit {
     this.stylable = this.layer.options.customLayerOptionStylable.get();
     this.enable = this.stylable?.getStyle()?.getEnable();
     this.layer.hidden.set(!this.enable);
+
+    this.hiddenStateSubscription = this.layer.hidden.watch().subscribe((isHidden: boolean) => {
+      this.enable = !isHidden;
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.hiddenStateSubscription?.unsubscribe();
   }
 
   /**
@@ -84,6 +97,8 @@ export class LayerToggleComponent implements OnInit {
     const style = this.stylable?.getStyle();
     style?.setEnable(event.checked);
     this.layersService.layerChange(this.layer);
+
+    this.layersService.setArticOverlayLayerVisibility(this.layer.id, event.checked);
 
     // if bbox layer
     if (this.layer.id.includes(MapLayer.BBOX_LAYER_ID)) {

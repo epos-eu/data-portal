@@ -26,6 +26,7 @@ import { SimpleFacetModel } from 'api/webApi/data/impl/simpleFacetModel';
 import { JSONDistributionFactory } from 'api/webApi/data/impl/jsonDistributionFactory';
 import { Optional } from 'api/webApi/utility/optional';
 import { Domain } from 'api/webApi/data/domain.interface';
+import { CONTEXT_FACILITY } from 'api/api.service.factory';
 
 /**
  * Responsible for triggering calls to the webApi module "discover" endpoint.
@@ -122,6 +123,29 @@ export class DevDiscoverApi implements DiscoverApi {
       const value: string = organisations.join(',');
       builder.addParameter('organisations', value);
     }
+
+    if (request.getContext() === CONTEXT_FACILITY) {
+      // facility Type
+      const facilityTypes = request.getFacilityTypeIds();
+      if (facilityTypes != null && facilityTypes.length > 0) {
+        const value: string = facilityTypes.join(',');
+        builder.addParameter('facilitytypes', value);
+      }
+
+      // equipment Type
+      const equipmentTypes = request.getEquipmentTypeIds();
+      if (equipmentTypes != null && equipmentTypes.length > 0) {
+        const value: string = equipmentTypes.join(',');
+        builder.addParameter('equipmenttypes', value);
+      }
+    }
+    // versioning Status ("Metadata Status" feature)
+    const versioningStatus = request.getVersioningStatus();
+    if(versioningStatus != null && versioningStatus.length > 0){
+      const value: string = versioningStatus.join(',');
+      builder.addParameter('versioningStatus', value);
+    }
+
 
     // the search URL
     const url = builder.build();
@@ -287,6 +311,9 @@ export class DevDiscoverApi implements DiscoverApi {
 
     // DISTRIBUTIONS
     this.appendToByName(resultJSON, distributionsAppendTo, 'distributions');
+
+    // FACILITIES
+    this.appendToByName(resultJSON, distributionsAppendTo, 'facilities');
 
     // If there is no facet name or id - abort
     if (facetName == null || facetID == null) {

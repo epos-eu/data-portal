@@ -13,16 +13,19 @@
  License for the specific language governing permissions and limitations under
  the License.
  */
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, OnDestroy } from '@angular/core';
 import { NotificationService } from './notification.service';
 import { LocalStoragePersister } from 'services/model/persisters/localStoragePersister';
+import { TourService } from 'services/tour.service';
+import { Subscription } from 'rxjs';
+
 
 @Component({
   selector: 'app-notification',
   templateUrl: './notification.component.html',
   styleUrls: ['./notification.component.scss'],
 })
-export class NotificationComponent implements OnInit {
+export class NotificationComponent implements OnInit, OnDestroy {
 
   @Input() showMessage = true;
   @Input() type = NotificationService.TYPE_INFO;
@@ -34,9 +37,11 @@ export class NotificationComponent implements OnInit {
   @Output() showMessageEvent = new EventEmitter<boolean>();
 
   public icon = 'info';
+  private readonly subscriptions: Array<Subscription> = new Array<Subscription>();
 
   constructor(
     private readonly localStoragePersister: LocalStoragePersister,
+    private readonly tourService: TourService
   ) {
   }
   ngOnInit(): void {
@@ -51,6 +56,17 @@ export class NotificationComponent implements OnInit {
         this.icon = 'error';
         break;
     }
+    this.subscriptions.push(
+    this.tourService.handleCloseNotificationObservable.subscribe(() => {
+      this.showMessage = false;
+  })
+);
+  }
+
+  ngOnDestroy() {
+    this.subscriptions.forEach(s => {
+      s.unsubscribe();
+    });
   }
 
   public handleShowAgain(checked: boolean): void {

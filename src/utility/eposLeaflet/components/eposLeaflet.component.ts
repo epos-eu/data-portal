@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /*
          Copyright 2021 EPOS ERIC
 
@@ -14,18 +15,7 @@
  the License.
  */
 
-import {
-  Component,
-  Input,
-  AfterViewInit,
-  ElementRef,
-  ViewChild,
-  Output,
-  EventEmitter,
-  OnInit,
-  Injector,
-  HostListener,
-} from '@angular/core';
+import { Component, Input, AfterViewInit, ElementRef, ViewChild, Output, EventEmitter, OnInit, Injector, HostListener } from '@angular/core';
 import { Subscription, Subject, Observable, BehaviorSubject } from 'rxjs';
 import { MapLayer } from './layers/mapLayer.abstract';
 import moment from 'moment-es6';
@@ -47,6 +37,14 @@ import { MapInteractionService } from 'utility/eposLeaflet/services/mapInteracti
 import { Unsubscriber } from 'decorators/unsubscriber.decorator';
 import { LeafletLoadingService } from '../services/leafletLoading.service';
 
+export type CrsPreset = {
+  initialLatLng: [number, number];
+  initialZoom: number;
+  minZoom: number;
+  maxZoom: number;
+  crs: L.CRS;
+};
+
 @Unsubscriber('subscriptions')
 @Component({
   selector: 'app-epos-leaflet-map',
@@ -60,19 +58,20 @@ import { LeafletLoadingService } from '../services/leafletLoading.service';
     './controls/drawBBoxControl/drawBBoxControl.scss',
     './controls/customLayerControl/customLayerControl.scss',
     './controls/searchControl/searchControl.scss',
-  ]
+    './controls/measureDistanceControl/measureDistanceControl.scss'
+  ],
 })
 export class EposLeafletComponent implements OnInit, AfterViewInit {
-
   public static readonly ZINDEX_TOP_LAYER = '500';
 
-  @Input() initialLatLng: [number, number] = [52.8, -1.0];
+  @Input() initialLatLng: [number, number] = [54.0, -5.0];
   @Input() initialZoom = 4;
-  @Input() minZoom = 2;
-  @Input() maxZoom = 12;
+  @Input() minZoom = 2.5;
+  @Input() maxZoom = 18;
   @Input() crs = L.CRS.EPSG3857;
   @Input() zoomable = true;
   @Input() dragable = true;
+  @Input() restoreViewFromStorage = true;
 
   @Output() onload = new EventEmitter<EposLeafletComponent>();
 
@@ -124,8 +123,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     protected localStoragePersister: LocalStoragePersister,
     protected mapInteractionService: MapInteractionService,
     protected loaderService: LeafletLoadingService,
-  ) {
-  }
+  ) { }
 
   @HostListener('click', ['$event'])
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
@@ -145,41 +143,45 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     }
   }
 
+  /**
+   * Angular lifecycle hook that runs after component inputs are initialized.
+   * This method is responsible for the initial creation of the Leaflet map object,
+   * using the properties (CRS, zoom limits, etc.) passed down from the parent component.
+   */
   public ngOnInit(): void {
+    // Create the Leaflet map instance using the initial @Input() properties.
     this.leafletMapObj = L.map(this.getMapElement(), {
       wheelPxPerZoomLevel: 1000,
-      worldCopyJump: true,
+      worldCopyJump: this.crs === L.CRS.EPSG3857,
       minZoom: this.minZoom,
       maxZoom: this.maxZoom,
       zoomControl: false,
       crs: this.crs,
     } as L.MapOptions);
-
-    this.zoomSource.next(this.initialZoom);
-    this.latLngSource.next(this.initialLatLng);
   }
 
-  /* after html generated */
+  /**
+   * Angular lifecycle hook that runs after the component's view has been initialized.
+   * This method finalizes the map setup by setting the initial view (either from
+   * component properties or local storage) and attaching all necessary event listeners
+   * and RxJS subscriptions for map interaction.
+   */
   public ngAfterViewInit(): void {
-
+    // Emit the 'onload' event once the map instance is ready.
     this.leafletMapObj.on('load', () => this.onload.emit(this));
 
-    // get initialLatLng from localStorage
-    void this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_ZOOM).then((val: string) => {
-      if (val !== null) {
-        const initialZoom = Number(val);
-        this.zoomSource.next(initialZoom);
-      }
-    });
+    // Set the map's initial view. The parent component controls whether to restore
+    // from storage or use the default initial view properties.
+    if (this.restoreViewFromStorage) {
+      void this.restoreViewAtomically();
+    } else {
+      this.leafletMapObj.setView(L.latLng(this.initialLatLng), this.initialZoom, { animate: false });
+      // Update internal state trackers.
+      this.zoomSource.next(this.initialZoom);
+      this.latLngSource.next(this.initialLatLng);
+    }
 
-    void this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_POSITION).then((val: string) => {
-      if (val !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const latLng = JSON.parse(val as string || '[]');
-        this.latLngSource.next(latLng as [number, number]);
-      }
-    });
-
+    // Disable map interaction features based on component inputs.
     if (!this.zoomable) {
       this.leafletMapObj.removeControl(L.control.zoom());
       this.leafletMapObj.touchZoom.disable();
@@ -188,70 +190,62 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
       this.leafletMapObj.boxZoom.disable();
       this.leafletMapObj.keyboard.disable();
     }
-
     if (!this.dragable) {
       this.leafletMapObj.dragging.disable();
     }
 
-    this.leafletMapObj.on('zoomend', () => {
-      this.saveMapZoomAndPosition();
-    });
-
-    this.leafletMapObj.on('mousemove', () => {
-      this.movingMap = true;
-    });
-
-    this.leafletMapObj.on('moveend', () => {
-      this.saveMapZoomAndPosition();
-    });
-
+    // --- Attach Core Map Event Listeners ---
+    this.leafletMapObj.on('zoomend', () => this.saveMapZoomAndPosition());
+    this.leafletMapObj.on('moveend', () => this.saveMapZoomAndPosition());
+    this.leafletMapObj.on('mousemove', () => { this.movingMap = true; });
     this.leafletMapObj.on('click', (clickEvent: L.LeafletMouseEvent) => {
-      if (null != this.layerClickManager) {
+      if (this.layerClickManager) {
         this.layerClickManager.click(clickEvent);
       }
     });
 
+    // --- Initialize RxJS Subscriptions for Component Interaction ---
     this.subscriptions.push(
-
-      this.zoomSource.subscribe((val: number) => {
+      // Subscriptions to internal sources for programmatic view changes.
+      this.zoomSource.subscribe((val: number | null) => {
         if (val !== null) {
           this.leafletMapObj.setZoom(val);
           this.initialZoom = val;
         }
       }),
-
-      this.latLngSource.subscribe((val: [number, number]) => {
+      this.latLngSource.subscribe((val: [number, number] | null) => {
         if (val !== null) {
-          this.leafletMapObj.setView(L.latLng(val), this.initialZoom);
+          this.leafletMapObj.setView(L.latLng(val), this.leafletMapObj.getZoom());
         }
       }),
-
+      // Subscription to the global service for base layer changes.
       this.layersService.baseLayerChangeSourceObs.subscribe((layer: BaseLayerOption | null) => {
-        if (null != layer) {
+        if (layer) {
           this.updateBasemap(layer);
         }
       }),
-
-      this.mapInteractionService.overlayPane.subscribe((createOverlayPane: boolean) => {
-        if (null != createOverlayPane) {
+      // Subscription to control the visibility of the overlay pane.
+      this.mapInteractionService.overlayPane.subscribe((createOverlayPane: boolean | null) => {
+        if (createOverlayPane !== null) {
           if (createOverlayPane === true) {
             this.showPaneById('overlayPane');
           } else {
             this.hidePaneById('overlayPane');
           }
         }
-      })
+      }),
     );
 
+    // Ensure the map size is correctly calculated after initialization.
     this.leafletMapObj.invalidateSize();
 
+    // Initialize the ordered list of layers.
     this.layers = this.getLayersOrdered();
 
-    // prune layerOrder in localStorage
+    // Schedule a cleanup of the layer order in local storage.
     setTimeout(() => {
       this.layersService.pruneLayersOrderStorage(this.layers);
     }, 2000);
-
   }
 
   /**
@@ -261,7 +255,6 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   public getElement(): HTMLElement {
     return this.elRef.nativeElement;
   }
-
 
   /**
    * The function "watchLayers" returns an Observable that emits an array of MapLayer objects whenever
@@ -288,13 +281,11 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   public getLayersOrdered(): Array<MapLayer> {
     const layers = this.layersService.getLayersOrderStorage();
     return this.getLayers().sort((a: MapLayer, b: MapLayer) => {
-
       const zIndexA = layers.get(a.id);
       const zIndexB = layers.get(b.id);
 
       if (zIndexA !== undefined && zIndexB !== undefined) {
-        return (zIndexA < zIndexB) ? 1 :
-          ((zIndexB < zIndexA) ? -1 : 0);
+        return zIndexA < zIndexB ? 1 : zIndexB < zIndexA ? -1 : 0;
       }
       return 0;
     });
@@ -317,18 +308,25 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     return this;
   }
 
+  public removeAddedControl(control: L.Control): this {
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    this.leafletMapObj.removeControl(control);
+    return this;
+  }
+
+  public AddremovedControls(control: L.Control): this {
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    this.leafletMapObj.addControl(control);
+    return this;
+  }
+
   /**
    * The function `getMapExtent` returns the bounding box of a Leaflet map object.
    * @returns a BoundingBox object.
    */
   public getMapExtent(): BoundingBox {
     const bounds = this.leafletMapObj.getBounds();
-    const mapExtent = new BoundingBox(
-      Math.min(bounds.getNorth(), 90),
-      bounds.getEast(),
-      Math.max(bounds.getSouth(), -90),
-      bounds.getWest()
-    );
+    const mapExtent = new BoundingBox(Math.min(bounds.getNorth(), 90), bounds.getEast(), Math.max(bounds.getSouth(), -90), bounds.getWest());
     return mapExtent;
   }
 
@@ -339,6 +337,103 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   public getLeafletObject(): L.Map {
     return this.leafletMapObj;
   }
+
+
+  /**
+   * Reinitializes the Leaflet map with a new Coordinate Reference System (CRS).
+   * This method performs a complete teardown and rebuild of the map instance while
+   * preserving or updating view settings (center and zoom).
+   *
+   * @param newCrs - The new Coordinate Reference System to apply to the map
+   * @param options - Optional configuration object
+   * @param options.center - Optional new center position for the map
+   * @param options.zoom - Optional new zoom level for the map
+   *
+   * @returns Promise resolving to the current EposLeafletComponent instance
+   *
+   * The method follows these steps:
+   * 1. Destroys the current map instance
+   * 2. Initializes map view settings (from localStorage if available)
+   * 3. Applies any provided override options
+   * 4. Creates a new map instance with the specified CRS
+   * 5. Reinitializes event handlers and component state
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  public async reinitializeWithCRS(newCrs: L.CRS): Promise<EposLeafletComponent> {
+    if (this.leafletMapObj) {
+      this.leafletMapObj.off();
+      this.leafletMapObj.remove();
+    }
+
+    this.leafletMapObj = L.map(this.getMapElement(), {
+      wheelPxPerZoomLevel: 1000,
+      worldCopyJump: this.crs === L.CRS.EPSG3857,
+      minZoom: this.minZoom,
+      maxZoom: this.maxZoom,
+      zoomControl: false,
+      crs: newCrs,
+    } as L.MapOptions);
+
+    this.crs = newCrs;
+
+    // start from the current preset values
+    this.zoomSource.next(this.initialZoom);
+    this.latLngSource.next(this.initialLatLng);
+
+    this.unsubscribeAll();
+    this.ngAfterViewInit();
+    this.refreshClickManager();
+
+    return this;
+  }
+
+  public applyPreset(preset: CrsPreset, { persist = false }: { persist?: boolean } = {}): void {
+    this.initialLatLng = preset.initialLatLng;
+    this.initialZoom = preset.initialZoom;
+    this.minZoom = preset.minZoom;
+    this.maxZoom = preset.maxZoom;
+
+    // durante uno switch vogliamo ignorare il restore dello storage
+    this.restoreViewFromStorage = false;
+
+    if (persist) {
+      this.localStoragePersister.set(
+        LocalStorageVariables.LS_CONFIGURABLES,
+        String(this.initialZoom),
+        false,
+        LocalStorageVariables.LS_MAP_ZOOM
+      );
+      this.localStoragePersister.set(
+        LocalStorageVariables.LS_CONFIGURABLES,
+        JSON.stringify(this.initialLatLng),
+        false,
+        LocalStorageVariables.LS_MAP_POSITION
+      );
+    }
+  }
+
+  /**
+   * Refreshes the layer click manager, re-binding its interaction
+   * logic to the new Leaflet map instance.
+   */
+  public refreshClickManager(): void {
+    if (!this.layerClickManager) {
+      this.enableLayerClickManager(); // first-time activation
+    } else {
+      this.layerClickManager.init(this.leafletMapObj, this.http, this); // rebind to new map
+    }
+  }
+
+  /**
+   * Unsubscribes from all active subscriptions and empties the subscriptions array.
+   * This is typically called during component cleanup or before re-initialization.
+   */
+  public unsubscribeAll(): void {
+    this.subscriptions.forEach(s => s.unsubscribe());
+    this.subscriptions.length = 0;
+  }
+
+
 
   // ****START LAYER MANIPULATION */
 
@@ -377,6 +472,22 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     this.removePaneById(layerId);
     return this;
   }
+
+  /**
+   * Removes a layer from the map without modifying the layer order in localStorage.
+   * Used exclusively during CRS (Coordinate Reference System) switching,
+   * to avoid altering the persisted layer order.
+   * @param {string} layerId - Unique identifier of the layer to remove.
+   * @returns The current instance of the class.
+   */
+  public removeLayerByIdCRS(layerId: string): this {
+    this.getRedrawQueue(layerId).push(layerId);
+    this.tryStartRedrawProcessing(layerId);
+    this.closePopup();
+    this.removePaneById(layerId);
+    return this;
+  }
+
 
   /**
    * The function removes a pane from a Leaflet map by setting its z-index to the top.
@@ -423,17 +534,18 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
 
   // redraw (or just add or remove) a layer
   public redrawLayer(layer: MapLayer | string): Promise<void> {
-    const layerId = (typeof layer === 'string') ? layer : layer.id;
-    const layerToAdd = (typeof layer === 'string') ? null : layer;
+    const layerId = typeof layer === 'string' ? layer : layer.id;
+    const layerToAdd = typeof layer === 'string' ? null : layer;
 
     this.triggerLayerLoader();
     // in case that layer has changed (same id) get a ref of current one
     const layerToRemove = this.layers.find((thisLayer: MapLayer) => thisLayer.id === layerId);
-    return ((layerToRemove == null)
-      ? Promise.resolve()
-      : new Promise<void>((resolve) => {
-        resolve(layerToRemove.removeSelfFromMap());
-      })
+    return (
+      layerToRemove == null
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+          resolve(layerToRemove.removeSelfFromMap());
+        })
     ).then(() => {
       // update layers
       const currentIndex = this.layers.findIndex((thisLayer: MapLayer) => thisLayer.id === layerId);
@@ -442,7 +554,8 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
         // new
         if (currentIndex === -1) {
           this.layers.push(layerToAdd);
-        } else { // If replace, put back in the same place
+        } else {
+          // If replace, put back in the same place
           // Check if style params set on new layer and if not, copy across from old.
           if (layerToAdd.options.customLayerOptionOpacity.get() == null) {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
@@ -450,22 +563,23 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
           }
           this.layers.splice(currentIndex, 1, layerToAdd);
         }
-      } else if (currentIndex > -1) { // just remove
+      } else if (currentIndex > -1) {
+        // just remove
         this.layers.splice(currentIndex, 1);
       }
 
-      return ((null == layerToAdd)
-        ? Promise.resolve()
-        : new Promise<void>((resolve) => {
-          resolve(layerToAdd.addSelfToMap(this));
-        })
-      )
-        .then(() => {
-          // order layer on map
-          this.orderLayerOnMap();
-          this.broadcastLayerChange();
-          this.triggerLayerLoader(true);
-        });
+      return (
+        null == layerToAdd
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+            resolve(layerToAdd.addSelfToMap(this));
+          })
+      ).then(() => {
+        // order layer on map
+        this.orderLayerOnMap();
+        this.broadcastLayerChange();
+        this.triggerLayerLoader(true);
+      });
     });
   }
 
@@ -512,7 +626,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
   }
 
   public enableLayerClickManager(manager?: LayerClickManager): this {
-    manager = (null == manager) ? new LayerClickManager(this.injector) : manager;
+    manager = null == manager ? new LayerClickManager(this.injector) : manager;
     manager.init(this.leafletMapObj, this.http, this);
     this.layerClickManager = manager;
     return this;
@@ -552,7 +666,6 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     this.leafletMapObj.panTo(targetLatLng);
   }
 
-
   /**
    * The function `moveMapEventPoint` adjusts the position of a map based on a pointer event's
    * y-coordinate and specified deltas.
@@ -580,11 +693,9 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
    * object's z-index value.
    */
   public orderLayerOnMap(): void {
-
     const layers = this.layersService.getLayersOrderStorage();
 
     this.layers.forEach((layer: MapLayer) => {
-
       // get zIndex setted on localStorage
       const zIndex = layers.get(layer.id);
 
@@ -594,7 +705,6 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
         pane!.style.zIndex = zIndex;
       }
     });
-
   }
 
   /**
@@ -641,6 +751,21 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     return this.localStoragePersister;
   }
 
+
+  /**
+   * Ensures that a named pane exists on the map with a specific z-index.
+   * This is useful for creating dedicated drawing layers for overlays.
+   * @param paneName The name of the pane to create (e.g., 'overlays').
+   * @param zIndex The CSS z-index to assign to the pane.
+   */
+  public createPane(paneName: string, zIndex: number): void {
+    const pane = this.leafletMapObj.getPane(paneName);
+    if (!pane) {
+      this.leafletMapObj.createPane(paneName);
+      this.leafletMapObj.getPane(paneName)!.style.zIndex = String(zIndex);
+    }
+  }
+
   protected broadcastLayerChange(): void {
     this.layersService.layersChange(this.getLayersOrdered());
   }
@@ -657,12 +782,11 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     return new Promise<void>((resolve) => {
       const queue = this.getRedrawQueue(layerId);
       let redrawItem: undefined | string | MapLayer;
-      while (queue.length > 0) { redrawItem = queue.shift(); }
+      while (queue.length > 0) {
+        redrawItem = queue.shift();
+      }
       if (null != redrawItem) {
-        resolve(
-          this.redrawLayer(redrawItem)
-            .then(() => this.redrawNextLayer(layerId))
-        );
+        resolve(this.redrawLayer(redrawItem).then(() => this.redrawNextLayer(layerId)));
       } else {
         // all done
         resolve();
@@ -674,26 +798,20 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     // only kick it off if it's not already running
     if (!this.redrawQueueProcessing.get(layerId)) {
       this.redrawQueueProcessing.set(layerId, true);
-      void this.redrawNextLayer(layerId)
-        .then(() => {
-          this.redrawQueueProcessing.delete(layerId);
-        });
+      void this.redrawNextLayer(layerId).then(() => {
+        this.redrawQueueProcessing.delete(layerId);
+      });
     }
   }
 
   protected postLayerManipulationNormalization(layersRedrawn: boolean): void {
     if (Array.from(this.redrawQueueProcessing.values()).length === 0) {
-
       if (layersRedrawn) {
       }
-
     }
   }
 
-  protected removeLayerMonitor(
-    watchable: Watchable<MapLayer, unknown>,
-    subscriptionMap: Map<string, Subscription>,
-  ): void {
+  protected removeLayerMonitor(watchable: Watchable<MapLayer, unknown>, subscriptionMap: Map<string, Subscription>): void {
     const layerId = watchable.context().id;
     const currentSubscription = subscriptionMap.get(layerId);
     if (currentSubscription != null) {
@@ -701,11 +819,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     }
     subscriptionMap.delete(layerId);
   }
-  protected addLayerMonitor(
-    watchable: Watchable<MapLayer, unknown>,
-    subscriptionMap: Map<string, Subscription>,
-    observerFunction: () => void,
-  ): void {
+  protected addLayerMonitor(watchable: Watchable<MapLayer, unknown>, subscriptionMap: Map<string, Subscription>, observerFunction: () => void): void {
     const layerId = watchable.context().id;
     this.removeLayerMonitor(watchable, subscriptionMap);
     subscriptionMap.set(layerId, watchable.watch().subscribe(observerFunction));
@@ -727,11 +841,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
       this.loadingLayerCount++;
       if (this.loadingLayerCount === 1) {
         this.loaderCheckInterval = setInterval(() => {
-          if (
-            !this.showLoader
-            && (this.loadingLayerCount > 0)
-            && (moment(date).add(this.LOADER_DELAY_MS, 'ms') < moment())
-          ) {
+          if (!this.showLoader && this.loadingLayerCount > 0 && moment(date).add(this.LOADER_DELAY_MS, 'ms') < moment()) {
             clearTimeout(this.loaderCheckInterval);
 
             // Show the loading spinner and emit the event to the observer
@@ -747,8 +857,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
 
     // let all the calls be done before processing.
     clearTimeout(this.layersOrderTimer);
-    this.layersOrderTimer = setTimeout(() => {
-    }, 300);
+    this.layersOrderTimer = setTimeout(() => { }, 300);
   }
 
   protected reallyMoveView(
@@ -759,12 +868,8 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     latOffset: number, // used to offset map so that popup is visible on point view
     lonOffset: number, // used to offset map so that popup is visible on point view
   ): void {
-
     // offset so that popup is visible
-    const targetLoc = new L.LatLng(
-      lat - latOffset,
-      lon + lonOffset,
-    );
+    const targetLoc = new L.LatLng(lat - latOffset, lon + lonOffset);
 
     const options = {
       animate: true,
@@ -816,12 +921,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     if (this.movingMap) {
       setTimeout(() => {
         // save zoom on configurables localStorage
-        this.localStoragePersister.set(
-          LocalStorageVariables.LS_CONFIGURABLES,
-          this.leafletMapObj.getZoom().toString(),
-          false,
-          LocalStorageVariables.LS_MAP_ZOOM
-        );
+        this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, this.leafletMapObj.getZoom().toString(), false, LocalStorageVariables.LS_MAP_ZOOM);
       }, 500);
 
       this.fitMap();
@@ -829,12 +929,7 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
       this.movingMap = false;
 
       // save latlng on configurables localStorage
-      this.localStoragePersister.set(
-        LocalStorageVariables.LS_CONFIGURABLES,
-        JSON.stringify(this.leafletMapObj.getCenter()),
-        false,
-        LocalStorageVariables.LS_MAP_POSITION
-      );
+      this.localStoragePersister.set(LocalStorageVariables.LS_CONFIGURABLES, JSON.stringify(this.leafletMapObj.getCenter()), false, LocalStorageVariables.LS_MAP_POSITION);
     }
   }
 
@@ -849,4 +944,87 @@ export class EposLeafletComponent implements OnInit, AfterViewInit {
     this.loaderService.showLoading(show);
   }
 
+  private async restoreViewAtomically(): Promise<void> {
+    try {
+      const [zoomStr, posStr] = await Promise.all([
+        this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_ZOOM),
+        this.localStoragePersister.get(LocalStorageVariables.LS_CONFIGURABLES, LocalStorageVariables.LS_MAP_POSITION),
+      ]);
+
+      let zoom = this.initialZoom;
+      if (typeof zoomStr === 'string' && zoomStr !== null) {
+        const z = Number(zoomStr);
+        if (!isNaN(z)) { zoom = z; }
+      }
+
+      let center: [number, number] = this.initialLatLng;
+      if (typeof posStr === 'string' && posStr.trim() !== '') {
+        const parsedCenter = this.parseStoredCenter(posStr);
+        if (parsedCenter) {
+          center = this.clampLatForCrs(parsedCenter);
+        }
+      }
+
+      // Single call to avoid intermediate recalculations
+      this.leafletMapObj.setView(L.latLng(center), zoom, { animate: false });
+
+      // Keep internal state sources in sync
+      this.initialZoom = zoom;
+      this.initialLatLng = center;
+      this.zoomSource.next(zoom);
+      this.latLngSource.next(center);
+    } catch {
+      // Fallback: use current presets
+      this.leafletMapObj.setView(L.latLng(this.initialLatLng), this.initialZoom, { animate: false });
+    }
+  }
+
+  private clampLatForCrs([lat, lng]: [number, number]): [number, number] {
+    if (this.crs === L.CRS.EPSG3857) {
+      const MAX = 85.05112878; // WebMercator limit
+      return [Math.max(Math.min(lat, MAX), -MAX), lng];
+    }
+    // For polar CRS (e.g., 3995) avoid extreme southern centers at low zoom
+    return [Math.max(lat, -80), lng];
+  }
+  private parseStoredCenter(raw: string): [number, number] | null {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+
+      // Case 1: [lat, lng]
+      if (Array.isArray(parsed) && parsed.length >= 2) {
+        const lat = this.toFiniteNumber(parsed[0]);
+        const lng = this.toFiniteNumber(parsed[1]);
+        if (lat !== null && lng !== null) { return [lat, lng]; }
+      }
+
+      // Case 2: { lat: number, lng: number }
+      if (this.isLatLngObject(parsed)) {
+        return [parsed.lat, parsed.lng];
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return null;
+  }
+
+  private isLatLngObject(v: unknown): v is { lat: number; lng: number } {
+    if (typeof v !== 'object' || v === null) { return false; } // must be a non-null object
+    const obj = v as Record<string, unknown>;
+    return this.isFiniteNumber(obj.lat) && this.isFiniteNumber(obj.lng);
+  }
+
+  private isFiniteNumber(v: unknown): v is number {
+    return typeof v === 'number' && Number.isFinite(v);
+  }
+
+  // Safely coerce strings/numbers to finite numbers; otherwise return null
+  private toFiniteNumber(v: unknown): number | null {
+    if (typeof v === 'number' && Number.isFinite(v)) { return v; }
+    if (typeof v === 'string') {
+      const n = Number(v);
+      if (Number.isFinite(n)) { return n; }
+    }
+    return null;
+  }
 }

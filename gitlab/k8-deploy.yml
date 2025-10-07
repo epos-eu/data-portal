@@ -1,0 +1,71 @@
+# Automatically replace the deploy paths below (/deploy/path) with the root url path
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: epos-gui-DEPLOY-TAG
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: epos-gui
+      version: DEPLOY-TAG
+  template:
+    metadata:
+      labels:
+        app: epos-gui
+        version: DEPLOY-TAG
+    spec:
+      imagePullSecrets:
+      - name: gitlab-ci-secret # this line is important!
+      containers:
+      - name: epos-gui-container
+        image: "DOCKER_REGISTRY/epos/epos-gui/deploy:IMAGE-TAG"
+        imagePullPolicy: Always
+        env:
+        - name: BASE_URL
+          value: /deploy/path
+        - name: ForceRedeploy
+          value: 'REDEPLOY'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+        ports:
+        - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: epos-gui-service-DEPLOY-TAG
+  labels:
+    app: epos-gui
+    version: DEPLOY-TAG
+spec:
+  selector:
+    app: epos-gui
+    version: DEPLOY-TAG
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: epos-gui-ingress-DEPLOY-TAG
+  labels:
+    app: epos-gui
+    version: DEPLOY-TAG
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /deploy/path
+        backend:
+          serviceName: epos-gui-service-DEPLOY-TAG
+          servicePort: 80

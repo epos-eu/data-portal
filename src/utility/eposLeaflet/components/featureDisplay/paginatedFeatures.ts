@@ -235,8 +235,9 @@ export class PaginatedFeatures {
 
     const makeButtons = (wrapper: HTMLElement, iconClassString: string, isnext: boolean) => {
       const navString = isnext ? 'Forward' : 'Back';
+      const dataCyString = isnext ? 'popup-next-slide' : 'popup-prev-slide';
       for (let i = 0; i < orderOfMagnitude; i++) {
-        const butt = jQuery(`<span class="nav-butt" title="${navString} ${magnitudeStrings[i]}"></span>`);
+        const butt = jQuery(`<span class="nav-butt" title="${navString} ${magnitudeStrings[i]}" data-cy="${dataCyString}"></span>`);
         butt.on('click', () => this.changeSlide(isnext, Math.pow(10, i)));
         for (let j = 0; j <= i; j++) {
           butt.append(jQuery(`<i class="${iconClassString}"></i>`));

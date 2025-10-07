@@ -19,6 +19,7 @@ import { Subject } from 'rxjs';
 import { Subscription } from 'rxjs/internal/Subscription';
 import { LocalStoragePersister } from './model/persisters/localStoragePersister';
 import { LocalStorageVariables } from './model/persisters/localStorageVariables.enum';
+import { ViewType } from 'api/webApi/data/viewType.enum';
 
 @Injectable()
 export class PanelsEmitterService {
@@ -39,6 +40,7 @@ export class PanelsEmitterService {
   invokeLayerControlPanel = new EventEmitter();
   invokeTableDialogClose = new EventEmitter();
   invokeGraphDialogClose = new EventEmitter();
+  invokeVisibleOn = new EventEmitter();
 
   subscription: Subscription;
   togglePanel: MatExpansionPanel;
@@ -83,6 +85,7 @@ export class PanelsEmitterService {
    */
   graphPanelOpen(id: string, newSelected: boolean): void {
     this.invokeGraphPanelOpen.emit(id);
+    console.log('graph Id' , id);
     this.invokeNewSelected.emit(newSelected);
   }
 
@@ -103,6 +106,12 @@ export class PanelsEmitterService {
    */
   clearRowOnTablePanel(): void {
     this.invokeClearRowOnTable.emit();
+  }
+  /**
+   * The function "visibleOn" emits an event to pass the view type of the visible on that triggered it (just 'Map' up to now).
+   */
+  visibleOn(viewType: ViewType): void{
+    this.invokeVisibleOn.emit(viewType);
   }
 
   /**

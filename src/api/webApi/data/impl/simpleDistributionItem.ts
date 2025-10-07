@@ -36,6 +36,8 @@ export class SimpleDistributionItem implements DistributionItem {
     public readonly levels: Array<Array<DistributionLevel>>,
     public readonly status: number | null,
     public readonly statusTimestamp: string | null,
+    public readonly versioningStatus?: null | Array<string>,
+    public readonly versioningStatusInfo?: null | Record<string, { changeDate: string; editorFullName: string }[]>
   ) {
   }
 
@@ -55,6 +57,8 @@ export class SimpleDistributionItem implements DistributionItem {
     levels: Array<Array<DistributionLevel>>,
     status: number | null,
     statusTimestamp: string | null,
+    versioningStatus: null | Array<string>,
+    versioningStatusInfo: null | Record<string, { changeDate: string; editorFullName: string }[]>
   ): DistributionItem {
 
     return new SimpleDistributionItem(id,
@@ -71,7 +75,9 @@ export class SimpleDistributionItem implements DistributionItem {
       hideToResult,
       levels,
       status,
-      statusTimestamp);
+      statusTimestamp,
+      versioningStatus,
+      versioningStatusInfo);
   }
 
 }

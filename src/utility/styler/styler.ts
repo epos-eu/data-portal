@@ -15,6 +15,7 @@
  */
 import { Style } from './style';
 import { Stylable } from './stylable.interface';
+import { CONTEXT_FACILITY } from 'api/api.service.factory';
 
 /** The `Styler` class assigns styles to objects based on a list of available styles and reference
 items. */
@@ -174,4 +175,9 @@ export const defaultMarkerIcons: Array<FaMarkerOption> = [
   { id: 'fas-caret-up', value: ['fas', 'fa-caret-up'] },
   { id: 'fas-caret-down', value: ['fas', 'fa-caret-down'] },
   { id: 'fas-map-pin', value: ['fas', 'fa-map-pin'] },
+  { id: 'fas-flask', value: ['fas', 'fa-flask'], context: CONTEXT_FACILITY },
+  { id: 'fas-computer', value: ['fas', 'fa-computer'], context: CONTEXT_FACILITY },
+  { id: 'fas-microscope', value: ['fas', 'fa-microscope'], context: CONTEXT_FACILITY },
+  { id: 'fas-car', value: ['fas', 'fa-car'], context: CONTEXT_FACILITY },
+  { id: 'fas-maskface', value: ['fas', 'fa-mask-face'], context: CONTEXT_FACILITY },
 ];

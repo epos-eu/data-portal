@@ -88,7 +88,9 @@ Cypress.Commands.add('getByDataCy', (args) => {
 
 Cypress.Commands.add('init', () => {
   cy.intercept('GET', /testpath\/api\/v1\/resources\/search(\?q=)?$/, { fixture: 'distributions.json' }).as('search');
+  cy.intercept('GET', /testpath\/api\/v1\/resources\/organizations.*/, { fixture: 'organizations.json' }).as('organizations');
   cy.policyAcceptAndWelcomePopup();
+  cy.wait(['@organizations']);
   cy.wait(['@search', '@search', '@search', '@search']);
 });
 
@@ -105,6 +107,10 @@ Cypress.Commands.add('freeTextSearch', (text: string) => {
 
 Cypress.Commands.add('getLeafletPane', (id: string) => {
   return cy.get('.leaflet-' + id + '-pane');
+});
+
+Cypress.Commands.add('getServiceMapFeatures', (service: Service) => {
+  return service.getMarkerFunction(service);
 });
 
 // Search for a specific service and show only it
@@ -138,7 +144,9 @@ Cypress.Commands.add('interceptService', (service: Service) => {
     { fixture: service.searchJson() }).as(service.searchRequest.substring(1));
   // The bbox filtered data
   cy.intercept(
-    'GET', new
-    RegExp('.*/execute/' + service.id + '\\?.*minLon.*-3.86719.*maxLat.*43.99281.*maxLon.*3.16406.*minLat.*30.03106.*'),
-    { fixture: service.bboxFilteredJson() }).as(service.bboxFilteredRequest.substring(1));
+    'GET', new RegExp(
+      '.*/execute/' + service.id +
+      '\\?.*minLon.*-5\\.00977.*maxLat.*54\\.00777.*maxLon.*9\\.93164.*minLat.*39\\.02772.*'),
+    { fixture: service.bboxFilteredJson() }
+  ).as(service.bboxFilteredRequest.substring(1));
 });

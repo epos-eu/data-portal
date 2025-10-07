@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Overview",
+    "file": "./overview.md"
+  },
+  {
+    "title": "Developer Guides",
+    "file": "developer_guides.md",
+    "children": [
+      {
+        "title": "Data Search",
+        "file": "developer_guides/dg_data_search.md"
+      }
+    ]
+  },
+  {
+    "title": "EPOS GeoJSON",
+    "file": "./extending_geojson_for_epos.md"
+  }
+]

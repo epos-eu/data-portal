@@ -1,18 +1,35 @@
 div.buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: 5px;
+  width: 100%;
   margin-top: 20px;
+
+  .mat-icon-button {
+    font-weight: bold;
+    padding: 15px;
+  }
 }
 
-button {
-  font-weight: bold;
-  padding-top: 15px;
-  padding-bottom: 15px;
+div.citation-wrapper button[mat-icon-button] {
+  margin-left: 20px;
 }
 
+
+.spinner-wrapper {
+  padding: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+ 
 div.citation-wrapper {
   display: flex;
   flex-direction: row;
   width: 100%;
   align-items: center;
+  gap: 5px;
 
   mat-icon {
     width: 24px !important;

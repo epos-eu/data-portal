@@ -20,7 +20,7 @@ import { Model } from './model/model.service';
 
 import { LoggingService } from './logging.service';
 import { Organization } from 'api/webApi/data/organization.interface';
-import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { CONTEXT_FACILITY, CONTEXT_RESOURCE } from 'api/api.service.factory';
 
 /**
  * A service that exposes the "discover" webAPI functionality to the rest of the GUI.
@@ -49,6 +49,10 @@ export class DataSearchService {
       switch (discoverRequest.getContext()) {
         case CONTEXT_RESOURCE: {
           this.model.dataDiscoverResponse.set(r);
+          break;
+        }
+        case CONTEXT_FACILITY: {
+          this.model.dataDiscoverResponseReg.set(r);
           break;
         }
       }

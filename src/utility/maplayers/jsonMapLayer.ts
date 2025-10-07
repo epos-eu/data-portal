@@ -30,6 +30,7 @@ import { AuthenticatedClickService } from 'services/authenticatedClick.service';
 import { defaultStyles } from 'utility/styler/styler';
 import { Style } from 'utility/styler/style';
 import { GeoJSONHelper } from './geoJSONHelper';
+import { RawIcon } from './rawIcon';
 
 
 export class JsonMapLayer extends GeoJsonLayer {
@@ -116,17 +117,28 @@ export class JsonMapLayer extends GeoJsonLayer {
   public createLegend(mapLayer: MapLayer, http: HttpClient | null): Promise<Array<Legend>> {
     const legend: Legend = new Legend(this.id, this.name);
 
-    Array.from(this.stylesMasterMap.keys())
-      .sort((a, b) => a - b)
-      .forEach(key => {
-        const pointStyle: PointStyle = this.stylesMasterMap.get(key)!;
-        const legendItem = this.createLegendMarkerItem(this.stylable, pointStyle.label, pointStyle.getMarker());
-        if (null != legendItem) {
-          legend.addLegendItem(legendItem);
-        }
-
-      });
-
+    const isMarkerTypeRaw = this.options.customLayerOptionMarkerType.get() === 'raw' ? true : false;
+    // if markerType is 'raw' (multistyle marker), consider only the first element in the array to create the legend
+    if(isMarkerTypeRaw){
+      const stylesArray = Array.from(this.stylesMasterMap.keys());
+      const firstElement = stylesArray[0];
+      const pointStyle: PointStyle = this.stylesMasterMap.get(firstElement)!;
+      const legendItem = this.createLegendMarkerItem(this.stylable, pointStyle.label, pointStyle.getMarker());
+      if (null != legendItem) {
+        legend.addLegendItem(legendItem);
+      }
+    }
+    else{
+      Array.from(this.stylesMasterMap.keys())
+        .sort((a, b) => a - b)
+        .forEach(key => {
+          const pointStyle: PointStyle = this.stylesMasterMap.get(key)!;
+          const legendItem = this.createLegendMarkerItem(this.stylable, pointStyle.label, pointStyle.getMarker());
+          if (null != legendItem) {
+            legend.addLegendItem(legendItem);
+          }
+        });
+    }
     const layerType = this.options.customLayerOptionMarkerType.get();
     const label = MapLayer.DEFAULT_LAYER_LEGEND_LABEL.find(i => i.type === layerType);
 
@@ -520,6 +532,17 @@ export class JsonMapLayer extends GeoJsonLayer {
             });
             break;
           }
+          case (MarkerType.RAW): {
+
+            const rawBase64Img = marker.getMarkerValue();
+            const withMIME = `data:image/png;base64,${rawBase64Img}`;
+
+            mapMarker = new RawIcon().configure(withMIME, size, size);
+
+            this.options.customLayerOptionMarkerType.set(MapLayer.MARKERTYPE_RAW);
+
+            break;
+          }
         }
       } else {
 
@@ -553,6 +576,17 @@ export class JsonMapLayer extends GeoJsonLayer {
             }
 
             this.options.customLayerOptionMarkerType.set(MapLayer.MARKERTYPE_IMAGE);
+
+            break;
+          }
+          case (MarkerType.RAW): {
+
+            const rawBase64Img = marker.getMarkerValue();
+            const withMIME = `data:image/png;base64,${rawBase64Img}`;
+
+            mapMarker = new RawIcon().configure(withMIME, size, size);
+
+            this.options.customLayerOptionMarkerType.set(MapLayer.MARKERTYPE_RAW);
 
             break;
           }
@@ -604,13 +638,14 @@ export class JsonMapLayer extends GeoJsonLayer {
 
 }
 
-/** The above code is defining an enum called `MarkerType` in TypeScript. This enum has three possible
-values: `IMAGE`, `FONT_AWESOME`, and `CHARACTER`. Enums are used to define a set of named constants,
+/** The above code is defining an enum called `MarkerType` in TypeScript. This enum has four possible
+values: `IMAGE`, `FONT_AWESOME`, `CHARACTER` and 'RAW'. Enums are used to define a set of named constants,
 in this case representing different types of markers. */
 enum MarkerType {
   IMAGE,
   FONT_AWESOME,
-  CHARACTER
+  CHARACTER,
+  RAW
 }
 
 /** The above code is defining an enum called "Anchor" in TypeScript. An enum is a way to define a set
@@ -687,9 +722,14 @@ export class Marker {
       if (!ObjectHelper.isValidString(value)) {
         type = MarkerType.IMAGE;
         value = ObjectHelper.getObjectValue<string>(json, 'href');
-        if (!ObjectHelper.isValidString(value)) {
-          value = Marker.DEFAULT_MARKER_PIN.markerValue;
-          type = Marker.DEFAULT_MARKER_PIN.markerType;
+        if(!ObjectHelper.isValidString(value)){
+          type = MarkerType.RAW;
+          value = ObjectHelper.getObjectValue<string>(json, 'raw');
+          // DEFAULT TYPE AND VALUE
+          if (!ObjectHelper.isValidString(value)) {
+            value = Marker.DEFAULT_MARKER_PIN.markerValue;
+            type = Marker.DEFAULT_MARKER_PIN.markerType;
+          }
         }
       }
     }
@@ -788,7 +828,7 @@ class PointStyle {
    */
   public static makeFromJSON(type: string, json: Record<string, unknown>): PointStyle {
 
-    const labelJSON = ObjectHelper.getObjectValue<string>(json, 'label');
+    const labelJSON = ObjectHelper.getObjectValue<string>(json, 'label') === null ? ObjectHelper.getObjectValue<string>(json, 'Label') : ObjectHelper.getObjectValue<string>(json, 'label');
     let label = '';
     if (ObjectHelper.isValidString(labelJSON)) {
       label = labelJSON!;
@@ -797,7 +837,7 @@ class PointStyle {
     }
     label = label.trim();
 
-    const markerJSON = ObjectHelper.getObjectValue<Record<string, unknown>>(json, 'marker');
+    const markerJSON = ObjectHelper.getObjectValue<Record<string, unknown>>(json, 'marker') === null ? ObjectHelper.getObjectValue<Record<string, unknown>>(json, 'Marker') : ObjectHelper.getObjectValue<Record<string, unknown>>(json, 'marker');
     let marker: null | Marker = null;
     if (markerJSON != null) {
       marker = Marker.makeFromJSON(markerJSON);

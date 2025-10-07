@@ -64,6 +64,10 @@ export abstract class MapLayer {
   assigning it the value 'pin_font_awesome'. */
   public static readonly MARKERTYPE_PIN_FA = 'pin_font_awesome';
 
+  /** The above code is declaring a public static readonly variable named MARKERTYPE_RAW and
+  assigning it the value 'raw'. */
+  public static readonly MARKERTYPE_RAW = 'raw';
+
   /** The above code is declaring a public static readonly variable named BBOX_LAYER_ID with the value
   'spatialbbox'. */
   public static readonly BBOX_LAYER_ID = 'spatialbbox';
@@ -151,6 +155,8 @@ export abstract class MapLayer {
   of type `HttpClient`. The function returns a `Promise` that resolves to either `null` or an array of
   `Legend` objects. */
   protected legendCreatorFunction: (layer: MapLayer, http: HttpClient) => Promise<null | Array<Legend>>;
+
+  protected layerBboxRetrieverFunction: (layer: MapLayer, http: HttpClient) => Promise<null | Array<number>>;
 
   /** The above code is declaring a protected variable called "eposLeaflet" of type
   "EposLeafletComponent". */
@@ -362,6 +368,13 @@ export abstract class MapLayer {
     this.legendCreatorFunction = legendCreatorFunction;
     return this;
   }
+
+  public setLayerBboxRetrieverFunction(
+    layerBboxRetrieverFunction: (layer: MapLayer, http: HttpClient) => Promise<null | Array<number>>,
+  ): this {
+    this.layerBboxRetrieverFunction = layerBboxRetrieverFunction;
+    return this;
+  }
   /**
    * The function `getLegendData` returns a promise that resolves to an array of `Legend` objects or
    * `null`, and catches any errors that occur during the promise execution.
@@ -380,6 +393,17 @@ export abstract class MapLayer {
           return null;
         })
         : Promise.resolve(null),
+    );
+  }
+
+  public getLayerBbox(http: HttpClient): Promise<null | Array<number>> {
+    return Promise.resolve<null | Array<number>>(
+      this.layerBboxRetrieverFunction
+      ? this.layerBboxRetrieverFunction(this, http).catch( () => {
+        console.warn('Layer Bbox Retriever Function Failed.', this.id);
+        return null;
+      })
+      : Promise.resolve(null),
     );
   }
 
@@ -457,6 +481,17 @@ export abstract class MapLayer {
    */
   public getStylable(): Stylable | void {
   }
+
+  public toLeafletLayer(): Promise<L.Layer> {
+  return this.getLeafletLayer().then(layer => {
+    if (!layer) {
+      throw new Error(`MapLayer ${this.id} has no leaflet layer`);
+    }
+    return layer;
+  });
+}
+
+
 
   /** The above code is defining a protected property called `userPreLayerAddFunction` in a TypeScript
   class. The property is a function that takes no arguments and returns a Promise that resolves to
@@ -677,4 +712,5 @@ export abstract class MapLayer {
   method is marked as `protected`, which means it can only be accessed within the class or its
   subclasses. */
   protected abstract getLeafletLayer(): Promise<null | L.Layer>;
+
 }

@@ -1,8 +1,14 @@
 <app-base-dialog [data]="data" [title]="'Cite this dataset'">
   <ng-container class="content">
+    <div *ngIf="isLoading" class="spinner-wrapper">
+      <mat-spinner diameter="60"></mat-spinner>
+    </div>
+    
+
+    <div  *ngIf="!isLoading">
     <div class="citation-wrapper">
       <p>
-        {{ citation }}
+        <span [innerHTML]="citation"></span>
       </p>
       <button mat-icon-button (click)="copyCitationToClipboard(citation)">
         <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
@@ -12,5 +18,7 @@
     <div class="buttons">
       <button mat-flat-button [color]="'primary'" (click)="closeDialog()">OK</button>
     </div>
+  </div>
   </ng-container>
 </app-base-dialog>
+

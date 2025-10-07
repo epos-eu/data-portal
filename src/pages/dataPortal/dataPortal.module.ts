@@ -30,8 +30,12 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { DataSearchConfigurablesServiceResource } from './modules/dataPanel/services/dataSearchConfigurables.service';
 import { ResultsPanelService } from './services/resultsPanel.service';
 import { BaseLandingService } from './services/baseLanding.service';
+import { AnalysisModule } from './modules/analysisPanel/analysisPanel.module';
+import { AnalysisConfigurablesService } from './services/analysisConfigurables.service';
 import { MapModule } from './modules/map/map.modules';
 import { DirectivesModule } from 'directives/directives.module';
+import { RegistryPanelModule } from './modules/registryPanel/registryPanel.module';
+import { DataSearchConfigurablesServiceRegistry } from './modules/registryPanel/services/dataSearchConfigurables.service';
 
 
 @NgModule({
@@ -51,7 +55,9 @@ import { DirectivesModule } from 'directives/directives.module';
     MatBadgeModule,
     TablePanelModule,
     GraphPanelModule,
+    AnalysisModule,
     DirectivesModule,
+    RegistryPanelModule,
   ],
   exports: [
   ],
@@ -59,7 +65,9 @@ import { DirectivesModule } from 'directives/directives.module';
     MapInteractionService,
     ResultsPanelService,
     BaseLandingService,
+    AnalysisConfigurablesService,
     DataSearchConfigurablesServiceResource,
+    DataSearchConfigurablesServiceRegistry,
   ]
 })
 

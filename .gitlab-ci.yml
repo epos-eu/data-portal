@@ -1,0 +1,146 @@
+### Kube Deploy Section ###
+
+variables:
+  DEPLOY_REF: latest # The git-ref for the default config
+  DEPLOY_VARS: '{
+    "GUI_IMAGE": "epos-gui/deploy:$CI_COMMIT_REF_SLUG",
+    "PROJECT_NAME": "$CI_PROJECT_PATH_SLUG",
+    "CI_COMMIT_REF_SLUG": "$CI_COMMIT_REF_SLUG",
+    "ENV_STAGE": "development"
+    }' # PROJECT_NAME, CI_COMMIT_REF_SLUG and ENV_STAGE need to be provided as a minimum
+
+include:
+  - project: 'epos/k8s-epos-deploy'
+    ref: latest #apis-newgui
+    file: '.gitlab-kube-include.yml'
+
+# Also add 'deploy' in a suitable position in the stages section
+
+###########################
+
+stages:
+  - build-lint
+  - build-image
+  - deploy
+  - test
+  - opensource
+
+build:
+  image: node:22.16
+  tags:
+    - docker
+  stage: build-lint
+  script:
+    - ./gitlab/pre-build.sh
+    - npm run build-prod
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - dist
+
+linting:
+  image: node:22.16
+  stage: build-lint
+  tags:
+    - docker
+  script:
+    - ./gitlab/pre-build.sh
+    - node_modules/.bin/ng lint
+
+integration-tests:
+  image: cypress/browsers:node12.14.1-chrome85-ff81
+  tags:
+    - docker
+  stage: test
+  needs:
+    - job: build
+  script:
+    - ./gitlab/pre-build.sh
+    - npm run ci-pipeline-e2e
+  allow_failure: false
+
+# Only "sonar" branches for the moment
+sonarscan:
+  tags:
+    - docker
+    - k8s
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: ['']
+  stage: build-lint
+  script:
+    - npm i typescript
+    - sonar-scanner -Dsonar.qualitygate.wait=true -Dsonar.login=${SONAR_TOKEN} -Dsonar.projectKey=${SONAR_KEY} -Dsonar.sources=./src
+  only:
+    - /.*sonar.*/
+  when: manual
+  allow_failure: true
+
+build-image:
+  services:
+    - docker:dind
+  image: docker
+  tags:
+    - docker-builder
+  stage: build-image
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build -f Dockerfile.deploy -t "$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_REF_SLUG" .
+    - docker push "$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_REF_SLUG"
+
+start live app:
+  image: $CI_REGISTRY/$K8S_KUBECTL_IMAGE
+  stage: deploy
+  tags:
+    - k8s
+    - docker
+  needs:
+    - job: build-image
+  script:
+    - ./gitlab/pre-deploy.sh
+    - sed -i "s|DEPLOY-TAG|live-beta|g" ./gitlab/k8-deploy.yml
+    - sed -i "s|/deploy/path|/|g" ./gitlab/k8-deploy.yml
+    - kubectl apply -f ./gitlab/k8-deploy.yml
+    - echo "Deployment Available Here - http://ics-c.epos-ip.org"
+  when: manual
+  only:
+    - tags
+  environment:
+    name: live-beta
+    url: http://ics-c.epos-ip.org
+    on_stop: stop live app
+
+stop live app:
+  image: $CI_REGISTRY/$K8S_KUBECTL_IMAGE
+  stage: deploy
+  tags:
+    - k8s
+    - docker
+  script:
+    - ./gitlab/pre-deploy.sh
+    - sed -i "s|DEPLOY-TAG|live-beta|g" ./gitlab/k8-deploy.yml
+    - sed -i "s|/deploy/path|/|g" ./gitlab/k8-deploy.yml
+    - kubectl delete -f ./gitlab/k8-deploy.yml
+  when: manual
+  only:
+    - tags
+  environment:
+    name: live-beta
+    action: stop
+
+opensources_release:
+  stage: opensource
+  services:
+    - docker:dind
+  image: docker
+  tags:
+    - docker-builder
+  only:
+    - opensource
+    - tags
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker pull "$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_REF_SLUG"
+    - docker tag "$CI_REGISTRY_IMAGE/deploy:$CI_COMMIT_REF_SLUG" "epos/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG"
+    - docker login -u "$DOCKER_REGISTRY_USER" -p "$DOCKER_REGISTRY_PASSWORD"
+    - docker push "epos/$CI_PROJECT_NAME:$CI_COMMIT_REF_SLUG"

@@ -20,7 +20,7 @@ import { DiscoverResponse } from 'api/webApi/classes/discoverApi.interface';
 import { DistributionSummary } from 'api/webApi/data/distributionSummary.interface';
 import { FacetModel } from 'api/webApi/data/facetModel.interface';
 import { Domain } from 'api/webApi/data/domain.interface';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject, of, Subscription , from } from 'rxjs';
 import { DialogService } from 'components/dialog/dialog.service';
 import { LoadingService } from 'services/loading.service';
 import { DataConfigurableI } from 'utility/configurables/dataConfigurableI.interface';
@@ -48,6 +48,10 @@ import { LeafletLoadingService } from '../../utility/eposLeaflet/services/leafle
 import { NotificationSnackComponent } from '../notificationSnack/notificationSnack.component';
 import { MatSnackBarRef } from '@angular/material/snack-bar';
 import { environment } from 'environments/environment';
+import { MetaDataStatusService } from 'services/metaDataStatus.service';
+import { Model } from 'services/model/model.service';
+import { AaaiService } from 'api/aaai.service';
+import { AAAIUser } from 'api/aaai/aaaiUser.interface';
 
 @Unsubscriber(['domainSubscription', 'subscriptions'])
 @Component({
@@ -87,6 +91,15 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
   public messageType = NotificationService.TYPE_INFO;
   public messageCheckShowAgain = false;
 
+
+  public hasAllowedValues: boolean = true;
+
+  public metadataStatusModeActive: boolean = false;
+
+  public metadataSelectedStatuses: Array<string> = [];
+
+  public showStatusChipsOnCards: boolean = false;
+
   protected timeout: NodeJS.Timeout;
   protected favTimeout: NodeJS.Timeout;
 
@@ -116,8 +129,12 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
     protected readonly notification: NotificationService,
     protected readonly searchService: SearchService,
     protected readonly leafletLoadingService: LeafletLoadingService,
+    protected readonly metadataStatusService: MetaDataStatusService,
+    protected readonly model: Model,
+    protected readonly aaaiService: AaaiService
   ) {
     this.expandedElement = null;
+
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -219,6 +236,34 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
               this.updateConfigs();
             }),
 
+            // setting variable to hold MetadataPreview Mode status
+            this.model.metadataPreviewMode.valueObs.subscribe((active)=>{
+              // both dataPanel and registryPanel check this variable from their template
+              if(active != null){
+                this.metadataStatusModeActive = active;
+              }
+            }),
+            // establish if to show chips or not (when metadata Feature on and 0 statuses selected don't show, when feature on and selected statuses > 0 show)
+            this.model.metadataPreviewModeStatuses.valueObs.subscribe((statuses)=>{
+              if(this.metadataStatusModeActive === true && statuses != null){
+                if(statuses.length > 0){
+                  this.showStatusChipsOnCards = true;
+                }
+                else{
+                  this.showStatusChipsOnCards = false;
+                }
+              }
+            }),
+            // when user gets logged out (automatically, timer from last interaction has expired) and metadataStatusModeActive variable still true
+            this.aaaiService.watchUser().subscribe((user: null | AAAIUser)=>{
+              if(user == null && this.metadataStatusModeActive === true){
+                this.metadataStatusModeActive = false;
+                this.showStatusChipsOnCards = false;
+                this.metadataStatusService.metadataStatusModeActive.next(false);
+                this.metadataStatusService.metadataSelectedStatuses.next([]);
+              }
+            }),
+
             // notification by data service
             this.notification.distributionNotificationObs.subscribe((message: NotificationMessage) => {
               if (message !== null) {
@@ -228,6 +273,12 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
 
             this.dataConfigurablesArraySource.subscribe((dataConfigurables: Array<DataConfigurable>) => {
               this.updateSelectedConfig();
+            }),
+
+            this.selectedConfigurableSource.subscribe((selectedConfigurable: null | DataConfigurableI) => {
+              this.hasAllowedValues = selectedConfigurable?.getParameterDefinitions().getOtherParameters()?.some((param) => {
+                return param.hasAllowedValues;
+              }) ?? false;
             }),
 
             this.panelsEvent.invokeSelectItem.subscribe((id: string) => {
@@ -242,8 +293,6 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
                 this.facetExpansionHidden = false;
               }
             }),
-
-
           );
         }
       }),
@@ -273,23 +322,48 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
 
   /**
    * When the user clicks on an item, the item is selected
-   * @param {DistributionItem | null} expandedElement - The element that was expanded.
+   * @param {DistributionItem} expandedElement - The element that was expanded.
    */
-  public select(expandedElement: DistributionItem | null, event: Event | null = null): void {
+  public select(expandedElement: DistributionItem, event: Event | null = null): void {
 
     if (event !== null) {
       // reset the version (if it was set by sharing the URL)
       this.resetVersion();
     }
 
-    this.expandedElement = expandedElement;
+    /* IF (contains): dialog show up conditions */
+
+    // If (there's an element expanded and new element is not the current one) AND (this current element is not pinned and new element is pinned OR this current element is not pinned and new is not pinned)
+    if(((this.expandedElement !== null) && (this.expandedElement.id !== expandedElement!.id)) && ((!this.configurables.isPinned(this.expandedElement!.id) && this.configurables.isPinned(expandedElement!.id)) || (!this.configurables.isPinned(this.expandedElement!.id) && !this.configurables.isPinned(expandedElement!.id)))){
+      // If dialogcheck == null (first time) OR dialogcheck == false, show dialog
+      if(this.localStoragePersister.getValue(LocalStorageVariables.LS_SWITCH_DISTRIBUTION_ITEM_CHECK) === null || this.localStoragePersister.getValue(LocalStorageVariables.LS_SWITCH_DISTRIBUTION_ITEM_CHECK as string) === 'false'){
+        this.openSwitchItemConfirmationDialog(expandedElement);
+      }
+      else{
+        void this.toggleExpandItem(expandedElement);
+      }
+    }
+    // If nothing is expanded, expand the element; OR if it is the same element, close it; OR If previous is pinned and new element is pinned; OR If previous is pinned and new element is not pinned; OR If previous is pinned and new element is not pinned
+    else{
+      void this.toggleExpandItem(expandedElement);
+    }
+  }
+
+  /* The 'toggleExpandItem' function executes the actual instructions for the select(), which performs some controls, based on whom, will either call this function or not.  */
+  public toggleExpandItem(expandedElement: DistributionItem): Promise<void>{
+
+    this.expandedElement = this.expandedElement !== null && this.expandedElement.id === expandedElement!.id ? null : expandedElement;
+
     this.messageShow = false;
+
     if (this.expandedElement !== null) {
-      // Send the notification
-      this.loadingNotification(this.expandedElement.distId);
+      if(!this.configurables.isPinned(this.expandedElement.distId)){
+        // Send the notification
+        this.loadingNotification(this.expandedElement!.distId);
+      }
 
       // eslint-disable-next-line max-len
-      this.configurables.setSelected(this.expandedElement.distId, true);
+      this.configurables.setSelected(this.expandedElement!.distId, true);
 
       // add levels information
       this.addLevelToElement(expandedElement);
@@ -312,7 +386,7 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
                 messageShow = false;
               }
 
-              if (messageShow && !this.configurables.isPinned(expandedElement!.id) && !tourActive) {
+              if (messageShow && !this.configurables.isPinned(expandedElement!.id) && !tourActive ) {
                 this.notification.sendDistributionNotification({
                   id: DistributionNotificationText.LS_DISTRIBUTION_MESSAGE_ID,
                   title: 'Information',
@@ -327,12 +401,45 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
 
         });
       });
-
-
-    } else {
+    }else{
       this.configurables.setSelected(null, true);
     }
+    return Promise.resolve();
+  }
 
+  /** The 'openSwitchItemConfirmationDialog' function opens up the confirmation dialog
+   *  when switching between distribution items (under certain conditions established in the select()) */
+  public openSwitchItemConfirmationDialog(expandedElement: DistributionItem){
+
+    const expandedElementName = this.configurables.getSelected()!.name;
+
+
+    void this.dialogService.openSwitchItemConfirmationDialog({expandedElementName: expandedElementName}).then((confirmed)=>{
+
+      if(confirmed !== true){
+        void this.toggleExpandItem(expandedElement);
+        this.dialogService.setSwitchItemDialogConfirmation(confirmed);
+        return;
+      }else{
+        void this.awaitFavouriteThenToggleExpandItem(expandedElement);
+      }
+    });
+  }
+
+  /** This function awaits that the currently expanded item is set to favourite,
+   *  then switches to the newly clicked item.
+   */
+  public async awaitFavouriteThenToggleExpandItem(expandedElement: DistributionItem){
+    await this.setExpandedToFavourite();
+    await this.toggleExpandItem(expandedElement);
+    this.dialogService.setSwitchItemDialogConfirmation(true);
+  }
+
+  public async setExpandedToFavourite(): Promise<void> {
+    return new Promise((resolve) => {
+      this.favourite(this.expandedElement as DistributionItem);
+      resolve();
+    });
   }
 
 
@@ -355,11 +462,17 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
 
     void this.configurables.togglePinned(element.distId, true).then(pinned => {
       element.isPinned = pinned;
-      if (pinned) {
+      // If the element is expanded, no loading notification
+      if (pinned && this.configurables.isSelected(element.distId)) {
         // add levels information
+        this.addLevelToElement(element);
+      }
+      // If the element is not expanded, loading notification
+      else if (pinned && !this.configurables.isSelected(element.distId)) {
         this.addLevelToElement(element);
         this.loadingNotification(element.distId);
       }
+
       if (this.activeDomain.code === 'FAV') {
         // only in the FAV sections: if element is selected => unselected
         if (this.configurables.isSelected(element.distId)) {
@@ -377,8 +490,8 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
       this.domainResultsCounter['FAV'] = this.configurables.getAllPinned().length;
 
     });
-
   }
+
 
   /**
    * The function `openDialog` opens a details dialog for a given element.
@@ -435,13 +548,16 @@ export class BaseResultsPanelComponent implements OnInit, AfterContentInit {
    * Called on press of the displayed "Clear" button and triggers the display of a confirmation
    * to remove all of the items that are pinned.
    */
-  public removeAllFavourites(): void {
-    void this.dialogService.openConfirmationDialog(
-      'Do you want to clear all (' + String(this.configurables.getAllPinned().length) + ') favourite items?',
-      false,
-      'Ok',
-      'primary'
-    ).then((confirm: boolean) => {
+  public removeAllFavourites(autoConfirm: boolean = false): void {
+    const confirmation$ = autoConfirm
+      ? of(true)  // Automatically confirm when triggered via observable
+      : from(this.dialogService.openConfirmationDialog(
+          `Do you want to clear all (${this.configurables.getAllPinned().length}) favourite items?`,
+          false,
+          'Ok',
+          'primary'
+        ));  // Convert Promise to Observable
+    confirmation$.subscribe((confirm: boolean) => {
       if (confirm) {
         this.data.filter(item => item.isPinned).forEach((item: DistributionItem) => {
           item.isPinned = false;
