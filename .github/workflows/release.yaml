@@ -21,7 +21,7 @@ jobs:
       - name: Docker build
         run: |
           npm run build-prod
-          docker build . -t epos/data-portal:latest
+          docker build -f Dockerfile.deploy -t epos/data-portal:latest
 
       - name: Login to DockerHub
         uses: docker/login-action@v1
