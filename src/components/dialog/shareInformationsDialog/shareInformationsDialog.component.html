@@ -41,9 +41,13 @@
         <div class="container" novalidate>
           <div class="button-row">
             <button mat-flat-button type="submit" color="secondary" (click)="cancel()" [innerHTML]="step === 'createUrl' ? 'CANCEL' : 'NO'"></button>
-            <button type="submit" [ngClass]="data.dataIn.confirmButtonCssClass" mat-flat-button color="primary" (click)="confirm()" [innerHTML]="data.dataIn.confirmButtonHtml"></button>
+            <button type="submit" [ngClass]="data.dataIn.confirmButtonCssClass" mat-flat-button color="primary" [disabled]="isLoaded" (click)="confirm()" [innerHTML]="data.dataIn.confirmButtonHtml"></button>
           </div>
         </div>
+        <span *ngIf="isLoaded">
+          <mat-spinner diameter="20"></mat-spinner>
+         The services are loading please wait , the button will be enabled soon 
+        </span>
       </div>
     </div>
   </ng-container>

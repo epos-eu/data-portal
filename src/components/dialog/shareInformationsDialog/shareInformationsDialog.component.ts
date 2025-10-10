@@ -27,6 +27,7 @@ import { PoliciesService } from 'services/policiesService.service';
 import { DataSearchConfigurablesServiceResource } from 'pages/dataPortal/modules/dataPanel/services/dataSearchConfigurables.service';
 import { PageLoadingService } from 'services/pageLoading.service';
 import { ApiService } from 'api/api.service';
+import { LeafletLoadingService } from 'utility/eposLeaflet/services/leafletLoading.service';
 
 interface ShareDataIn {
   step: string;
@@ -44,6 +45,8 @@ interface ShareDataIn {
 export class ShareInformationsDialogComponent implements OnInit {
 
   public step = 'createUrl';
+
+  public isLoaded: boolean;
 
   public versionConf: string = '';
   public version: string = '';
@@ -65,6 +68,7 @@ export class ShareInformationsDialogComponent implements OnInit {
     private readonly dataSearchConfigurablesResources: DataSearchConfigurablesServiceResource,
     private readonly injector: Injector,
     private readonly pageLoadingService: PageLoadingService,
+    private readonly leafletLoadingService: LeafletLoadingService,
     private readonly apiService: ApiService,
   ) {
     this.version = environment.version as string;
@@ -110,6 +114,9 @@ export class ShareInformationsDialogComponent implements OnInit {
               this.cancel();
             }
           }),
+          this.leafletLoadingService.showLoadingObs.subscribe((isLoading: boolean)=>{
+            this.isLoaded = isLoading;
+          })
       );
     }
   }
