@@ -52,8 +52,8 @@ export class ECVFilterDialogComponent implements OnInit {
   public newECVsSelected: string[] = [];
 
   // Flags for filtering
-  public showOnlySelected = true;
-  public activeLetter = 'selected';
+  public showOnlySelected = false;
+  public activeLetter = '';
   public filters = { letter: false, text: true };
 
   // Dialog title
