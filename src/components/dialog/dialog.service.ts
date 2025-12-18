@@ -400,7 +400,7 @@ export class DialogService extends BaseDialogService {
   }
 
   public openECVFilter
-  (ECVsList, ECVsSelected, mockECVs, title = 'Filter by ECV'){
+  (ECVsList, ECVsSelected, title = 'Filter by ECV'){
     return this.openDialog(
       'ECVFilter',
       ECVFilterDialogComponent,
@@ -409,7 +409,6 @@ export class DialogService extends BaseDialogService {
       {
         ECVsList: ECVsList,
         ECVsSelected: ECVsSelected,
-        mockECVs: mockECVs,
         title: title,
       },
       {

@@ -21,6 +21,7 @@ import { Model } from './model/model.service';
 import { LoggingService } from './logging.service';
 import { Organization } from 'api/webApi/data/organization.interface';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
 
 /**
  * A service that exposes the "discover" webAPI functionality to the rest of the GUI.
@@ -68,6 +69,16 @@ export class DataSearchService {
       .then((r: Array<Organization>) => {
         return r;
       });
+  }
+  /**
+ * Fetches the list of Essential Climate Variables (ECVs) from the API
+ * @returns a Promise that resolves to an array of ECVar objects
+ */
+  public getECVs(): Promise<Array<SimpleECV> | null> {
+  return this.apiService.getECVs()
+    .then((r: Array<SimpleECV> | null) => {
+      return r || [];
+    });
   }
 
   protected discoverRequestToLogString(request: DiscoverRequest): string {

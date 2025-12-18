@@ -44,6 +44,7 @@ import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { ECVFilterDialogComponent } from 'components/dialog/ECVFilterDialog/ECVFilterDialog.component';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
 
 /**
  * This component displays the facet panel and when a user changes their selection,
@@ -97,7 +98,7 @@ export class SearchFacetsComponent implements OnInit {
   public dataProviders: Array<Organization>;
 
   // the following variable is being passed in input to template, to be used when we're actually fetching ECVs from the API !! (FOR NOW ONLY MOCKUP DATA)
-  public ECVsList: Array<Object> = [];
+  public ECVsList: SimpleECV[] = [];
 
   public types: Array<string> = [ViewType.MAP, ViewType.TABLE, ViewType.GRAPH];
   public selectedOrganisations: Array<FacetLeafItem> = [];
@@ -205,6 +206,10 @@ export class SearchFacetsComponent implements OnInit {
     void this.dataSearchService.getOrganizations('dataproviders%2Cserviceproviders').then(r => {
       this.dataProviders = r;
     });
+    
+     void this.dataSearchService.getECVs().then(r => {
+    this.ECVsList = r || []; 
+  });
   }
 
   public dataProviderSelected(listDataProvider: Array<string>): void {

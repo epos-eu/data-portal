@@ -2,6 +2,6 @@
   <mat-label>{{ label }}</mat-label>
   <mat-select #ECVsSelect multiple>
     <mat-select-trigger>{{ '' }} item(s) selected</mat-select-trigger>
-    <mat-option *ngFor="let item of ECVsList" [value]="item" style="display: none">{{ item }}</mat-option>
+    <mat-option *ngFor="let ecv of ECVsList" [value]="ecv" style="display: none">{{ ecv.name }}</mat-option>
   </mat-select>
 </mat-form-field>

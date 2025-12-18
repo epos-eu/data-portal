@@ -22,6 +22,7 @@ import { Organization } from 'api/webApi/data/organization.interface';
 import { UrlBuilder } from 'api/webApi/classes/urlBuilder.interface';
 import { JSONDistributionFactory } from 'api/webApi/data/impl/jsonDistributionFactory';
 import { CONTEXT_RESOURCE } from 'api/api.service.factory';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
 
 /**
  * **NOT CURRENTLY IN USE. It was originally created when we had an infrastructure search**
@@ -51,7 +52,7 @@ export class DevSearchApi implements SearchApi {
         return JSONDistributionFactory.jsonToOrganizations(json);
       });
   }
-
+//make a call to get exvs
   getOrganizationById(organizationId: string): Promise<Organization | null> {
       const builder: UrlBuilder = this.baseUrl.urlBuilder();
       builder.addPathElements(CONTEXT_RESOURCE);
@@ -63,5 +64,27 @@ export class DevSearchApi implements SearchApi {
         .get(builder.build()).then((json: Record<string, unknown>) => {
           return JSONDistributionFactory.jsonToOrganization(json);
         });
+  }
+
+      /**
+   * Fetches Essential Climate Variables from the API
+   * @returns Promise with array of SimpleECV objects or null
+   */
+  getECVs(): Promise<Array<SimpleECV> | null> {
+    const builder: UrlBuilder = this.baseUrl.urlBuilder();
+    builder.addPathElements(CONTEXT_RESOURCE);
+    builder.addPathElements('exvs'); 
+    
+    return this.rest
+      .get(builder.build())
+      .then((json: Record<string, unknown>) => {
+        // You'll need to create a factory method to convert JSON to SimpleECV[]
+        // Similar to how JSONDistributionFactory.jsonToOrganizations works
+        return JSONDistributionFactory.jsonToECVs(json);
+      })
+      .catch((error) => {
+        console.error('Error fetching ECVs:', error);
+        return null;
+      });
   }
 }

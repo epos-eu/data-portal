@@ -40,6 +40,8 @@ import { DistributionContactPoint } from '../distributionContactPoint.interface'
 import { DistributionCategories } from '../distributionCategories.interface';
 import { Organization } from '../organization.interface';
 import { SimpleOrganization } from './simpleOrganization';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
+import { SimpleECVs } from './simpleECVS';
 
 export class JSONDistributionFactory {
 
@@ -578,4 +580,37 @@ public static jsonToOrganization(json: unknown): Organization | null {
     }
     // Return null if json is not an array or is empty
     return null;
-}}
+}
+
+/**
+ * Converts JSON response to array of SimpleECV objects
+ * @param json - The JSON response from the API (expected to be an array)
+ * @returns Array of SimpleECV objects
+ */
+public static jsonToECVs(json: unknown): Array<SimpleECV> {
+  const ecvs = new Array<SimpleECV>();
+
+  if (Array.isArray(json)) {
+    json.forEach((element: Record<string, unknown>) => {
+      // Extract fields from JSON - adjust property names based on your API response
+      const name = ObjectAccessUtility.getObjectValueString(element, 'name', false, null);
+      const uri = ObjectAccessUtility.getObjectValueString(element, 'uri', false, null) 
+
+      if (name === null || uri === null) {
+        console.log('ECV missing name or identifier', element);
+      } else {
+        // Create SimpleECV object
+        const ecv = SimpleECVs.make(
+          name,
+          uri,
+        );
+
+        ecvs.push(ecv);
+      }
+    });
+  }
+
+  return ecvs;
+}
+
+}
