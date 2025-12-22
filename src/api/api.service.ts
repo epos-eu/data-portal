@@ -25,6 +25,7 @@ import { DiscoverResponse, DiscoverRequest } from './webApi/classes/discoverApi.
 import { DistributionFormat } from './webApi/data/distributionFormat.interface';
 import { Organization } from './webApi/data/organization.interface';
 import { Domain } from './webApi/data/domain.interface';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
 
 export class ApiService implements Api {
 
@@ -149,6 +150,15 @@ export class ApiService implements Api {
     this.checkApiBeforeCall();
     return this.delegate!.getOrganizationById(id);
   }
+
+  /**
+ * The function `getECVs` retrieves Essential Climate Variables from the API.
+ * @returns a Promise that resolves to an array of SimpleECV objects or null.
+ */
+public getECVs(): Promise<Array<SimpleECV> | null> {
+  this.checkApiBeforeCall();
+  return this.delegate!.getECVs();
+}
 
   public getDetails(summary: DistributionSummary, context: string): Promise<null | DistributionDetails> {
     this.checkApiBeforeCall();

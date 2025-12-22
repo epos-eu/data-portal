@@ -44,6 +44,7 @@ import { CONTEXT_RESOURCE } from 'api/api.service.factory';
 import { Tracker } from 'utility/tracker/tracker.service';
 import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { ECVFilterDialogComponent } from 'components/dialog/ECVFilterDialog/ECVFilterDialog.component';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
 
 /**
  * This component displays the facet panel and when a user changes their selection,
@@ -97,7 +98,7 @@ export class SearchFacetsComponent implements OnInit {
   public dataProviders: Array<Organization>;
 
   // the following variable is being passed in input to template, to be used when we're actually fetching ECVs from the API !! (FOR NOW ONLY MOCKUP DATA)
-  public ECVsList: Array<Object> = [];
+  public ECVsList: SimpleECV[] = [];
 
   public types: Array<string> = [ViewType.MAP, ViewType.TABLE, ViewType.GRAPH];
   public selectedOrganisations: Array<FacetLeafItem> = [];
@@ -114,6 +115,7 @@ export class SearchFacetsComponent implements OnInit {
   public ECVsSelected: Array<string> = [];
 
   public organisationsModel: FacetLeafItemMI;
+  public ecvsModel: FacetLeafItemMI;
 
   public locationRadioSelectTypeCoordinates = SearchFacetsComponent.SELECT_TYPE_COORDINATES;
   public locationRadioSelectTypeGeolocation = SearchFacetsComponent.SELECT_TYPE_GEOLOCATION;
@@ -136,6 +138,7 @@ export class SearchFacetsComponent implements OnInit {
   ) {
     this.countrySelected = null;
     this.organisationsModel = this.model.dataSearchFacetLeafItems;
+    this.ecvsModel = this.model.dataSearchECVs;
   }
 
   /**
@@ -188,13 +191,16 @@ export class SearchFacetsComponent implements OnInit {
           this.numberTypeSelected = arrayType.length;
         }
       }),
-
+       this.model.dataSearchECVs.valueObs.subscribe((arrayECVs: Array<string>) => {
+    if (arrayECVs !== null) {
+      this.ECVsSelected = arrayECVs;
+    }
+    }),
       this.model.dataSearchFacetLeafItems.valueObs.subscribe((arrayDataProviders: Array<string>) => {
         if (arrayDataProviders !== null) {
           this.organisationsSelected = arrayDataProviders;
         }
       })
-
     );
 
     if (this.model.dataSearchGeolocation.get() !== null) {
@@ -205,6 +211,10 @@ export class SearchFacetsComponent implements OnInit {
     void this.dataSearchService.getOrganizations('dataproviders%2Cserviceproviders').then(r => {
       this.dataProviders = r;
     });
+    
+     void this.dataSearchService.getECVs().then(r => {
+    this.ECVsList = r || []; 
+  });
   }
 
   public dataProviderSelected(listDataProvider: Array<string>): void {
@@ -219,6 +229,9 @@ export class SearchFacetsComponent implements OnInit {
     /* this.ECVsSelected = listEcv;
     this.model.dataSearchEcv.set(listEcv);
     this.triggerAdvancedSearch(); */
+    this.ECVsSelected = listEcv;
+    this.model.dataSearchECVs.set(listEcv);
+    this.triggerAdvancedSearch();
   }
 
 
@@ -230,6 +243,10 @@ export class SearchFacetsComponent implements OnInit {
     this.model.dataSearchFacetLeafItems.set([]);
     this.triggerAdvancedSearch();
   }
+  public ecvClear(): void {
+  this.model.dataSearchECVs.set([]);
+  this.triggerAdvancedSearch();
+}
 
 
   public typesToggleSelected(eventOpen: boolean, selectedTypes: Array<string> = []): void {
@@ -332,6 +349,7 @@ export class SearchFacetsComponent implements OnInit {
     this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true, false);
     this.model.dataSearchGeolocation.set(null);
     this.model.dataSearchFacetLeafItems.set([]);
+    this.model.dataSearchECVs.set([]);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     this.model.dataSearchTypeData.set([]);
     this.selectedTypes = [];

@@ -88,6 +88,7 @@ export class Model extends ModelBase {
   selected on the data search page. */
   public dataSearchFacetLeafItems = new FacetLeafItemMI();
 
+  public dataSearchECVs = new FacetLeafItemMI();
   /** The line `public dataSearchTypeData = new TypeDataMI();` is creating a public property named
   `dataSearchTypeData` in the `Model` class and initializing it with a new instance of the
   `TypeDataMI` class. This property is used for accessing the current type data selected on the data

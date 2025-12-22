@@ -230,7 +230,8 @@ export class SearchFacilityComponent implements OnInit {
         this.model.dataSearchBounds.get(),
         null,
         this.model.dataSearchFacetLeafItems.get(),
-        this.selectedStatuses
+        this.selectedStatuses,
+        this.model.dataSearchECVs.get(),
       ));
     }
     else{
@@ -241,6 +242,8 @@ export class SearchFacilityComponent implements OnInit {
         this.model.dataSearchBounds.get(),
         null,
         this.model.dataSearchFacetLeafItems.get(),
+        null,
+        this.model.dataSearchECVs.get(), 
       ));
     }
 
@@ -258,6 +261,7 @@ export class SearchFacilityComponent implements OnInit {
     // clears the current search values and makes another search passing a null
     this.clearFreeText();
     this.model.dataSearchTemporalRange.set(SimpleTemporalRange.makeUnbounded());
+    this.model.dataSearchECVs.set([]);
     this.mapInteractionService.resetAll();
     this.triggerAdvancedSearch();
     this.landingService.showLanding(true);
@@ -347,6 +351,9 @@ export class SearchFacilityComponent implements OnInit {
       case SearchService.FILTER_TYPE:
         this.searchFacets.typesClear(new Event(''));
         break;
+      case SearchService.FILTER_ECV:
+      this.searchFacets.ecvClear();
+      break;
     }
   }
 
@@ -439,6 +446,7 @@ export class SearchFacilityComponent implements OnInit {
       || this.mapInteractionService.mapBBox.get().isBounded()
       || !this.model.dataSearchTemporalRange.get().isUnbounded()
       || this.typeFilters.length > 0
+      || (this.model.dataSearchECVs.get() !== null && this.model.dataSearchECVs.get()!.length > 0)
     );
   }
 

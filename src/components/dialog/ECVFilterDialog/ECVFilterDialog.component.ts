@@ -10,12 +10,15 @@ import { TrackerAction, TrackerCategory } from 'utility/tracker/tracker.enum';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { ECV } from 'components/ecvFilter/ecvFilter.component';
 import { ECVar } from 'api/webApi/data/ECVar.interface';
-import { ECVCategory } from 'components/ecvFilter/ecvFilter.component';
+import { SimpleECV } from 'components/ecvFilter/ecvFilter.component';
 
+
+/**
+ * Input data structure passed to the dialog
+ */
 export interface DetailsDataIn {
-  ECVsList: Array<ECV>;
-  ECVsSelected: Array<string>;
-  mockECVs: Array<ECVCategory>;
+  ECVsList: SimpleECV[];
+  ECVsSelected: string[];
   title: string;
 }
 
@@ -26,332 +29,209 @@ export interface DetailsDataIn {
 })
 export class ECVFilterDialogComponent implements OnInit {
 
-  public alphabetList: Array<string>;
-  public alphabetCheck: Array<string>;
-  public activeLetter: string = 'selected';
-
-  /* public dataProviders: Array<DataProvider>; */
-  public ECVs: Array<ECV>;
-  /* public dataProvidersSelectedInput: Array<string>; */
-  public ECVsSelectedInput: Array<string>;
-  /* public dataProviderList: Array<[string, Array<DataProvider>]>; */
-  public ECVsList: Array<[string, Array<unknown>]>;
-  /* public dataProviderListSelected: Array<DataProvider> = []; */
-  public ECVsListSelected: Array<ECV> = [];
-  /* public dataProviderCounter: number = 0; */
-  public ECVCounter: number = 0;
+  // Array containing all ECVs fetched from backend
+  public ECVs: SimpleECV[] = [];
   
+  // Array of URIs currently selected (from parent)
+  public ECVsSelectedInput: string[] = [];
+  
+  // Grouped ECVs by first letter
+  public ECVsList: Array<[string, SimpleECV[]]> = [];
+  
+  // Selected ECVs for the "selected only" view
+  public ECVsListSelected: SimpleECV[] = [];
+  
+  // Counters
+  public ECVCounter: number = 0;
   public ECVCounterTotal: number = 0;
 
+  // Free text search form control
   public freeTextFormControl = new UntypedFormControl();
+  
+  // Output array for selected URIs
+  public newECVsSelected: string[] = [];
 
-  public newECVsSelected: Array<string> = [];
+  // Flags for filtering
+  public showOnlySelected = false;
+  public activeLetter = '';
+  public filters = { letter: false, text: true };
 
-  public showOnlySelected = true;
-  public filters = {
-    letter: false,
-    text: true,
-    country: false,
-  };
-
-  public spinner = true;
-
+  // Dialog title
   public title: string;
+  
+  // Alphabet lists for filtering
+  public alphabetList: string[];
+  public alphabetCheck: string[];
 
   private alphabet = 'abcdefghijklmnopqrstuvwxyz';
-
-  private countrySelected: string = '';
-
-  public objectKeys = Object.keys;
-
-  public ecvsArray: Array<ECVCategory>;
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: DialogData<DetailsDataIn>,
     private readonly tracker: Tracker,
   ) {
-    this.ECVs = this.data.dataIn.ECVsList;
+    // Map backend ECVs to SimpleECV and mark selected ones
+    this.ECVs = this.data.dataIn.ECVsList.map(ecv => ({
+      name: ecv.name,
+      uri: ecv.uri,
+      isSelected: this.data.dataIn.ECVsSelected.includes(ecv.uri)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    // Keep a reference of selected URIs from parent
     this.ECVsSelectedInput = this.data.dataIn.ECVsSelected;
+    
+    // Pre-selected ECVs for "Selected only" filter
+    this.ECVsListSelected = this.ECVs.filter(ecv => ecv.isSelected);
+
+    // Counters
     this.ECVCounter = this.ECVCounterTotal = this.ECVs.length;
-    // setting MOCK DATA
-    this.ecvsArray = this.data.dataIn.mockECVs;
+
+    // Dialog title
     this.title = this.data.dataIn.title;
 
-    this.data.dataOut = [];
-
+    // Alphabet for filtering
     this.alphabetList = this.alphabet.toUpperCase().split('');
+
+    // Initialize output
+    this.data.dataOut = [];
   }
 
   public ngOnInit(): void {
-
-    /* this.ECVs.map(_o => {
-      // trim name
-      _o.getName().trim();
-
-      // set selected
-      if (this.ECVsSelectedInput.includes(_o.getIdentifier())) {
-        _o.isSelected = true;
-        this.ECVsListSelected.push(_o);
-      }
-    });
-
-    // sort dataProviders
-    this.ECVs.sort((a, b) => {
-      return this.sortData(a, b);
-    });
-
-    this.freeTextFormControl.valueChanges.subscribe((value: string) => {
-      // If the text is empty, reset the filter
-      if (value.trim() === '') {
-        this.filters.text = false;
-        this.alphabetCheck = this.alphabetList; // Reset the alphabet check array
-        this._filter();
-        return;
-      }
-
-      this.filters.text = true;
-
-      this._filter();
-      this.refreshAlphabetCheckArray();
-    });
-
-    // track text 2sec after typing
-    this.freeTextFormControl.valueChanges.pipe(
-      debounceTime(2000),
-      distinctUntilChanged()
-    ).subscribe((value: string) => {
-
-      if (value.trim() !== '') {
-        this.tracker.trackEvent(TrackerCategory.PROVIDERS, TrackerAction.FREE_TEXT_SEARCH, value);
-      }
-    });
-
+    // Group ECVs by first letter initially
     this.ECVsList = this.groupByFirstLetter(this.ECVs);
     this.refreshAlphabetCheckArray();
 
-    setTimeout(() => {
-      this.spinner = false;
-    }, 300);
-
-    if (this.ECVsListSelected.length === 0) {
-      this.activeLetter = '';
-      this.showOnlySelected = false;
-    } */
-
+    // Subscribe to free text search changes
+    this.freeTextFormControl.valueChanges.subscribe(() => {
+      // Enable text filter if free text is entered
+      this.filters.text = !!this.freeTextFormControl.value?.trim();
+      this._filter();
+      this.refreshAlphabetCheckArray();
+    });
   }
 
   /**
-   * The activateLetter function sets the active letter, updates the showOnlySelected flag, and applies
-   * filters based on the selected letter.
-   * @param {string} letter - The "letter" parameter is a string that represents the letter to be
-   * activated. It can be an empty string, the string "selected", or any other letter of the alphabet.
+   * Activate a letter filter
+   * @param letter Letter to filter by, or 'selected' for selected only, or '' for no filter
    */
   public activateLetter(letter: string): void {
     this.activeLetter = letter;
-    this.showOnlySelected = false;
-
-    if (letter === '') {
-      this.filters.letter = false;
-    } else if (letter === 'selected') {
-      this.showOnlySelected = true;
-    } else {
-      this.filters.letter = true;
-    }
-
+    this.showOnlySelected = letter === 'selected';
+    this.filters.letter = letter !== '' && letter !== 'selected';
     this._filter();
-
   }
-
   /**
-   * The function "countrySelection" updates the filters and countrySelected variables based on the
-   * selected country's isoCode, and then calls the _filter and refreshAlphabetCheckArray functions.
-   * @param {Country} country - The parameter "country" is of type "Country".
-   */
-  public countrySelection(country: Country): void {
-
-    if (country.isoCode !== undefined) {
-      this.filters.country = true;
-      this.countrySelected = country.isoCode;
-
-      // track
-      this.tracker.trackEvent(TrackerCategory.PROVIDERS, TrackerAction.SELECT_COUNTRY, country.name);
-
-    } else {
-      this.activeLetter = '';
-      this.filters.country = false;
-      this.filters.letter = false;
-    }
-
-    this._filter();
-
-    this.refreshAlphabetCheckArray();
-
-  }
-
-  /**
-   * The function toggles the "isSelected" property of all objects in the "dataProviderListSelected"
-   * array to the given status.
-   * @param {boolean} status - The "status" parameter is a boolean value that determines whether all
-   * items in the "dataProviderListSelected" array should be selected or deselected. If "status" is
-   * true, all items will be selected. If "status" is false, all items will be deselected.
+   * Toggle selection status of all selected ECVs
+   * @param status True to select all, false to deselect all
    */
   public toggleAllSelected(status: boolean): void {
-    this.ECVsListSelected.map(_obj => {
-      _obj.isSelected = status;
-    });
+    this.ECVsListSelected.forEach(ecv => ecv.isSelected = status);
   }
 
   /**
-   * The function toggles the "isSelected" property of all data providers in a list to a specified
-   * status.
-   * @param {boolean} status - The "status" parameter is a boolean value that determines whether the
-   * "isSelected" property of each "DataProvider" object should be set to true or false.
+   * Toggle selection status of all ECVs currently displayed in filtered list
+   * @param status True to select all, false to deselect all
    */
   public toggleAllFiltered(status: boolean): void {
-    this.ECVsList.forEach(_g => {
-      _g[1].forEach((_dp: Object) => {
-        (_dp as ECV).isSelected = status;
-      });
-    });
+    this.ECVsList.forEach(([_, group]) => group.forEach(ecv => ecv.isSelected = status));
   }
 
   /**
-   * The submit function updates the dataOut property of the data object with the identifiers of the
-   * selected data providers and then closes the data object.
+   * Update selected ECVs list when a checkbox is clicked
+   * @param ecv SimpleECV object whose selection changed
+   */
+  public updateECVListSelected(ecv: SimpleECV): void {
+    if (ecv.isSelected) {
+      if (!this.ECVsListSelected.includes(ecv)) this.ECVsListSelected.push(ecv);
+    } else {
+      const index = this.ECVsListSelected.indexOf(ecv);
+      if (index > -1) this.ECVsListSelected.splice(index, 1);
+    }
+  }
+
+  /**
+   * Submit selected ECVs and close the dialog
    */
   public submit(): void {
-
-    this.newECVsSelected = [];
-    const newECVsSelectedName: Array<string> = [];
-
-    this.ECVs.forEach((_dp: DataProvider) => {
-      if (_dp.isSelected) {
-        this.newECVsSelected.push(_dp.getIdentifier());
-        newECVsSelectedName.push(_dp.getName());
-      }
-    });
-
+    // Get URIs of selected ECVs
+    this.newECVsSelected = this.ECVsListSelected.map(ecv => ecv.uri);
     this.data.dataOut = this.newECVsSelected;
-
     if (this.newECVsSelected.length > 0) {
-      // track search
-      this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.DATA_PROVIDER, newECVsSelectedName.join(Tracker.TARCKER_DATA_SEPARATION));
+      const names = this.ECVsListSelected.map(ecv => ecv.name).join(', ');
+      this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.DATA_PROVIDER, names);
     }
 
     this.data.close();
   }
 
-  public cancel(): void {
+  /**
+   * Cancel dialog without saving
+   */
+  public cancel(): void { 
     this.data.dataOut = false;
     this.data.close();
   }
 
   /**
-   * Updates the list of selected data providers based on the checkbox status of a data provider.
-   * @param {DataProvider} dataProvider - The data provider whose checkbox status has changed.
+   * Apply all filters (letter, free text, selected only)
    */
-  public updateDataProviderListSelected(dataProvider: DataProvider): void {
-    if (dataProvider.isSelected) {
-      // If the checkbox is checked, add the data provider to the list
-      this.ECVsListSelected.push(dataProvider);
-    } else {  // If the checkbox is unchecked, remove the data provider from the list
-      // Find the index of the data provider in the list
-      const index = this.ECVsListSelected.indexOf(dataProvider);
-      // If the data provider is in the list
-      if (index > -1) {
-        // Remove it
-        this.ECVsListSelected.splice(index, 1);
-      }
-    }
-  }
-
   private _filter(): void {
+    let filtered = this.ECVs;
 
-    let ECVsFiltered: Array<ECV> = this.ECVs;
-
-    // filter by first letter
+    // Filter by first letter
     if (this.filters.letter) {
-      const filterValue = this.activeLetter;
-
-      ECVsFiltered = ECVsFiltered.filter(
-        option => option.getName()[0].toLowerCase().includes(filterValue.toLowerCase())
-      );
+      const letter = this.activeLetter.toLowerCase();
+      filtered = filtered.filter(ecv => ecv.name[0].toLowerCase() === letter);
     }
 
-    // filter by free text
+    // Filter by free text
     if (this.filters.text) {
-
-      const filterValue = this.freeTextFormControl.value as string;
-
-      if (filterValue !== '') {
-        ECVsFiltered = ECVsFiltered.filter(
-          option => option.getName().toLowerCase().includes(filterValue.toLowerCase())
-        );
-      }
+      const text = this.freeTextFormControl.value?.toLowerCase() || '';
+      filtered = filtered.filter(ecv => ecv.name.toLowerCase().includes(text));
     }
 
-    // filter by country
-    if (this.filters.country) {
-
-      const filterValue = this.countrySelected;
-
-      ECVsFiltered = ECVsFiltered.filter(
-        option => option.getCountry().toLowerCase().includes(filterValue.toLowerCase())
-      );
+    // Filter by selected only
+    if (this.showOnlySelected) {
+      filtered = filtered.filter(ecv => ecv.isSelected);
     }
 
-    this.ECVCounter = ECVsFiltered.length;
+    this.ECVCounter = filtered.length;
 
-    // group by first letter
-    this.ECVsList = this.groupByFirstLetter(ECVsFiltered);
+    // Group filtered ECVs by first letter
+    this.ECVsList = this.groupByFirstLetter(filtered);
   }
 
-  private refreshAlphabetCheckArray() {
-    this.alphabetCheck = [];
-    this.ECVsList.forEach(_g => {
-      this.alphabetCheck.push(_g[0].toUpperCase());
-    });
+  /**
+   * Refresh the alphabet check array to highlight letters that have ECVs
+   */
+  private refreshAlphabetCheckArray(): void {
+    this.alphabetCheck = this.ECVsList.map(([letter, _group]) => letter.toUpperCase());
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private groupByFirstLetter(arr: Array<Object>): Array<[string, Array<Object>]> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    const group = arr.reduce((acc, cur: DataProvider) => {
-      const firstLetter = cur.getName()[0].toLowerCase();
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      return { ...acc, [firstLetter]: [...(acc[firstLetter] || []), cur] };
-    }, {}) as Array<Array<Object>>;
+  /**
+   * Group an array of SimpleECVs by their first letter
+   * @param arr Array of SimpleECV objects
+   * @returns Array of tuples: [first letter, array of ECVs]
+   */
+  private groupByFirstLetter(arr: SimpleECV[]): Array<[string, SimpleECV[]]> {
+    const group = arr.reduce((acc, cur) => {
+      const first = cur.name[0].toLowerCase();
+      acc[first] = [...(acc[first] || []), cur];
+      return acc;
+    }, {} as { [key: string]: SimpleECV[] });
 
     const groupedArray = Object.entries(group);
-    const result: Array<[string, Array<Object>]> = [];
+    const result: Array<[string, SimpleECV[]]> = [];
 
-    // first element not in alphabet list
-    groupedArray.forEach((_g, index) => {
-      const key = _g[0];
-      if (!this.alphabetList.includes(key.toUpperCase())) {
-        result.push(_g);
-      }
+    // Add non-alphabet first
+    groupedArray.forEach(([key, val]) => {
+      if (!this.alphabetList.includes(key.toUpperCase())) result.push([key, val]);
     });
 
-    // other grouped list
-    groupedArray.forEach((_g, index) => {
-      const key = _g[0];
-      if (this.alphabetList.includes(key.toUpperCase())) {
-        result.push(_g);
-      }
+    // Add alphabetical letters
+    groupedArray.forEach(([key, val]) => {
+      if (this.alphabetList.includes(key.toUpperCase())) result.push([key, val]);
     });
 
     return result;
-  }
-
-  private sortData(a: ECV, b: ECV) {
-    if (a.getName().toLowerCase() < b.getName().toLowerCase()) {
-      return -1;
-    }
-    if (a.getName().toLowerCase() > b.getName().toLowerCase()) {
-      return 1;
-    }
-    return 0;
   }
 }

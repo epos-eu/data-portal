@@ -58,5 +58,7 @@ export interface DiscoverRequest {
 
   // used in search calls for 'Metadata Status' feature
   getVersioningStatus(): null | Array<string>;
+  // used when the apply button is clicked in the ECV filter dialog
+  getECVIds(): null | Array<string>;
 
 }
