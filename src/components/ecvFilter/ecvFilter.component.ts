@@ -32,7 +32,7 @@ export class EcvFilterComponent implements OnInit {
   @Input() public label: string;
   @Input() public model: FacetLeafItemMI;
   @Output() newECVsSelected: EventEmitter<Array<string>> = new EventEmitter<Array<string>>();
-
+  
   @ViewChild('ECVsSelect') private ECVsSelect: MatSelect;
 
   /** Variable for keeping track of subscriptions, which are cleaned up by Unsubscriber */
@@ -56,16 +56,16 @@ export class EcvFilterComponent implements OnInit {
 
     }, 100);
 
-    /* if (this.model !== undefined) {
-      this.subscriptions.push(
-        this.model.valueObs.subscribe((value: Array<string>) => {
-          if (value !== null) {
-            this.dataProvidersSelected = value;
-            this.selectOption();
-          }
-        })
-      );
-    } */
+     if (this.model !== undefined) {
+    this.subscriptions.push(
+      this.model.valueObs.subscribe((value: Array<string>) => {
+        if (value !== null) {
+          this.ECVsSelected = value; // ← Update ECVsSelected
+          this.selectOption(); // ← Refresh checkboxes
+        }
+      })
+    );
+  }
   }
 
   /**

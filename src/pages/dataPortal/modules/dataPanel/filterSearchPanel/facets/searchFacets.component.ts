@@ -115,6 +115,7 @@ export class SearchFacetsComponent implements OnInit {
   public ECVsSelected: Array<string> = [];
 
   public organisationsModel: FacetLeafItemMI;
+  public ecvsModel: FacetLeafItemMI;
 
   public locationRadioSelectTypeCoordinates = SearchFacetsComponent.SELECT_TYPE_COORDINATES;
   public locationRadioSelectTypeGeolocation = SearchFacetsComponent.SELECT_TYPE_GEOLOCATION;
@@ -137,6 +138,7 @@ export class SearchFacetsComponent implements OnInit {
   ) {
     this.countrySelected = null;
     this.organisationsModel = this.model.dataSearchFacetLeafItems;
+    this.ecvsModel = this.model.dataSearchECVs;
   }
 
   /**
@@ -189,13 +191,16 @@ export class SearchFacetsComponent implements OnInit {
           this.numberTypeSelected = arrayType.length;
         }
       }),
-
+       this.model.dataSearchECVs.valueObs.subscribe((arrayECVs: Array<string>) => {
+    if (arrayECVs !== null) {
+      this.ECVsSelected = arrayECVs;
+    }
+    }),
       this.model.dataSearchFacetLeafItems.valueObs.subscribe((arrayDataProviders: Array<string>) => {
         if (arrayDataProviders !== null) {
           this.organisationsSelected = arrayDataProviders;
         }
       })
-
     );
 
     if (this.model.dataSearchGeolocation.get() !== null) {
@@ -224,6 +229,9 @@ export class SearchFacetsComponent implements OnInit {
     /* this.ECVsSelected = listEcv;
     this.model.dataSearchEcv.set(listEcv);
     this.triggerAdvancedSearch(); */
+    this.ECVsSelected = listEcv;
+    this.model.dataSearchECVs.set(listEcv);
+    this.triggerAdvancedSearch();
   }
 
 
@@ -235,6 +243,10 @@ export class SearchFacetsComponent implements OnInit {
     this.model.dataSearchFacetLeafItems.set([]);
     this.triggerAdvancedSearch();
   }
+  public ecvClear(): void {
+  this.model.dataSearchECVs.set([]);
+  this.triggerAdvancedSearch();
+}
 
 
   public typesToggleSelected(eventOpen: boolean, selectedTypes: Array<string> = []): void {
@@ -337,6 +349,7 @@ export class SearchFacetsComponent implements OnInit {
     this.setBBoxFromControl(SimpleBoundingBox.makeUnbounded(), true, false);
     this.model.dataSearchGeolocation.set(null);
     this.model.dataSearchFacetLeafItems.set([]);
+    this.model.dataSearchECVs.set([]);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     this.model.dataSearchTypeData.set([]);
     this.selectedTypes = [];

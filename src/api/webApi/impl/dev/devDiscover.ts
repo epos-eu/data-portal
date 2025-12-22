@@ -60,7 +60,7 @@ export class DevDiscoverApi implements DiscoverApi {
 
   getFilters(context: string): Promise<null | DiscoverResponse> {
     const builder: UrlBuilder = this.baseUrl.urlBuilder();
-
+    
     builder.addPathElements(context);
     builder.addPathElements('search');
 
@@ -121,6 +121,12 @@ export class DevDiscoverApi implements DiscoverApi {
     if (organisations != null && organisations.length > 0) {
       const value: string = organisations.join(',');
       builder.addParameter('organisations', value);
+    }
+    // ECVs
+    const ecvIds = request.getECVIds();
+    if (ecvIds !== null && ecvIds.length > 0) {
+      const value: string = ecvIds.join(',');
+      builder.addParameter('exvs', value);
     }
 
     // versioning Status ("Metadata Status" feature)

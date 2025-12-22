@@ -30,6 +30,7 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
     private readonly keywordIds: null | Array<string>,
     private readonly organisationIds: null | Array<string>,
     private readonly versioningStatus: null | Array<string>,
+    private readonly ECVIds: null | Array<string>,
   ) { }
 
   public static makeEmptyQuery(): DiscoverRequest {
@@ -39,7 +40,7 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
   public static makeFreeTextQuery(query: null | string = null): DiscoverRequest {
     return SimpleDiscoverRequest.makeFullQuery(query);
   }
-
+// needs to add an array for uris to filter on ECVs
   public static makeFullQuery(//
     context: null | string = null,
     query: null | string = null,
@@ -48,8 +49,9 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
     keywordIds: null | Array<string> = null,
     organisationIds: null | Array<string> = null,
     versioningStatus: null | Array<string> = null,
+    ECVIds: null | Array<string> = null,
   ): DiscoverRequest {
-    return new SimpleDiscoverRequest(context, query, temporalRange, bbox, keywordIds, organisationIds, versioningStatus);
+    return new SimpleDiscoverRequest(context, query, temporalRange, bbox, keywordIds, organisationIds, versioningStatus, ECVIds);
   }
 
   getContext(): null | string {
@@ -80,6 +82,9 @@ export class SimpleDiscoverRequest implements DiscoverRequest {
   // used for the 'search' call in 'Metadata Status' feature
   getVersioningStatus(): null | Array<string> {
     return this.versioningStatus;
+  }
+  getECVIds(): null | Array<string> {
+    return this.ECVIds;
   }
 
 }

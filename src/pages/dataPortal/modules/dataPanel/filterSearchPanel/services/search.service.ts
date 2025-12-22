@@ -26,6 +26,7 @@ export class SearchService extends DataSearchService {
   public static readonly FILTER_TEMPORAL = 'Temporal';
   public static readonly FILTER_ORGANIZATION = 'Providers';
   public static readonly FILTER_TYPE = 'Data Visualization';
+  public static readonly FILTER_ECV = 'ECV';
 
   private _typeFilters = new BehaviorSubject<Array<string>>(['']);
   // eslint-disable-next-line @typescript-eslint/member-ordering
@@ -51,6 +52,10 @@ export class SearchService extends DataSearchService {
     const organisationsIds = discoverRequest.getOrganisationIds();
     if (organisationsIds !== null && organisationsIds!.length > 0) {
       filterArray.push(SearchService.FILTER_ORGANIZATION);
+    }
+     const ecvIds = discoverRequest.getECVIds();
+    if (ecvIds !== null && ecvIds.length > 0) {
+    filterArray.push(SearchService.FILTER_ECV); // ← Add this constant
     }
 
     // temporal

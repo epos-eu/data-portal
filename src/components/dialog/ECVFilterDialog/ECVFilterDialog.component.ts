@@ -155,7 +155,6 @@ export class ECVFilterDialogComponent implements OnInit {
     // Get URIs of selected ECVs
     this.newECVsSelected = this.ECVsListSelected.map(ecv => ecv.uri);
     this.data.dataOut = this.newECVsSelected;
-
     if (this.newECVsSelected.length > 0) {
       const names = this.ECVsListSelected.map(ecv => ecv.name).join(', ');
       this.tracker.trackEvent(TrackerCategory.SEARCH, TrackerAction.DATA_PROVIDER, names);
